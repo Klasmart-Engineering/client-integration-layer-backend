@@ -214,7 +214,10 @@ export class ValidationWrapper implements Validate {
       entityId: this.getEntityId(),
     };
 
-    const { error } = schema.validate(data);
+    const { error } = schema.validate(data, {
+      abortEarly: false,
+      allowUnknown: false,
+    });
     if (error) {
       errors.push(
         new OnboardingError(
