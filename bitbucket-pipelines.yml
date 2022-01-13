@@ -1,0 +1,46 @@
+image: node:16-alpine
+definitions:
+  services:
+    postgres:
+      image: postgres
+      environment:
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: kidsloop
+        POSTGRES_DB: mcb-integration
+    redis:
+      image: redis:alpine
+  steps:
+    - step: &checks
+        name: "lint"
+        caches:
+          - node
+        script:
+          - npm install
+          - npm run lint
+    - step: &tests
+        name: "unit tests"
+        services:
+          - postgres
+          - redis
+        caches:
+          - node
+        script:
+          - npm install
+          - npm run test
+
+pipelines:
+  default:
+    - step: *tests
+
+  pull-requests:
+    '**':
+      - step: *checks
+
+  tags:
+    v*:
+      - step: *tests
+
+  branches:
+    main:
+      - step: *checks
+      - step: *tests

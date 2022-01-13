@@ -1,0 +1,101 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Started = Entity has been validated and is pushed to stream
+// Processed = Request has been added to Admin Service
+enum Status {
+  QUEUED
+  PROCESSED
+}
+
+model Organization {
+  clientUuid String @id @map("client_uuid") @db.Uuid
+  klUuid     String @unique @map("kl_uuid") @db.Uuid
+
+  roleUuids    String[] @map("role_uuids") @db.Uuid
+  programUuids String[] @map("program_uuids") @db.Uuid
+
+  schools School[]
+  classes Class[]
+  users   User[]
+
+  status    Status    @default(QUEUED) @map("status")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+
+  @@index(klUuid)
+  @@map("validation_organizations")
+}
+
+model School {
+  clientUuid    String       @id @map("client_uuid") @db.Uuid
+  clientOrgUuid String       @map("client_org_uuid") @db.Uuid
+  organization  Organization @relation(fields: [clientOrgUuid], references: [clientUuid])
+
+  classes Class[]
+  users   User[]
+
+  programUuids String[] @map("program_uuids") @db.Uuid
+
+  klUuid String? @unique @map("kl_uuid") @db.Uuid
+
+  status    Status    @default(QUEUED) @map("status")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+
+  @@index(klUuid)
+  @@map("validation_schools")
+}
+
+model Class {
+  clientUuid String @id @map("client_uuid") @db.Uuid
+
+  clientOrgUuid String       @map("client_org_uuid") @db.Uuid
+  organization  Organization @relation(fields: [clientOrgUuid], references: [clientUuid])
+
+  clientSchoolUuid String @map("client_school_uuid") @db.Uuid
+  school           School @relation(fields: [clientSchoolUuid], references: [clientUuid])
+
+  klUuid String? @unique @map("kl_uuid") @db.Uuid
+
+  // Metadata
+  status    Status    @default(QUEUED) @map("status")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+
+  @@index(klUuid)
+  @@map("validation_classes")
+}
+
+model User {
+  clientUuid String @id @map("client_uuid") @db.Uuid
+
+  clientOrgUuid String       @map("client_org_uuid") @db.Uuid
+  organization  Organization @relation(fields: [clientOrgUuid], references: [clientUuid])
+
+  clientSchoolUuid String @map("client_school_uuid") @db.Uuid
+  school           School @relation(fields: [clientSchoolUuid], references: [clientUuid])
+
+  klUuid String? @unique @map("kl_uuid") @db.Uuid
+
+  status    Status    @default(QUEUED) @map("status")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+
+  @@index(klUuid)
+  @@map("validation_users")
+}

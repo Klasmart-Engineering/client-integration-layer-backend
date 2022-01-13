@@ -1,0 +1,83 @@
+version: '3.9'
+
+services:
+  # server:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: node-server
+  #   environment:
+  #     DATABASE_URL: postgresql://postgres:kidsloop@db:5432/mcb-integration
+  #     REDIS_HOST: redis
+  #     REDIS_PORT: 6379
+  #   expose:
+  #     - '4200'
+  #   ports:
+  #     - '4200:4200'
+  #   depends_on:
+  #     - db
+  #     - redis
+
+  db:
+    container_name: postgres-db
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: kidsloop
+      POSTGRES_DB: mcb-integration
+    ports:
+      - '5432:5432'
+
+  redis:
+    container_name: redis-db
+    image: 'redis:alpine'
+    ports:
+      - '6379:6379'
+
+  db1:
+    container_name: postgres1
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: kidsloop
+      POSTGRES_DB: postgres1
+    ports:
+      - '5433:5432'
+
+  kidsloop-user-service:
+    build:
+      context: ../kidsloop-user-service
+      dockerfile: Dockerfile
+    container_name: user-service
+    environment:
+      - DOMAIN=kidsloop-user-service:8080
+      - DATABASE_URL=postgres://postgres:kidsloop@db1:5432/postgres1
+      - STORAGE_BUCKET=kidsloop-alpha-account-asset-objects
+      - STORAGE_PROVIDER=amazon
+      - NODE_ENV=development
+      - FORCE_LOCAL_STORAGE=true
+      - STORAGE_ENDPOINT=http://localstack1:4566
+      - STORAGE_ACCESS_KEY_ID=""
+      - STORAGE_SECRET_ACCESS_KEY=""
+      - STORAGE_REGION=eu-west-1
+      - ROUTE_PREFIX=/user
+    expose:
+      - '8080'
+    ports:
+      - '8080:8080'
+    depends_on:
+      - localstack1
+      - db1
+
+  localstack1:
+    container_name: localstack1
+    image: localstack/localstack:0.12.12
+    restart: always
+    environment:
+      - SERVICES=s3
+    ports:
+      - 4566:4566
+    volumes:
+      - ./scripts:/docker-entrypoint-initaws.d
