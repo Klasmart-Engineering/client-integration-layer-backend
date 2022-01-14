@@ -121,7 +121,7 @@ export const INVALID_SCHOOLS: SchoolTestCase[] = [
   },
 ];
 
-describe('organization validation', () => {
+describe('school validation', () => {
   VALID_SCHOOLS.forEach(({ scenario, school }) => {
     it(`should pass when an organization is ${scenario}`, () => {
       const { error } = schoolSchema.validate(school.toObject());

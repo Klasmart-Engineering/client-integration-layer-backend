@@ -121,18 +121,18 @@ export const INVALID_CLASSES: ClassTestCase[] = [
   },
 ];
 
-describe('organization validation', () => {
-  VALID_CLASSES.forEach(({ scenario, c: school }) => {
+describe('class validation', () => {
+  VALID_CLASSES.forEach(({ scenario, c }) => {
     it(`should pass when an organization is ${scenario}`, () => {
-      const { error } = classSchema.validate(school.toObject());
+      const { error } = classSchema.validate(c.toObject());
       expect(error).to.be.undefined;
     });
   });
 
   describe('should fail when ', () => {
-    INVALID_CLASSES.forEach(({ scenario, c: school }) => {
+    INVALID_CLASSES.forEach(({ scenario, c }) => {
       it(scenario, () => {
-        const { error } = classSchema.validate(school.toObject());
+        const { error } = classSchema.validate(c.toObject());
         expect(error).to.not.be.undefined;
         expect(error?.details).to.have.length(1);
       });

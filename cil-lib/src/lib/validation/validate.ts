@@ -12,7 +12,13 @@ import {
 import { OnboardingRequest } from '../protos/api_pb';
 import { Entity } from '../types';
 
-import { classSchema, organizationSchema, schoolSchema, userSchema } from '.';
+import {
+  classSchema,
+  organizationSchema,
+  schoolSchema,
+  userSchema,
+  VALIDATION_RULES,
+} from '.';
 
 export interface Validate {
   data: OnboardingRequest;
@@ -27,6 +33,8 @@ export interface Validate {
   // getRoles(): string[] | null;
   // getPrograms(): string[] | null;
   // getClasses(): string[] | null;
+  toObject(): void;
+  customHook(): void;
 }
 
 export class ValidationWrapper implements Validate {
@@ -154,6 +162,54 @@ export class ValidationWrapper implements Validate {
     }
   }
 
+  public toObject(): Record<string, unknown> {
+    switch (this.entity) {
+      case OnboardingRequest.EntityCase.ORGANIZATION:
+        return tryGetEntity(this.data.toObject().organization, this.mapEntity);
+      case OnboardingRequest.EntityCase.SCHOOL:
+        return tryGetEntity(this.data.toObject().school, this.mapEntity);
+      case OnboardingRequest.EntityCase.CLASS:
+        return tryGetEntity(this.data.toObject().pb_class, this.mapEntity);
+      case OnboardingRequest.EntityCase.USER: {
+        return tryGetEntity(this.data.toObject().user, this.mapEntity);
+      }
+      default:
+        throw UNREACHABLE();
+    }
+  }
+
+  public customHook(): void {
+    switch (this.entity) {
+      case OnboardingRequest.EntityCase.USER: {
+        const { phone, email } = tryGetEntity(
+          this.data.toObject().user,
+          this.mapEntity
+        );
+        const phoneRegex = new RegExp(VALIDATION_RULES.PHONE_REGEX);
+        const emailRegex = new RegExp(VALIDATION_RULES.EMAIL_REGEX);
+        const phoneIsValid = phoneRegex.exec(phone);
+        const emailIsValid = emailRegex.exec(email);
+        if (phoneIsValid === null && emailIsValid === null)
+          throw new OnboardingError(
+            MachineError.VALIDATION,
+            'Entity is invalid',
+            this.mapEntity,
+            Category.REQUEST,
+            {},
+            [
+              'Phone and Email was invalid',
+              'Must provide a combination of either phone + username or email + username',
+            ]
+          );
+        break;
+      }
+      case OnboardingRequest.EntityCase.ORGANIZATION:
+      case OnboardingRequest.EntityCase.SCHOOL:
+      case OnboardingRequest.EntityCase.CLASS:
+      default:
+    }
+  }
+
   // public getRoles(): string[] | null {
   //   switch (this.entity) {
   //     case OnboardingRequest.EntityCase.ORGANIZATION:
@@ -217,7 +273,7 @@ export class ValidationWrapper implements Validate {
       entityId: this.getEntityId(),
     };
 
-    const { error } = schema.validate(data, {
+    const { error } = schema.validate(this.toObject(), {
       abortEarly: false,
       allowUnknown: false,
     });
@@ -234,6 +290,14 @@ export class ValidationWrapper implements Validate {
       );
     }
 
+    try {
+      this.customHook();
+    } catch (e) {
+      if (e instanceof OnboardingError) {
+        errors.push(e);
+      }
+    }
+
     const orgId = this.getOrganizationId();
     if (errors.length > 0) throw new Errors(errors);
     if (!orgId) return data;
@@ -243,7 +307,6 @@ export class ValidationWrapper implements Validate {
       if (e instanceof OnboardingError) {
         errors.push(e);
       }
-      throw e;
     }
 
     // Make sure the school name is valid
@@ -256,7 +319,6 @@ export class ValidationWrapper implements Validate {
       if (e instanceof OnboardingError) {
         errors.push(e);
       }
-      throw e;
     }
 
     /* Looks like we're no longer validating these?
