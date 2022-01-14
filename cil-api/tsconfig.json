@@ -3,7 +3,7 @@
     "incremental": true,
     "target": "es2017",
     "outDir": "dist/main",
-    "rootDir": "src",
+    "rootDir": "/",
     "moduleResolution": "node",
     "module": "commonjs",
     "declaration": true,
@@ -41,7 +41,7 @@
     "types": ["node"],
     "typeRoots": ["node_modules/@types", "src/types"]
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "tests/**/*.ts"],
   "exclude": ["node_modules/**"],
   "compileOnSave": true
 }
