@@ -14,5 +14,6 @@ export const schoolSchema = Joi.object({
     .max(VALIDATION_RULES.SCHOOL_NAME_MAX_LENGTH)
     .required(),
 
-  shortCode: Joi.string().max(VALIDATION_RULES.SHORTCODE_MAX_LENGTH).required(),
+  shortCode: Joi.string().min(VALIDATION_RULES.SHORTCODE_MIN_LENGTH)
+  .max(VALIDATION_RULES.SHORTCODE_MAX_LENGTH).required(),
 });
