@@ -1,0 +1,48 @@
+[
+  {
+    "testCase": "organization is valid",
+    "valid": true,
+    "data": {
+      "clientUuid": "6aec2c48-aa45-464c-b3ee-59cdb9511ec1",
+      "name": "Test Organization"
+    }
+  },
+  {
+    "testCase": "clientUuid is an invalid uuid",
+    "valid": false,
+    "data": {
+      "clientUuid": "6aec2c48-aa45-464c-b3ee-59cdb9",
+      "name": "Test Organization 2"
+    }
+  },
+  {
+    "testCase": "name less than minimum character limit",
+    "valid": false,
+    "data": {
+      "clientUuid": "6fbca03c-7e1f-424f-a006-35162066409b",
+      "name": "1"
+    }
+  },
+  {
+    "testCase": "name greater than maximum character limit",
+    "valid": false,
+    "data": {
+      "clientUuid": "59462081-4ab3-4b3c-a22c-bb0a8a583e30",
+      "name": "abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz1234567890"
+    }
+  },
+  {
+    "testCase": "name missing",
+    "valid": false,
+    "data": {
+      "clientUuid": "6f80b02b-9e1e-4a21-9e90-4b993b67fccf"
+    }
+  },
+  {
+    "testCase": "clientUuid missing",
+    "valid": false,
+    "data": {
+      "name": "Test Organization 2"
+    }
+  }
+]

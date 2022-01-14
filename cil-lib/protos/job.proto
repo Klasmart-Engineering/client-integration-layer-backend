@@ -1,0 +1,60 @@
+syntax = "proto3";
+package cil_onboarding.jobs;
+
+import "api.proto";
+
+message Job {
+  string request_id = 1;
+  cil_onboarding.api.OnboardingRequest request = 2;
+  uint32 attempts = 3;
+}
+
+message OnboardingSuccess {
+  string request_id = 1;
+  cil_onboarding.api.Action action = 2;
+  cil_onboarding.api.Entity entity = 3;
+  string entity_id = 4;
+}
+
+// Option 1
+message OnboardingError {
+  string request_id = 1;
+  cil_onboarding.api.Entity entity = 2;
+  cil_onboarding.api.Action action = 3;
+  cil_onboarding.api.Error errors = 4;
+}
+
+// Option 2
+message OnboardingError {
+  string request_id = 1;
+  cil_onboarding.api.Action action = 2;
+  oneof entity {
+    LinkEntitiesError link_entities = 16;
+    OrganizationError organization = 17;
+    SchoolError school = 18;
+    ClassError class = 19;
+    UserError user = 20;
+  }
+}
+
+message OrganizationError {
+  cil_onboarding.api.Error error = 1;
+}
+
+message SchoolError {
+  cil_onboarding.api.Error error = 1;
+}
+
+message ClassError {
+  cil_onboarding.api.Error error = 1;
+}
+
+message UserError {
+  cil_onboarding.api.Error error = 1;
+}
+
+message LinkEntitiesError {
+  cil_onboarding.api.Error error = 1;
+}
+
+
