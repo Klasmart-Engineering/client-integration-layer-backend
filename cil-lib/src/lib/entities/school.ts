@@ -2,7 +2,7 @@ import { School as DbSchool, Prisma, PrismaClient } from '@prisma/client';
 
 import { Category, MachineError, OnboardingError } from '../errors';
 import { Entity } from '../types';
-import { ClientUuid } from '../utils';
+import { ExternalUuid } from '../utils';
 
 const prisma = new PrismaClient();
 
@@ -21,16 +21,16 @@ export class School {
         msg,
         Entity.SCHOOL,
         Category.POSTGRES,
-        { entityId: school.clientUuid, operation: 'INSERT ONE' }
+        { entityId: school.externalUuid, operation: 'INSERT ONE' }
       );
     }
   }
 
-  public static async findOne(id: ClientUuid): Promise<DbSchool> {
+  public static async findOne(id: ExternalUuid): Promise<DbSchool> {
     try {
       const school = await prisma.school.findUnique({
         where: {
-          clientUuid: id,
+          externalUuid: id,
         },
       });
       if (!school) throw new Error(`School: ${id} not found`);
@@ -47,11 +47,11 @@ export class School {
     }
   }
 
-  public static async isValid(id: ClientUuid): Promise<void> {
+  public static async isValid(id: ExternalUuid): Promise<void> {
     try {
       const count = await prisma.school.count({
         where: {
-          clientUuid: id,
+          externalUuid: id,
         },
       });
       if (count === 1) return;
@@ -68,11 +68,11 @@ export class School {
     }
   }
 
-  public static async getPrograms(id: ClientUuid): Promise<string[]> {
+  public static async getPrograms(id: ExternalUuid): Promise<string[]> {
     try {
       const programs = await prisma.school.findUnique({
         where: {
-          clientUuid: id,
+          externalUuid: id,
         },
         select: {
           programUuids: true,
@@ -93,8 +93,8 @@ export class School {
   }
 
   public static async programsAreValid(
-    schoolId: ClientUuid,
-    programs: ClientUuid[]
+    schoolId: ExternalUuid,
+    programs: ExternalUuid[]
   ): Promise<void> {
     const validPrograms = new Set(await School.getPrograms(schoolId));
     const invalidPrograms = [];

@@ -3,9 +3,9 @@ import Joi from 'joi';
 import { VALIDATION_RULES } from './validationRules';
 
 export const schoolSchema = Joi.object({
-  clientUuid: Joi.string().guid({ version: ['uuidv4'] }),
+  externalUuid: Joi.string().guid({ version: ['uuidv4'] }),
 
-  clientOrganizationUuid: Joi.string()
+  externalOrganizationUuid: Joi.string()
     .guid({ version: ['uuidv4'] })
     .required(),
 
@@ -15,10 +15,4 @@ export const schoolSchema = Joi.object({
     .required(),
 
   shortCode: Joi.string().max(VALIDATION_RULES.SHORTCODE_MAX_LENGTH).required(),
-
-  programIdsList: Joi.array()
-    .items(Joi.string().guid({ version: ['uuidv4'] }))
-    .min(1)
-    .unique()
-    .required(),
 });

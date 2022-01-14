@@ -1,7 +1,7 @@
 import { ObjectSchema } from 'joi';
 
 import { log } from '../..';
-import { Class, Organization, School } from '../entities';
+import { Organization, School } from '../entities';
 import {
   Category,
   Errors,
@@ -24,9 +24,9 @@ export interface Validate {
 
   getOrganizationId(): string | null;
   getSchoolId(): string | null;
-  getRoles(): string[] | null;
-  getPrograms(): string[] | null;
-  getClasses(): string[] | null;
+  // getRoles(): string[] | null;
+  // getPrograms(): string[] | null;
+  // getClasses(): string[] | null;
 }
 
 export class ValidationWrapper implements Validate {
@@ -65,16 +65,19 @@ export class ValidationWrapper implements Validate {
         return tryGetEntity(
           this.data.getOrganization(),
           Entity.ORGANIZATION
-        ).getClientUuid();
+        ).getExternalUuid();
       case OnboardingRequest.EntityCase.SCHOOL:
         return tryGetEntity(
           this.data.getSchool(),
           Entity.SCHOOL
-        ).getClientUuid();
+        ).getExternalUuid();
       case OnboardingRequest.EntityCase.CLASS:
-        return tryGetEntity(this.data.getClass(), Entity.CLASS).getClientUuid();
+        return tryGetEntity(
+          this.data.getClass(),
+          Entity.CLASS
+        ).getExternalUuid();
       case OnboardingRequest.EntityCase.USER:
-        return tryGetEntity(this.data.getUser(), Entity.USER).getClientUuid();
+        return tryGetEntity(this.data.getUser(), Entity.USER).getExternalUuid();
       default:
         // Unreachable
         throw UNREACHABLE();
@@ -104,22 +107,22 @@ export class ValidationWrapper implements Validate {
         return tryGetEntity(
           this.data.getOrganization(),
           Entity.ORGANIZATION
-        ).getClientUuid();
+        ).getExternalUuid();
       case OnboardingRequest.EntityCase.SCHOOL:
         return tryGetEntity(
           this.data.getSchool(),
           Entity.SCHOOL
-        ).getClientOrganizationUuid();
+        ).getExternalOrganizationUuid();
       case OnboardingRequest.EntityCase.CLASS:
         return tryGetEntity(
           this.data.getClass(),
           Entity.CLASS
-        ).getClientOrganizationUuid();
+        ).getExternalOrganizationUuid();
       case OnboardingRequest.EntityCase.USER:
         return tryGetEntity(
           this.data.getUser(),
           Entity.USER
-        ).getClientOrganizationUuid();
+        ).getExternalOrganizationUuid();
       default:
         // Unreachable
         throw UNREACHABLE();
@@ -134,71 +137,71 @@ export class ValidationWrapper implements Validate {
         return tryGetEntity(
           this.data.getSchool(),
           Entity.SCHOOL
-        ).getClientUuid();
+        ).getExternalUuid();
       case OnboardingRequest.EntityCase.CLASS:
         return tryGetEntity(
           this.data.getClass(),
           Entity.CLASS
-        ).getClientSchoolUuid();
+        ).getExternalSchoolUuid();
       case OnboardingRequest.EntityCase.USER:
         return tryGetEntity(
           this.data.getUser(),
           Entity.USER
-        ).getClientSchoolUuid();
+        ).getExternalSchoolUuid();
       default:
         // Unreachable
         throw UNREACHABLE();
     }
   }
 
-  public getRoles(): string[] | null {
-    switch (this.entity) {
-      case OnboardingRequest.EntityCase.ORGANIZATION:
-      case OnboardingRequest.EntityCase.SCHOOL:
-      case OnboardingRequest.EntityCase.CLASS:
-        return null;
-      case OnboardingRequest.EntityCase.USER:
-        return tryGetEntity(this.data.getUser(), Entity.USER).getRoleIdsList();
-      default:
-        // Unreachable
-        throw UNREACHABLE();
-    }
-  }
+  // public getRoles(): string[] | null {
+  //   switch (this.entity) {
+  //     case OnboardingRequest.EntityCase.ORGANIZATION:
+  //     case OnboardingRequest.EntityCase.SCHOOL:
+  //     case OnboardingRequest.EntityCase.CLASS:
+  //       return null;
+  //     case OnboardingRequest.EntityCase.USER:
+  //       return tryGetEntity(this.data.getUser(), Entity.USER).getRoleIdsList();
+  //     default:
+  //       // Unreachable
+  //       throw UNREACHABLE();
+  //   }
+  // }
 
-  public getPrograms(): string[] | null {
-    switch (this.entity) {
-      case OnboardingRequest.EntityCase.ORGANIZATION:
-      case OnboardingRequest.EntityCase.USER:
-        return null;
-      case OnboardingRequest.EntityCase.SCHOOL:
-        return tryGetEntity(
-          this.data.getSchool(),
-          Entity.SCHOOL
-        ).getProgramIdsList();
-      case OnboardingRequest.EntityCase.CLASS:
-        return tryGetEntity(
-          this.data.getClass(),
-          Entity.CLASS
-        ).getProgramIdsList();
-      default:
-        // Unreachable
-        throw UNREACHABLE();
-    }
-  }
+  // public getPrograms(): string[] | null {
+  //   switch (this.entity) {
+  //     case OnboardingRequest.EntityCase.ORGANIZATION:
+  //     case OnboardingRequest.EntityCase.USER:
+  //       return null;
+  //     case OnboardingRequest.EntityCase.SCHOOL:
+  //       return tryGetEntity(
+  //         this.data.getSchool(),
+  //         Entity.SCHOOL
+  //       ).getProgramIdsList();
+  //     case OnboardingRequest.EntityCase.CLASS:
+  //       return tryGetEntity(
+  //         this.data.getClass(),
+  //         Entity.CLASS
+  //       ).getProgramIdsList();
+  //     default:
+  //       // Unreachable
+  //       throw UNREACHABLE();
+  //   }
+  // }
 
-  public getClasses(): string[] | null {
-    switch (this.entity) {
-      case OnboardingRequest.EntityCase.ORGANIZATION:
-      case OnboardingRequest.EntityCase.SCHOOL:
-      case OnboardingRequest.EntityCase.CLASS:
-        return null;
-      case OnboardingRequest.EntityCase.USER:
-        return tryGetEntity(this.data.getUser(), Entity.USER).getClassIdsList();
-      default:
-        // Unreachable
-        throw UNREACHABLE();
-    }
-  }
+  // public getClasses(): string[] | null {
+  //   switch (this.entity) {
+  //     case OnboardingRequest.EntityCase.ORGANIZATION:
+  //     case OnboardingRequest.EntityCase.SCHOOL:
+  //     case OnboardingRequest.EntityCase.CLASS:
+  //       return null;
+  //     case OnboardingRequest.EntityCase.USER:
+  //       return tryGetEntity(this.data.getUser(), Entity.USER).getClassIdsList();
+  //     default:
+  //       // Unreachable
+  //       throw UNREACHABLE();
+  //   }
+  // }
 
   /**
    *
@@ -256,6 +259,7 @@ export class ValidationWrapper implements Validate {
       throw e;
     }
 
+    /* Looks like we're no longer validating these?
     const classes = this.getClasses();
     if (classes) {
       try {
@@ -299,6 +303,7 @@ export class ValidationWrapper implements Validate {
         }
       }
     }
+    */
 
     if (errors.length > 0) throw new Errors(errors);
     log.debug(

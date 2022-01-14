@@ -1,7 +1,7 @@
 export { log } from './log';
 export { processMessage } from './process';
 
-export type ClientUuid = string;
+export type ExternalUuid = string;
 export type Uuid = string;
 
 export async function sleep(ms: number): Promise<void> {

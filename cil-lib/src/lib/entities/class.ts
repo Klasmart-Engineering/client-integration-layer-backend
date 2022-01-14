@@ -2,7 +2,7 @@ import { Class as DbClass, Prisma, PrismaClient } from '@prisma/client';
 
 import { Category, MachineError, OnboardingError } from '../errors';
 import { Entity } from '../types';
-import { ClientUuid } from '../utils';
+import { ExternalUuid } from '../utils';
 
 const prisma = new PrismaClient();
 
@@ -19,16 +19,16 @@ export class Class {
         msg,
         Entity.CLASS,
         Category.POSTGRES,
-        { entityId: c.clientUuid, operation: 'INSERT ONE' }
+        { entityId: c.externalUuid, operation: 'INSERT ONE' }
       );
     }
   }
 
-  public static async findOne(id: ClientUuid): Promise<DbClass> {
+  public static async findOne(id: ExternalUuid): Promise<DbClass> {
     try {
       const c = await prisma.class.findUnique({
         where: {
-          clientUuid: id,
+          externalUuid: id,
         },
       });
       if (!c) throw new Error(`Class: ${id} not found`);
@@ -45,11 +45,11 @@ export class Class {
     }
   }
 
-  public static async isValid(id: ClientUuid): Promise<void> {
+  public static async isValid(id: ExternalUuid): Promise<void> {
     try {
       const count = await prisma.class.count({
         where: {
-          clientUuid: id,
+          externalUuid: id,
         },
       });
       if (count === 1) return;
@@ -67,23 +67,23 @@ export class Class {
   }
 
   public static async areValid(
-    schoolId: ClientUuid,
-    ids: ClientUuid[]
+    schoolId: ExternalUuid,
+    ids: ExternalUuid[]
   ): Promise<void> {
     try {
       const count = (
         await prisma.class.findMany({
           where: {
-            clientUuid: {
+            externalUuid: {
               in: ids,
             },
-            clientSchoolUuid: schoolId,
+            externalSchoolUuid: schoolId,
           },
           select: {
-            clientUuid: true,
+            externalUuid: true,
           },
         })
-      ).map((c) => c.clientUuid);
+      ).map((c) => c.externalUuid);
       if (count.length === ids.length) return;
       const idSet = new Set(ids);
       for (const id of count) {

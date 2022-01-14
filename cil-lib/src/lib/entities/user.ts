@@ -2,7 +2,7 @@ import { User as DbUser, Prisma, PrismaClient } from '@prisma/client';
 
 import { Category, MachineError, OnboardingError } from '../errors';
 import { Entity } from '../types';
-import { ClientUuid } from '../utils';
+import { ExternalUuid } from '../utils';
 
 const prisma = new PrismaClient();
 
@@ -19,16 +19,16 @@ export class User {
         msg,
         Entity.USER,
         Category.POSTGRES,
-        { entityId: user.clientUuid, operation: 'INSERT ONE' }
+        { entityId: user.externalUuid, operation: 'INSERT ONE' }
       );
     }
   }
 
-  public static async findOne(id: ClientUuid): Promise<DbUser> {
+  public static async findOne(id: ExternalUuid): Promise<DbUser> {
     try {
       const user = await prisma.user.findUnique({
         where: {
-          clientUuid: id,
+          externalUuid: id,
         },
       });
       if (!user) throw new Error(`User: ${id} not found`);
@@ -45,11 +45,11 @@ export class User {
     }
   }
 
-  public static async isValid(id: ClientUuid): Promise<void> {
+  public static async isValid(id: ExternalUuid): Promise<void> {
     try {
       const count = await prisma.user.count({
         where: {
-          clientUuid: id,
+          externalUuid: id,
         },
       });
       if (count === 1) return;

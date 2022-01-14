@@ -1,4 +1,4 @@
-generator client {
+generator external {
   provider = "prisma-client-js"
 }
 
@@ -7,38 +7,34 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Started = Entity has been validated and is pushed to stream
-// Processed = Request has been added to Admin Service
 enum Status {
   QUEUED
   PROCESSED
 }
 
 model Organization {
-  clientUuid String @id @map("client_uuid") @db.Uuid
-  klUuid     String @unique @map("kl_uuid") @db.Uuid
+  externalUuid String @id @map("external_uuid") @db.Uuid
+  klUuid       String @unique @map("kl_uuid") @db.Uuid
+  name         String @db.VarChar(30)
 
-  roleUuids    String[] @map("role_uuids") @db.Uuid
-  programUuids String[] @map("program_uuids") @db.Uuid
+  schools  School[]
+  classes  Class[]
+  users    User[]
+  roles    Role[]
+  programs Program[]
 
-  schools School[]
-  classes Class[]
-  users   User[]
-
-  status    Status    @default(QUEUED) @map("status")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
-
 
   @@index(klUuid)
   @@map("validation_organizations")
 }
 
 model School {
-  clientUuid    String       @id @map("client_uuid") @db.Uuid
-  clientOrgUuid String       @map("client_org_uuid") @db.Uuid
-  organization  Organization @relation(fields: [clientOrgUuid], references: [clientUuid])
+  externalUuid    String       @id @map("external_uuid") @db.Uuid
+  externalOrgUuid String       @map("external_org_uuid") @db.Uuid
+  organization    Organization @relation(fields: [externalOrgUuid], references: [externalUuid])
 
   classes Class[]
   users   User[]
@@ -48,6 +44,8 @@ model School {
   klUuid String? @unique @map("kl_uuid") @db.Uuid
 
   status    Status    @default(QUEUED) @map("status")
+  attempts  Int       @default(0)
+  requestId String    @map("request_id") @db.Uuid
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
@@ -58,18 +56,20 @@ model School {
 }
 
 model Class {
-  clientUuid String @id @map("client_uuid") @db.Uuid
+  externalUuid String @id @map("external_uuid") @db.Uuid
 
-  clientOrgUuid String       @map("client_org_uuid") @db.Uuid
-  organization  Organization @relation(fields: [clientOrgUuid], references: [clientUuid])
+  externalOrgUuid String       @map("external_org_uuid") @db.Uuid
+  organization    Organization @relation(fields: [externalOrgUuid], references: [externalUuid])
 
-  clientSchoolUuid String @map("client_school_uuid") @db.Uuid
-  school           School @relation(fields: [clientSchoolUuid], references: [clientUuid])
+  externalSchoolUuid String @map("external_school_uuid") @db.Uuid
+  school             School @relation(fields: [externalSchoolUuid], references: [externalUuid])
 
   klUuid String? @unique @map("kl_uuid") @db.Uuid
 
   // Metadata
   status    Status    @default(QUEUED) @map("status")
+  attempts  Int       @default(0)
+  requestId String    @map("request_id") @db.Uuid
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
@@ -80,17 +80,19 @@ model Class {
 }
 
 model User {
-  clientUuid String @id @map("client_uuid") @db.Uuid
+  externalUuid String @id @map("external_uuid") @db.Uuid
 
-  clientOrgUuid String       @map("client_org_uuid") @db.Uuid
-  organization  Organization @relation(fields: [clientOrgUuid], references: [clientUuid])
+  externalOrgUuid String       @map("external_org_uuid") @db.Uuid
+  organization    Organization @relation(fields: [externalOrgUuid], references: [externalUuid])
 
-  clientSchoolUuid String @map("client_school_uuid") @db.Uuid
-  school           School @relation(fields: [clientSchoolUuid], references: [clientUuid])
+  externalSchoolUuid String @map("external_school_uuid") @db.Uuid
+  school             School @relation(fields: [externalSchoolUuid], references: [externalUuid])
 
   klUuid String? @unique @map("kl_uuid") @db.Uuid
 
   status    Status    @default(QUEUED) @map("status")
+  attempts  Int       @default(0)
+  requestId String    @map("request_id") @db.Uuid
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
@@ -98,4 +100,36 @@ model User {
 
   @@index(klUuid)
   @@map("validation_users")
+}
+
+model Role {
+  klUuid String @id @map("external_uuid") @db.Uuid
+  name   String @db.VarChar(20)
+
+  externalOrgUuid String       @map("external_org_uuid") @db.Uuid
+  organization    Organization @relation(fields: [externalOrgUuid], references: [externalUuid])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+
+  @@index([name, externalOrgUuid])
+  @@map("validation_roles")
+}
+
+model Program {
+  klUuid String @id @map("external_uuid") @db.Uuid
+  name   String @db.VarChar(100)
+
+  externalOrgUuid String       @map("external_org_uuid") @db.Uuid
+  organization    Organization @relation(fields: [externalOrgUuid], references: [externalUuid])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+
+  @@index([name, externalOrgUuid])
+  @@map("validation_programs")
 }

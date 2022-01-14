@@ -29,6 +29,16 @@ type SupportedConnections =
   | 'rolesConnection'
   | 'organizationConnection';
 
+export type IdNameMapper = {
+  id: Uuid;
+  name: string;
+};
+
+const idNameTransformer = ({ id, name }: IdNameMapper): IdNameMapper => ({
+  id,
+  name,
+});
+
 export class AdminService {
   private static _instance: AdminService;
   private context: { headers: { authorization: string } };
@@ -120,43 +130,38 @@ export class AdminService {
     return this._client;
   }
 
-  public async getSystemPrograms(): Promise<Uuid[]> {
-    const transformer = ({ id }: { id: Uuid }) => id;
-
+  public async getSystemPrograms(): Promise<IdNameMapper[]> {
     const results = await this.traversePaginatedQuery(
       GET_SYSTEM_PROGRAMS,
-      transformer,
+      idNameTransformer,
       'programsConnection'
     );
     return results;
   }
 
-  public async getOrganizationPrograms(orgId: Uuid): Promise<Uuid[]> {
-    const transformer = ({ id }: { id: Uuid }) => id;
+  public async getOrganizationPrograms(orgId: Uuid): Promise<IdNameMapper[]> {
     const results = await this.traversePaginatedQuery(
       GET_PROGRAMS_BY_ORGANIZATION,
-      transformer,
+      idNameTransformer,
       'programsConnection',
       { orgId }
     );
     return results;
   }
 
-  public async getSystemRoles(): Promise<Uuid[]> {
-    const transformer = ({ id }: { id: Uuid }) => id;
+  public async getSystemRoles(): Promise<IdNameMapper[]> {
     const results = await this.traversePaginatedQuery(
       GET_SYSTEM_ROLES,
-      transformer,
+      idNameTransformer,
       'rolesConnection'
     );
     return results;
   }
 
-  public async getOrganizationRoles(orgId: Uuid): Promise<Uuid[]> {
-    const transformer = ({ id }: { id: Uuid }) => id;
+  public async getOrganizationRoles(orgId: Uuid): Promise<IdNameMapper[]> {
     const results = await this.traversePaginatedQuery(
       GET_ORGANIZATION_ROLES,
-      transformer,
+      idNameTransformer,
       'rolesConnection',
       { orgId }
     );

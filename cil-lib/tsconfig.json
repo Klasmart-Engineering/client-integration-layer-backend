@@ -3,7 +3,7 @@
     "incremental": true,
     "target": "es2017",
     "outDir": "dist/main",
-    "rootDir": "src",
+    "rootDir": "/",
     "moduleResolution": "node",
     "module": "commonjs",
     "declaration": true,
@@ -38,10 +38,10 @@
 
     "lib": ["es2017", "dom"], // This is due to an error in typescript types for
     // @apollo/client - we shouldn't need DOM here.
-    "types": ["node"],
+    "types": ["node", "mocha"],
     "typeRoots": ["node_modules/@types", "src/types"]
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "tests/**/*.ts"],
   "exclude": ["node_modules/**"],
   "compileOnSave": true
 }

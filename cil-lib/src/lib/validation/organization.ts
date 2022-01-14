@@ -8,7 +8,7 @@ export const organizationSchema = Joi.object({
     .max(VALIDATION_RULES.ORGANIZATION_NAME_MAX_LENGTH)
     .required(),
 
-  clientUuid: Joi.string()
+  externalUuid: Joi.string()
     .guid({ version: ['uuidv4'] })
     .required(),
 });

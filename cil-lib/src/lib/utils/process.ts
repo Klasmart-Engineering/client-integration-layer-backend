@@ -1,15 +1,16 @@
 import { Category, MachineError, OnboardingError } from '../..';
 import { Organization } from '../entities';
-import { OnboardingRequest, RequestInformation } from '../protos/api_pb';
+import { OnboardingRequest, Response } from '../protos/api_pb';
 import { RedisStream } from '../redis';
 import { Entity, Message } from '../types';
+import { entityToProtobuf } from '../types/entity';
 import { ValidationWrapper } from '../validation';
 
 import { log } from './log';
 
 export const processMessage = async (
   data: OnboardingRequest
-): Promise<RequestInformation> => {
+): Promise<Response> => {
   if (data.getEntityCase() === OnboardingRequest.EntityCase.ORGANIZATION) {
     const org = data.getOrganization();
     if (!org)
@@ -34,7 +35,9 @@ export const processMessage = async (
   const msg = Message.fromOnboardingRequest(data);
   const stream = await RedisStream.getInstance();
   await stream.publishMessage(msg);
-  const resp = new RequestInformation();
+  const resp = new Response();
   resp.setRequestId(data.getRequestId());
+  resp.setEntity(entityToProtobuf(msg.entity));
+  resp.setSuccess(true);
   return resp;
 };

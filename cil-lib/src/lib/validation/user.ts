@@ -3,13 +3,13 @@ import Joi from 'joi';
 import { VALIDATION_RULES } from './validationRules';
 
 export const userSchema = Joi.object({
-  clientUuid: Joi.string().guid({ version: ['uuidv4'] }),
+  externalUuid: Joi.string().guid({ version: ['uuidv4'] }),
 
-  clientOrganizationUuid: Joi.string()
+  externalOrganizationUuid: Joi.string()
     .guid({ version: ['uuidv4'] })
     .required(),
 
-  clientSchoolUuid: Joi.string()
+  externalSchoolUuid: Joi.string()
     .guid({ version: ['uuidv4'] })
     .required(),
 
@@ -37,16 +37,5 @@ export const userSchema = Joi.object({
     .regex(VALIDATION_RULES.ALPHANUMERIC)
     .min(VALIDATION_RULES.GENDER_MIN_LENGTH)
     .max(VALIDATION_RULES.GENDER_MAX_LENGTH)
-    .required(),
-
-  programIdsList: Joi.array()
-    .items(Joi.string().guid({ version: ['uuidv4'] }))
-    .unique()
-    .required(),
-
-  rolesIdsList: Joi.array()
-    .items(Joi.string().guid({ version: ['uuidv4'] }))
-    .min(1)
-    .unique()
     .required(),
 }).or('email', 'phone');

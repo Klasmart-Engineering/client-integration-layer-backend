@@ -4,51 +4,51 @@
 var grpc = require('@grpc/grpc-js');
 var api_pb = require('./api_pb.js');
 
-function serialize_cil_onboarding_OnboardingRequest(arg) {
-  if (!(arg instanceof api_pb.OnboardingRequest)) {
-    throw new Error('Expected argument of type cil_onboarding.OnboardingRequest');
+function serialize_cil_onboarding_api_BatchOnboarding(arg) {
+  if (!(arg instanceof api_pb.BatchOnboarding)) {
+    throw new Error('Expected argument of type cil_onboarding.api.BatchOnboarding');
   }
   return Buffer.from(arg.serializeBinary());
 }
 
-function deserialize_cil_onboarding_OnboardingRequest(buffer_arg) {
-  return api_pb.OnboardingRequest.deserializeBinary(new Uint8Array(buffer_arg));
+function deserialize_cil_onboarding_api_BatchOnboarding(buffer_arg) {
+  return api_pb.BatchOnboarding.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
-function serialize_cil_onboarding_RequestInformation(arg) {
-  if (!(arg instanceof api_pb.RequestInformation)) {
-    throw new Error('Expected argument of type cil_onboarding.RequestInformation');
+function serialize_cil_onboarding_api_Responses(arg) {
+  if (!(arg instanceof api_pb.Responses)) {
+    throw new Error('Expected argument of type cil_onboarding.api.Responses');
   }
   return Buffer.from(arg.serializeBinary());
 }
 
-function deserialize_cil_onboarding_RequestInformation(buffer_arg) {
-  return api_pb.RequestInformation.deserializeBinary(new Uint8Array(buffer_arg));
+function deserialize_cil_onboarding_api_Responses(buffer_arg) {
+  return api_pb.Responses.deserializeBinary(new Uint8Array(buffer_arg));
 }
 
 
 var OnboardingService = exports.OnboardingService = {
-  onboardSingle: {
-    path: '/cil_onboarding.Onboarding/OnboardSingle',
+  onboard: {
+    path: '/cil_onboarding.api.Onboarding/Onboard',
     requestStream: false,
     responseStream: false,
-    requestType: api_pb.OnboardingRequest,
-    responseType: api_pb.RequestInformation,
-    requestSerialize: serialize_cil_onboarding_OnboardingRequest,
-    requestDeserialize: deserialize_cil_onboarding_OnboardingRequest,
-    responseSerialize: serialize_cil_onboarding_RequestInformation,
-    responseDeserialize: deserialize_cil_onboarding_RequestInformation,
+    requestType: api_pb.BatchOnboarding,
+    responseType: api_pb.Responses,
+    requestSerialize: serialize_cil_onboarding_api_BatchOnboarding,
+    requestDeserialize: deserialize_cil_onboarding_api_BatchOnboarding,
+    responseSerialize: serialize_cil_onboarding_api_Responses,
+    responseDeserialize: deserialize_cil_onboarding_api_Responses,
   },
-  onboardMultiple: {
-    path: '/cil_onboarding.Onboarding/OnboardMultiple',
+  onboardStream: {
+    path: '/cil_onboarding.api.Onboarding/OnboardStream',
     requestStream: true,
     responseStream: true,
-    requestType: api_pb.OnboardingRequest,
-    responseType: api_pb.RequestInformation,
-    requestSerialize: serialize_cil_onboarding_OnboardingRequest,
-    requestDeserialize: deserialize_cil_onboarding_OnboardingRequest,
-    responseSerialize: serialize_cil_onboarding_RequestInformation,
-    responseDeserialize: deserialize_cil_onboarding_RequestInformation,
+    requestType: api_pb.BatchOnboarding,
+    responseType: api_pb.Responses,
+    requestSerialize: serialize_cil_onboarding_api_BatchOnboarding,
+    requestDeserialize: deserialize_cil_onboarding_api_BatchOnboarding,
+    responseSerialize: serialize_cil_onboarding_api_Responses,
+    responseDeserialize: deserialize_cil_onboarding_api_Responses,
   },
 };
 

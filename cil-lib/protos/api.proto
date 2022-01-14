@@ -54,7 +54,6 @@ enum Action {
 message EntityInformation {
   Entity entity = 1;
   string external_entity_identifier = 2;
-  string kidsloop_uuid = 3;
 }
 
 message Entities {
@@ -90,24 +89,33 @@ message Responses {
 message Response {
   string request_id = 1;
   Entity entity = 2;
-  bool success = 3;
-  Error errors = 4;
+  string entity_id = 3;
+  bool success = 4;
+  Error errors = 5;
 }
 
 message Error {
-  ErrorType error_type = 1;
+  oneof error_type {
+    ValidationError validation = 1;
+    InternalServerError internal_server = 2;
+    EntityAlreadyExistsError entity_exists = 3;
+  }
+}
+
+message ValidationError {
+  string path = 1;
   repeated string details = 2;
 }
 
-enum ErrorType {
-  VALIDATION = 0;
-  INTERNAL_SERVER = 1;
-  ENTITY_ALREADY_EXISTS = 2;
+message InternalServerError {
+  repeated string details = 1;
+}
+
+message EntityAlreadyExistsError {
+  repeated string details = 1;
 }
 
 service Onboarding {
-  rpc GetKidsLoopUuid(Entities) returns (Entities) {};
   rpc Onboard(BatchOnboarding) returns (Responses) {};
   rpc OnboardStream(stream BatchOnboarding) returns (stream Responses) {};
 }
-
