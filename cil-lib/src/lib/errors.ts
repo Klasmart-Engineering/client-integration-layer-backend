@@ -120,12 +120,23 @@ export const INVALID_ENTITY = (id: ExternalUuid, entity: Entity, log: Logger) =>
   );
 
 export const POSTGRES_IS_VALID_QUERY = (
-  id: ExternalUuid,
+  id: ExternalUuid | ExternalUuid[],
   targetEntity: Entity,
   msg: string,
   log: Logger
-) =>
-  new OnboardingError(
+) => {
+  if (Array.isArray(id)) {
+    return new OnboardingError(
+      MachineError.VALIDATION,
+      msg,
+      Category.POSTGRES,
+      log,
+      [],
+      { operation: 'IS VALID', targetEntity, targetEntityIds: id.join(', ') }
+    );
+  }
+
+  return new OnboardingError(
     MachineError.VALIDATION,
     msg,
     Category.POSTGRES,
@@ -133,18 +144,28 @@ export const POSTGRES_IS_VALID_QUERY = (
     [],
     { operation: 'IS VALID', targetEntity, targetEntityId: id }
   );
+}
 
 export const POSTGRES_GET_KIDSLOOP_ID_QUERY = (
-  id: ExternalUuid,
+  id: ExternalUuid | ExternalUuid[],
   targetEntity: Entity,
   msg: string,
   log: Logger
-) =>
-  new OnboardingError(MachineError.READ, msg, Category.POSTGRES, log, [], {
+) => {
+  if (Array.isArray(id)) {
+    return new OnboardingError(MachineError.READ, msg, Category.POSTGRES, log, [], {
+      operation: 'GET KIDSLOOP IDS',
+      targetEntity,
+      targetEntityIds: id.join(', '),
+    });
+  }
+  return new OnboardingError(MachineError.READ, msg, Category.POSTGRES, log, [], {
     operation: 'GET KIDSLOOP ID',
     targetEntity,
     targetEntityId: id,
   });
+}
+
 
 export function tryGetMember<T>(
   e: T | undefined,

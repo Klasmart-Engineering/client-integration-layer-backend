@@ -52,19 +52,20 @@ enum Action {
   LINK = 1;
 }
 
-message EntityInformation {
+message EntitiesToLink {
   Entity entity = 1;
-  string external_entity_identifier = 2;
-}
-
-message Entities {
-  repeated EntityInformation entities = 1;
+  repeated string external_entity_identifiers = 2;
 }
 
 message LinkEntities {
   string external_organization_uuid = 1;
-  EntityInformation entity_1 = 2;
-  EntityInformation entity_2 = 3;
+  oneof target {
+    Organization organization = 3;
+    School school = 4;
+    Class class = 5;
+    User user = 6;
+  }
+  EntitiesToLink entities = 2;
 }
 
 message OnboardingRequest {

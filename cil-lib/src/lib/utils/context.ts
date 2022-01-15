@@ -1,8 +1,14 @@
 import LRU from 'lru-cache';
 import { Logger } from 'pino';
 
-import { Class, Organization, School, User } from '../entities';
-import { INVALID_ENTITY } from '../errors';
+import { Class, Organization, Program, Role, School, User } from '../entities';
+import {
+  Category,
+  INVALID_ENTITY,
+  MachineError,
+  OnboardingError,
+} from '../errors';
+import { IdNameMapper } from '../services/adminService';
 import { Entity } from '../types';
 
 import { ExternalUuid, Uuid } from '.';
@@ -135,55 +141,80 @@ export class Context {
   }
 
   /**
-   * @param {string[]} roles - The role names to be validated
-   * @param {string} orgId - The client UUID for the organization
-   * @errors If any of the roles are invalid
-   */
-  // public async rolesAreValid(
-  //   roles: string[],
-  //   orgId: ClientUuid
-  // ): Promise<void> {
-  //   await this.roles.rolesAreValid(roles, orgId);
-  // }
-
-  /**
    * @param {string[]} programs - The program names to be validated
    * @param {string} orgId - The client UUID for the organization
-   * @param {string?} schoolId - The client UUID of the school (optional)
-   * @param {string?} classId - The client UUID of the class (optional)
-   * @errors If any of the programs are invalid
+   * @errors if any of the programs are invalid
    */
-  // public async programsAreValid(
-  //   programs: string[],
-  //   orgId: ClientUuid,
-  //   schoolId: ClientUuid,
-  //   classId?: ClientUuid
-  // ): Promise<void> {
-  //   await this.programs.programsAreValid(programs, orgId, schoolId, classId);
-  // }
+  public async programsAreValid(
+    programs: string[],
+    orgId: ExternalUuid,
+    log: Logger
+  ): Promise<IdNameMapper[]> {
+    const p = this.programs.get(orgId);
+    if (!p) {
+      const ids = await Program.getIdsByNames(programs, orgId, log);
+      const map = new Map();
+      for (const { id, name } of ids) {
+        map.set(name, id);
+      }
+      this.programs.set(orgId, map);
+      return ids;
+    }
+    const validNames = [];
+    const invalidNames = [];
+    for (const program of programs) {
+      const id = p.get(program);
+      if (id) {
+        validNames.push({ id, name: program });
+        continue;
+      }
+      invalidNames.push(program);
+    }
+    if (invalidNames.length === 0) return validNames;
+    throw new OnboardingError(
+      MachineError.VALIDATION,
+      `Programs: ${invalidNames.join(', ')} are invalid`,
+      Category.REQUEST,
+      log
+    );
+  }
 
   /**
-   * @param {ClientUuid[]} classIds - The class ids to be validated
-   * @param {ClientUuid} orgId - The organization id for the classes in question
-   * @param {ClientUuid} schoolId - The school id for the classes in question
-   * @errors If any of the classes are invalid
+   * @param {string[]} roles - The role names to be validated
+   * @param {string} orgId - The client UUID for the organization
+   * @errors if any of the programs are invalid
    */
-  // public async classesAreValid(
-  //   classIds: ClientUuid[],
-  //   orgId: ClientUuid,
-  //   schoolId: ClientUuid
-  // ): Promise<void> {
-  //   try {
-  //     for (const id of classIds) {
-  //       if (!this.classes.has(id)) throw Error('Class not found in cache');
-  //     }
-  //     return; // All classes are valid
-  //   } catch (_) {
-  //     await Database.classIdsAreValid(orgId, schoolId, classIds);
-  //     // If the above hasn't errorred then all the ids are valid
-  //     for (const id of classIds) {
-  //       this.classes.set(id, null);
-  //     }
-  //   }
-  // }
+  public async rolesAreValid(
+    roles: string[],
+    orgId: ExternalUuid,
+    log: Logger
+  ): Promise<IdNameMapper[]> {
+    const r = this.roles.get(orgId);
+    if (!r) {
+      const ids = await Role.getIdsByNames(roles, orgId, log);
+      const map = new Map();
+      for (const { id, name } of ids) {
+        map.set(name, id);
+      }
+      this.roles.set(orgId, map);
+      return ids;
+    }
+    const validNames = [];
+    const invalidNames = [];
+    for (const role of roles) {
+      const id = r.get(role);
+      if (id) {
+        validNames.push({ id, name: role });
+        continue;
+      }
+      invalidNames.push(role);
+    }
+    if (invalidNames.length === 0) return validNames;
+    throw new OnboardingError(
+      MachineError.VALIDATION,
+      `Roles: ${invalidNames.join(', ')} are invalid`,
+      Category.REQUEST,
+      log
+    );
+  }
 }

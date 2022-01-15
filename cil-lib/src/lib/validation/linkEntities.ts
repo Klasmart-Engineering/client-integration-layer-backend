@@ -1,7 +1,6 @@
-import Joi from 'joi';
 import { Logger } from 'pino';
 
-import { Entity, Uuid } from '../..';
+import { Entity, ExternalUuid, Uuid } from '../..';
 import {
   BAD_REQUEST,
   BASE_PATH,
@@ -12,13 +11,12 @@ import {
   tryGetMember,
 } from '../errors';
 import {
-  EntityInformation,
+  EntitiesToLink,
+  LinkEntities,
   OnboardingRequest,
   Entity as PbEntity,
 } from '../protos/api_pb';
-import { protobufToEntity } from '../types/entity';
-
-import { JOI_VALIDATION_SETTINGS } from './validationRules';
+import { Context } from '../utils/context';
 
 export type LinkEntitiesRequest = {
   primary: LinkEntity;
@@ -29,33 +27,6 @@ export type LinkEntity = {
   entity: Entity;
   identifier: string | Uuid;
 };
-
-const PRIMARY_ENTITIES = Object.freeze(
-  new Set([
-    PbEntity.ORGANIZATION,
-    PbEntity.SCHOOL,
-    PbEntity.CLASS,
-    PbEntity.USER,
-  ])
-);
-const SECONDARY_ENTITIES = Object.freeze(
-  new Set([PbEntity.ROLE, PbEntity.PROGRAM])
-);
-
-const entitySchema = Joi.object({
-  entity: Joi.string().required(),
-  identifier: Joi.string().min(3).required(),
-});
-
-const linkEntitiesSchema = Joi.object({
-  primary: entitySchema,
-  secondary: entitySchema,
-});
-
-const parsedRequestSchema = Joi.object({
-  externalOrganizationUuid: Joi.string().guid({ version: ['uuidv4'] }),
-  linkEntities: linkEntitiesSchema,
-});
 
 export async function parseLinkEntities(
   req: OnboardingRequest,
@@ -74,67 +45,160 @@ export async function parseLinkEntities(
 
   path.push('linkEntities');
   const body = tryGetMember(req.getLinkEntities(), log, path);
-  const entities: EntityInformation[] = [
-    tryGetMember(body.getEntity1(), log, [...path, 'entity1']),
-    tryGetMember(body.getEntity2(), log, [...path, 'entity2']),
-  ];
-
-  const primary = entities.find((e) => PRIMARY_ENTITIES.has(e.getEntity()));
-  if (!primary)
-    throw BAD_REQUEST(
-      `A request to LinkEntites must include either an 'ORGANIZATION',
-        'SCHOOL', 'CLASS' or 'USER' as one of the two entities`,
-      path,
-      log
-    );
-  const primaryEntity: LinkEntity = {
-    entity: protobufToEntity(primary.getEntity()),
-    identifier: primary.getExternalEntityIdentifier(),
-  };
-  props['primaryEntity'] = primaryEntity.entity;
-  props['primaryEntityId'] = primaryEntity.identifier;
-
-  const secondary = entities.find((e) => SECONDARY_ENTITIES.has(e.getEntity()));
-  if (!secondary)
-    throw BAD_REQUEST(
-      `A request to LinkEntites must include either a 'ROLE' or 'PROGRAM' as one of the two entities`,
-      path,
-      log
-    );
-  const secondaryEntity: LinkEntity = {
-    entity: protobufToEntity(secondary.getEntity()),
-    identifier: secondary.getExternalEntityIdentifier(),
-  };
-  props['secondaryEntity'] = secondaryEntity.entity;
-  props['secondaryEntityId'] = secondaryEntity.identifier;
-
-  const logger = log.child(props);
-
-  const linkEntities = {
-    primary: primaryEntity,
-    secondary: secondaryEntity,
-  };
-
-  const parsed = {
-    externalOrganizationUuid: body.getExternalOrganizationUuid(),
-    linkEntities,
-  };
-
-  const { error } = parsedRequestSchema.validate(
-    parsed,
-    JOI_VALIDATION_SETTINGS
+  const { targetEntity, targetEntityId } = await parseTargetEntity(
+    body,
+    log,
+    path
   );
-  if (error)
-    throw new OnboardingError(
-      MachineError.VALIDATION,
-      'Link Entities request has failed validation',
-      Category.REQUEST,
-      logger,
-      path,
-      props,
-      error.details.map((e) => e.message)
-    );
 
-  // @TODO - Need to add UUID checking for programs and roles
-  return logger;
+  props['targetEntity'] = targetEntity;
+  props['targetEntityId'] = targetEntityId;
+
+  const childPath = [...path, 'entities'];
+  const { childEntites, childIds } = await parseEntitiesToLink(
+    body.getExternalOrganizationUuid(),
+    tryGetMember(body.getEntities(), log, childPath),
+    log,
+    childPath
+  );
+
+  props['entityToLink'] = childEntites;
+  props['entityIdsToLink'] = childIds;
+
+  return log.child(props);
+}
+
+async function parseTargetEntity(
+  body: LinkEntities,
+  log: Logger,
+  path: string[]
+): Promise<{
+  targetEntity: Entity;
+  targetEntityId: ExternalUuid;
+}> {
+  let targetEntity: Entity;
+  let targetEntityId: ExternalUuid;
+  const ctx = Context.getInstance();
+  switch (body.getTargetCase()) {
+    case LinkEntities.TargetCase.ORGANIZATION: {
+      targetEntity = Entity.ORGANIZATION;
+      targetEntityId = tryGetMember(body.getOrganization(), log, [
+        ...path,
+        'organization',
+      ]).getExternalUuid();
+      await ctx.organizationIdIsValid(targetEntityId, log);
+      if (body.getExternalOrganizationUuid() !== targetEntity)
+        throw new OnboardingError(
+          MachineError.REQUEST,
+          `Found that the Organization ID provided and the entity identifier provided did not match despite the entity being set to 'ORGANIZATION'`,
+          Category.REQUEST,
+          log,
+          path
+        );
+      break;
+    }
+    case LinkEntities.TargetCase.SCHOOL: {
+      targetEntity = Entity.SCHOOL;
+      targetEntityId = tryGetMember(body.getSchool(), log, [
+        ...path,
+        'school',
+      ]).getExternalUuid();
+      await ctx.schoolIdIsValid(targetEntityId, log);
+      break;
+    }
+    case LinkEntities.TargetCase.CLASS: {
+      targetEntity = Entity.CLASS;
+      targetEntityId = tryGetMember(body.getClass(), log, [
+        ...path,
+        'class',
+      ]).getExternalUuid();
+      await ctx.classIdIsValid(targetEntityId, log);
+      break;
+    }
+    case LinkEntities.TargetCase.USER: {
+      targetEntity = Entity.USER;
+      targetEntityId = tryGetMember(body.getUser(), log, [
+        ...path,
+        'user',
+      ]).getExternalUuid();
+      await ctx.userIdIsValid(targetEntityId, log);
+      break;
+    }
+    default:
+      throw BAD_REQUEST(
+        `A request to LinkEntites must include either an 'ORGANIZATION',
+        'SCHOOL', 'CLASS' or 'USER'`,
+        path,
+        log
+      );
+  }
+  return { targetEntity, targetEntityId };
+}
+
+async function parseEntitiesToLink(
+  orgId: ExternalUuid,
+  body: EntitiesToLink,
+  log: Logger,
+  path: string[]
+): Promise<{
+  childEntites: Entity;
+  childIds: ExternalUuid[];
+}> {
+  const { externalEntityIdentifiersList, entity } = body.toObject();
+  const ctx = Context.getInstance();
+  let e: Entity;
+  switch (entity) {
+    case PbEntity.ORGANIZATION: {
+      // @TODO - Create Find Many Queries
+      for (const id of externalEntityIdentifiersList) {
+        await ctx.organizationIdIsValid(id, log);
+      }
+      e = Entity.ORGANIZATION;
+      break;
+    }
+    case PbEntity.SCHOOL: {
+      // @TODO - Create Find Many Queries
+      for (const id of externalEntityIdentifiersList) {
+        await ctx.schoolIdIsValid(id, log);
+      }
+      e = Entity.SCHOOL;
+      break;
+    }
+    case PbEntity.CLASS: {
+      // @TODO - Create Find Many Queries
+      for (const id of externalEntityIdentifiersList) {
+        await ctx.classIdIsValid(id, log);
+      }
+      e = Entity.CLASS;
+      break;
+    }
+    case PbEntity.USER: {
+      // @TODO - Create Find Many Queries
+      for (const id of externalEntityIdentifiersList) {
+        await ctx.userIdIsValid(id, log);
+      }
+      e = Entity.USER;
+      break;
+    }
+    case PbEntity.PROGRAM: {
+      await ctx.programsAreValid(externalEntityIdentifiersList, orgId, log);
+      e = Entity.PROGRAM;
+      break;
+    }
+    case PbEntity.ROLE: {
+      await ctx.rolesAreValid(externalEntityIdentifiersList, orgId, log);
+      e = Entity.ROLE;
+      break;
+    }
+    default:
+      throw BAD_REQUEST(
+        `'ENTITY' must be set when trying to link entities`,
+        path,
+        log
+      );
+  }
+  return {
+    childEntites: e,
+    childIds: externalEntityIdentifiersList,
+  };
 }

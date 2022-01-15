@@ -134,48 +134,28 @@ export namespace User {
     }
 }
 
-export class EntityInformation extends jspb.Message { 
+export class EntitiesToLink extends jspb.Message { 
     getEntity(): Entity;
-    setEntity(value: Entity): EntityInformation;
-    getExternalEntityIdentifier(): string;
-    setExternalEntityIdentifier(value: string): EntityInformation;
+    setEntity(value: Entity): EntitiesToLink;
+    clearExternalEntityIdentifiersList(): void;
+    getExternalEntityIdentifiersList(): Array<string>;
+    setExternalEntityIdentifiersList(value: Array<string>): EntitiesToLink;
+    addExternalEntityIdentifiers(value: string, index?: number): string;
 
     serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): EntityInformation.AsObject;
-    static toObject(includeInstance: boolean, msg: EntityInformation): EntityInformation.AsObject;
+    toObject(includeInstance?: boolean): EntitiesToLink.AsObject;
+    static toObject(includeInstance: boolean, msg: EntitiesToLink): EntitiesToLink.AsObject;
     static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
     static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-    static serializeBinaryToWriter(message: EntityInformation, writer: jspb.BinaryWriter): void;
-    static deserializeBinary(bytes: Uint8Array): EntityInformation;
-    static deserializeBinaryFromReader(message: EntityInformation, reader: jspb.BinaryReader): EntityInformation;
+    static serializeBinaryToWriter(message: EntitiesToLink, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): EntitiesToLink;
+    static deserializeBinaryFromReader(message: EntitiesToLink, reader: jspb.BinaryReader): EntitiesToLink;
 }
 
-export namespace EntityInformation {
+export namespace EntitiesToLink {
     export type AsObject = {
         entity: Entity,
-        externalEntityIdentifier: string,
-    }
-}
-
-export class Entities extends jspb.Message { 
-    clearEntitiesList(): void;
-    getEntitiesList(): Array<EntityInformation>;
-    setEntitiesList(value: Array<EntityInformation>): Entities;
-    addEntities(value?: EntityInformation, index?: number): EntityInformation;
-
-    serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): Entities.AsObject;
-    static toObject(includeInstance: boolean, msg: Entities): Entities.AsObject;
-    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
-    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-    static serializeBinaryToWriter(message: Entities, writer: jspb.BinaryWriter): void;
-    static deserializeBinary(bytes: Uint8Array): Entities;
-    static deserializeBinaryFromReader(message: Entities, reader: jspb.BinaryReader): Entities;
-}
-
-export namespace Entities {
-    export type AsObject = {
-        entitiesList: Array<EntityInformation.AsObject>,
+        externalEntityIdentifiersList: Array<string>,
     }
 }
 
@@ -183,15 +163,32 @@ export class LinkEntities extends jspb.Message {
     getExternalOrganizationUuid(): string;
     setExternalOrganizationUuid(value: string): LinkEntities;
 
-    hasEntity1(): boolean;
-    clearEntity1(): void;
-    getEntity1(): EntityInformation | undefined;
-    setEntity1(value?: EntityInformation): LinkEntities;
+    hasOrganization(): boolean;
+    clearOrganization(): void;
+    getOrganization(): Organization | undefined;
+    setOrganization(value?: Organization): LinkEntities;
 
-    hasEntity2(): boolean;
-    clearEntity2(): void;
-    getEntity2(): EntityInformation | undefined;
-    setEntity2(value?: EntityInformation): LinkEntities;
+    hasSchool(): boolean;
+    clearSchool(): void;
+    getSchool(): School | undefined;
+    setSchool(value?: School): LinkEntities;
+
+    hasClass(): boolean;
+    clearClass(): void;
+    getClass(): Class | undefined;
+    setClass(value?: Class): LinkEntities;
+
+    hasUser(): boolean;
+    clearUser(): void;
+    getUser(): User | undefined;
+    setUser(value?: User): LinkEntities;
+
+    hasEntities(): boolean;
+    clearEntities(): void;
+    getEntities(): EntitiesToLink | undefined;
+    setEntities(value?: EntitiesToLink): LinkEntities;
+
+    getTargetCase(): LinkEntities.TargetCase;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): LinkEntities.AsObject;
@@ -206,9 +203,21 @@ export class LinkEntities extends jspb.Message {
 export namespace LinkEntities {
     export type AsObject = {
         externalOrganizationUuid: string,
-        entity1?: EntityInformation.AsObject,
-        entity2?: EntityInformation.AsObject,
+        organization?: Organization.AsObject,
+        school?: School.AsObject,
+        pb_class?: Class.AsObject,
+        user?: User.AsObject,
+        entities?: EntitiesToLink.AsObject,
     }
+
+    export enum TargetCase {
+        TARGET_NOT_SET = 0,
+        ORGANIZATION = 3,
+        SCHOOL = 4,
+        CLASS = 5,
+        USER = 6,
+    }
+
 }
 
 export class OnboardingRequest extends jspb.Message { 
