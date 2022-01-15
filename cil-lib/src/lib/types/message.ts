@@ -2,19 +2,23 @@ import {
   Category,
   MachineError,
   OnboardingError,
+  tryGetMember,
   UNREACHABLE,
 } from '../errors';
-import { OnboardingRequest } from '../protos/api_pb';
-import { Event } from '../protos/stream_pb';
+import { Job, OnboardingRequest } from '../protos';
+import { Uuid } from '../utils';
 
 import { Entity } from '.';
 
 export class Message {
   private constructor(
-    public readonly data: OnboardingRequest,
-    private attempts: number = 0,
+    public readonly job: Job,
     public readonly redisMessageId?: string
   ) {}
+
+  get data(): OnboardingRequest {
+    return tryGetMember(this.job.getRequest());
+  }
 
   get entity(): Entity {
     switch (this.data.getEntityCase()) {
@@ -35,26 +39,30 @@ export class Message {
   public static deserialize(data: string, redisMessageId?: string): Message {
     const d = data.split(',').map((n) => Number(n));
     const bytes = new Uint8Array(d);
-    const msg = Event.deserializeBinary(bytes);
-    const message = msg.getData();
-    if (!message)
+    const msg = Job.deserializeBinary(bytes);
+    if (!msg)
       throw new OnboardingError(
         MachineError.SERDE,
         'Failed to deserialize binary message from stream',
         Entity.UNKNOWN,
         Category.PROTOBUF
       );
-    return new Message(message, msg.getRetries(), redisMessageId);
+    return new Message(msg, redisMessageId);
   }
 
-  public static fromOnboardingRequest(r: OnboardingRequest): Message {
-    return new Message(r);
+  public static fromOnboardingRequest(
+    r: OnboardingRequest,
+    requestId: Uuid
+  ): Message {
+    const j = new Job();
+    j.setRequest(r);
+    j.setRequestId(requestId);
+    return new Message(j);
   }
 
   public serialize(): Uint8Array {
     try {
-      const event = this.toStreamEvent();
-      const bytes = event.serializeBinary();
+      const bytes = this.job.serializeBinary();
       return bytes;
     } catch (error) {
       const msg =
@@ -64,20 +72,9 @@ export class Message {
       throw new OnboardingError(
         MachineError.SERDE,
         msg,
-        Entity.UNKNOWN,
+        this.,
         Category.PROTOBUF
       );
     }
-  }
-
-  private toStreamEvent(): Event {
-    const event = new Event();
-    event.setData(this.data);
-    event.setRetries(this.attempts);
-    return event;
-  }
-
-  get processingAttempts(): number {
-    return this.attempts;
   }
 }

@@ -1,10 +1,17 @@
 import { Organization as DbOrg, Prisma, PrismaClient } from '@prisma/client';
+import { Logger } from 'pino';
 
-import { Category, MachineError, OnboardingError } from '../errors';
+import {
+  Category,
+  MachineError,
+  OnboardingError,
+  POSTGRES_GET_KIDSLOOP_ID_QUERY,
+  POSTGRES_IS_VALID_QUERY,
+} from '../errors';
 import { Organization as Org } from '../protos/api_pb';
 import { AdminService } from '../services/adminService';
 import { Entity } from '../types';
-import { ExternalUuid } from '../utils';
+import { ExternalUuid, Uuid } from '../utils';
 
 import { Program } from './program';
 import { Role } from './role';
@@ -12,6 +19,8 @@ import { Role } from './role';
 const prisma = new PrismaClient();
 
 export class Organization {
+  public static entity = Entity.ORGANIZATION;
+
   public static async insertOne(
     organization: Prisma.OrganizationCreateInput
   ): Promise<void> {
@@ -52,24 +61,40 @@ export class Organization {
     }
   }
 
-  public static async isValid(id: ExternalUuid): Promise<void> {
+  public static async isValid(id: ExternalUuid, log: Logger): Promise<boolean> {
     try {
-      const count = await prisma.organization.count({
+      const school = await prisma.organization.findFirst({
         where: {
           externalUuid: id,
         },
+        select: {
+          externalUuid: true,
+        },
       });
-      if (count === 1) return;
-      throw new Error(`Organization: ${id} is not valid`);
+      if (school) return true;
+      throw new Error(`${this.entity}: ${id} is not valid`);
     } catch (error) {
       const msg = error instanceof Error ? error.message : `${error}`;
-      throw new OnboardingError(
-        MachineError.VALIDATION,
-        msg,
-        Entity.ORGANIZATION,
-        Category.POSTGRES,
-        { entityId: id, operation: 'IS VALID' }
-      );
+      throw POSTGRES_IS_VALID_QUERY(id, this.entity, msg, log);
+    }
+  }
+
+  public static async getId(id: ExternalUuid, log: Logger): Promise<Uuid> {
+    try {
+      const klUuid = await prisma.organization.findUnique({
+        where: {
+          externalUuid: id,
+        },
+        select: {
+          klUuid: true,
+        },
+      });
+      if (!klUuid) throw new Error(`${this.entity}: ${id} is not valid`);
+      if (klUuid && klUuid.klUuid) return klUuid.klUuid;
+      throw new Error(`Unable to find KidsLoop ID for ${this.entity}: ${id}`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : `${error}`;
+      throw POSTGRES_GET_KIDSLOOP_ID_QUERY(id, this.entity, msg, log);
     }
   }
 
@@ -169,10 +194,12 @@ export class Organization {
       );
   }
 
-  public static async initializeOrganization(org: Org): Promise<void> {
+  public static async initializeOrganization(
+    org: Org.AsObject,
+    log: Logger
+  ): Promise<void> {
     const admin = await AdminService.getInstance();
-    const name = org.getName();
-    const externalUuid = org.getExternalUuid();
+    const { name, externalUuid } = org;
     const klUuid = await admin.getOrganization(name);
     const systemPrograms = await admin.getSystemPrograms();
     const systemRoles = await admin.getSystemRoles();

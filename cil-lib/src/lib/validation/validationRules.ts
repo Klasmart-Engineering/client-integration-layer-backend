@@ -33,3 +33,8 @@ export const VALIDATION_RULES = {
 
   ALPHANUMERIC: /^[\p{L}\d .'&/,-]*$/u,
 };
+
+export const JOI_VALIDATION_SETTINGS = Object.freeze({
+  abortEarly: false,
+  allowUnknown: false,
+});

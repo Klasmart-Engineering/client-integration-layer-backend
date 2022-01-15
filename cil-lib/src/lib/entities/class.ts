@@ -1,12 +1,20 @@
 import { Class as DbClass, Prisma, PrismaClient } from '@prisma/client';
+import { Logger } from 'pino';
 
-import { Category, MachineError, OnboardingError } from '../errors';
+import {
+  Category,
+  MachineError,
+  OnboardingError,
+  POSTGRES_GET_KIDSLOOP_ID_QUERY,
+  POSTGRES_IS_VALID_QUERY,
+} from '../errors';
 import { Entity } from '../types';
-import { ExternalUuid } from '../utils';
+import { ExternalUuid, Uuid } from '../utils';
 
 const prisma = new PrismaClient();
 
 export class Class {
+  public static entity = Entity.CLASS;
   public static async insertOne(c: Prisma.ClassCreateInput): Promise<void> {
     try {
       await prisma.class.create({
@@ -45,24 +53,40 @@ export class Class {
     }
   }
 
-  public static async isValid(id: ExternalUuid): Promise<void> {
+  public static async isValid(id: ExternalUuid, log: Logger): Promise<boolean> {
     try {
-      const count = await prisma.class.count({
+      const entity = await prisma.class.findFirst({
         where: {
           externalUuid: id,
         },
+        select: {
+          externalUuid: true,
+        },
       });
-      if (count === 1) return;
-      throw new Error(`Class: ${id} is not valid`);
+      if (entity) return true;
+      throw new Error(`${this.entity}: ${id} is not valid`);
     } catch (error) {
       const msg = error instanceof Error ? error.message : `${error}`;
-      throw new OnboardingError(
-        MachineError.READ,
-        msg,
-        Entity.CLASS,
-        Category.POSTGRES,
-        { entityId: id, operation: 'IS VALID' }
-      );
+      throw POSTGRES_IS_VALID_QUERY(id, this.entity, msg, log);
+    }
+  }
+
+  public static async getId(id: ExternalUuid, log: Logger): Promise<Uuid> {
+    try {
+      const klUuid = await prisma.organization.findUnique({
+        where: {
+          externalUuid: id,
+        },
+        select: {
+          klUuid: true,
+        },
+      });
+      if (!klUuid) throw new Error(`${this.entity}: ${id} is not valid`);
+      if (klUuid && klUuid.klUuid) return klUuid.klUuid;
+      throw new Error(`Unable to find KidsLoop ID for ${this.entity}: ${id}`);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : `${error}`;
+      throw POSTGRES_GET_KIDSLOOP_ID_QUERY(id, this.entity, msg, log);
     }
   }
 

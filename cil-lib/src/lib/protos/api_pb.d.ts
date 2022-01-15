@@ -242,7 +242,7 @@ export class OnboardingRequest extends jspb.Message {
     getUser(): User | undefined;
     setUser(value?: User): OnboardingRequest;
 
-    getEntityCase(): OnboardingRequest.EntityCase;
+    getPayloadCase(): OnboardingRequest.PayloadCase;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): OnboardingRequest.AsObject;
@@ -265,8 +265,8 @@ export namespace OnboardingRequest {
         user?: User.AsObject,
     }
 
-    export enum EntityCase {
-        ENTITY_NOT_SET = 0,
+    export enum PayloadCase {
+        PAYLOAD_NOT_SET = 0,
         LINK_ENTITIES = 16,
         ORGANIZATION = 17,
         SCHOOL = 18,
@@ -362,6 +362,11 @@ export class Error extends jspb.Message {
     getValidation(): ValidationError | undefined;
     setValidation(value?: ValidationError): Error;
 
+    hasRequest(): boolean;
+    clearRequest(): void;
+    getRequest(): InvalidRequestError | undefined;
+    setRequest(value?: InvalidRequestError): Error;
+
     hasInternalServer(): boolean;
     clearInternalServer(): void;
     getInternalServer(): InternalServerError | undefined;
@@ -387,6 +392,7 @@ export class Error extends jspb.Message {
 export namespace Error {
     export type AsObject = {
         validation?: ValidationError.AsObject,
+        request?: InvalidRequestError.AsObject,
         internalServer?: InternalServerError.AsObject,
         entityExists?: EntityAlreadyExistsError.AsObject,
     }
@@ -394,19 +400,22 @@ export namespace Error {
     export enum ErrorTypeCase {
         ERROR_TYPE_NOT_SET = 0,
         VALIDATION = 1,
-        INTERNAL_SERVER = 2,
-        ENTITY_EXISTS = 3,
+        REQUEST = 2,
+        INTERNAL_SERVER = 3,
+        ENTITY_EXISTS = 4,
     }
 
 }
 
 export class ValidationError extends jspb.Message { 
-    getPath(): string;
-    setPath(value: string): ValidationError;
-    clearDetailsList(): void;
-    getDetailsList(): Array<string>;
-    setDetailsList(value: Array<string>): ValidationError;
-    addDetails(value: string, index?: number): string;
+    clearErrorsList(): void;
+    getErrorsList(): Array<PathBasedError>;
+    setErrorsList(value: Array<PathBasedError>): ValidationError;
+    addErrors(value?: PathBasedError, index?: number): PathBasedError;
+    clearAdditionalDetailsList(): void;
+    getAdditionalDetailsList(): Array<string>;
+    setAdditionalDetailsList(value: Array<string>): ValidationError;
+    addAdditionalDetails(value: string, index?: number): string;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): ValidationError.AsObject;
@@ -420,8 +429,8 @@ export class ValidationError extends jspb.Message {
 
 export namespace ValidationError {
     export type AsObject = {
-        path: string,
-        detailsList: Array<string>,
+        errorsList: Array<PathBasedError.AsObject>,
+        additionalDetailsList: Array<string>,
     }
 }
 
@@ -469,6 +478,58 @@ export namespace EntityAlreadyExistsError {
     }
 }
 
+export class InvalidRequestError extends jspb.Message { 
+    clearErrorsList(): void;
+    getErrorsList(): Array<PathBasedError>;
+    setErrorsList(value: Array<PathBasedError>): InvalidRequestError;
+    addErrors(value?: PathBasedError, index?: number): PathBasedError;
+    clearAdditionalDetailsList(): void;
+    getAdditionalDetailsList(): Array<string>;
+    setAdditionalDetailsList(value: Array<string>): InvalidRequestError;
+    addAdditionalDetails(value: string, index?: number): string;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): InvalidRequestError.AsObject;
+    static toObject(includeInstance: boolean, msg: InvalidRequestError): InvalidRequestError.AsObject;
+    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+    static serializeBinaryToWriter(message: InvalidRequestError, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): InvalidRequestError;
+    static deserializeBinaryFromReader(message: InvalidRequestError, reader: jspb.BinaryReader): InvalidRequestError;
+}
+
+export namespace InvalidRequestError {
+    export type AsObject = {
+        errorsList: Array<PathBasedError.AsObject>,
+        additionalDetailsList: Array<string>,
+    }
+}
+
+export class PathBasedError extends jspb.Message { 
+    getPath(): string;
+    setPath(value: string): PathBasedError;
+    clearDetailsList(): void;
+    getDetailsList(): Array<string>;
+    setDetailsList(value: Array<string>): PathBasedError;
+    addDetails(value: string, index?: number): string;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): PathBasedError.AsObject;
+    static toObject(includeInstance: boolean, msg: PathBasedError): PathBasedError.AsObject;
+    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+    static serializeBinaryToWriter(message: PathBasedError, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): PathBasedError;
+    static deserializeBinaryFromReader(message: PathBasedError, reader: jspb.BinaryReader): PathBasedError;
+}
+
+export namespace PathBasedError {
+    export type AsObject = {
+        path: string,
+        detailsList: Array<string>,
+    }
+}
+
 export enum Gender {
     MALE = 0,
     FEMALE = 1,
@@ -485,4 +546,5 @@ export enum Entity {
 
 export enum Action {
     CREATE = 0,
+    LINK = 1,
 }

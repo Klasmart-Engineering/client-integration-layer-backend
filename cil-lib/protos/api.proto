@@ -49,6 +49,7 @@ enum Entity {
 
 enum Action {
   CREATE = 0;
+  LINK = 1;
 }
 
 message EntityInformation {
@@ -69,7 +70,7 @@ message LinkEntities {
 message OnboardingRequest {
   string request_id = 1;
   Action action = 2;
-  oneof entity {
+  oneof payload {
     LinkEntities link_entities = 16;
     Organization organization = 17;
     School school = 18;
@@ -97,14 +98,15 @@ message Response {
 message Error {
   oneof error_type {
     ValidationError validation = 1;
-    InternalServerError internal_server = 2;
-    EntityAlreadyExistsError entity_exists = 3;
+    InvalidRequestError request = 2;
+    InternalServerError internal_server = 3;
+    EntityAlreadyExistsError entity_exists = 4;
   }
 }
 
 message ValidationError {
-  string path = 1;
-  repeated string details = 2;
+  repeated PathBasedError errors = 1;
+  repeated string additional_details = 2;
 }
 
 message InternalServerError {
@@ -113,6 +115,16 @@ message InternalServerError {
 
 message EntityAlreadyExistsError {
   repeated string details = 1;
+}
+
+message InvalidRequestError {
+  repeated PathBasedError errors = 1;
+  repeated string additional_details = 2;
+}
+
+message PathBasedError {
+  string path = 1;
+  repeated string details = 2;
 }
 
 service Onboarding {
