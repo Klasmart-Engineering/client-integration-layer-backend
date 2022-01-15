@@ -4,7 +4,6 @@ package cil_onboarding.jobs;
 import "api.proto";
 
 message Job {
-  string request_id = 1;
   cil_onboarding.api.OnboardingRequest request = 2;
 }
 

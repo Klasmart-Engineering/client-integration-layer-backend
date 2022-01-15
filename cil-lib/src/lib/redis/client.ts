@@ -1,20 +1,19 @@
 import R from 'ioredis';
+import { Logger } from 'pino';
 
-import { log } from '../..';
 import {
   Category,
   ENVIRONMENT_VARIABLE_ERROR,
   MachineError,
   OnboardingError,
 } from '../errors';
-import { Entity } from '../types';
 
 export class RedisClient {
   private static _instance: RedisClient;
 
   private constructor(private redis: R.Redis | R.Cluster) {}
 
-  public static async getInstance(): Promise<RedisClient> {
+  public static async getInstance(log: Logger): Promise<RedisClient> {
     if (this._instance) return this._instance;
     log.info('Attempting to initialize Redis stream');
     checkRedisEnvVars(true);
@@ -26,12 +25,7 @@ export class RedisClient {
       return this._instance;
     } catch (error) {
       const msg = error instanceof Error ? error.message : `${error}`;
-      throw new OnboardingError(
-        MachineError.NETWORK,
-        msg,
-        Entity.UNKNOWN,
-        Category.REDIS
-      );
+      throw new OnboardingError(MachineError.NETWORK, msg, Category.REDIS, log);
     }
   }
 
@@ -85,18 +79,3 @@ function checkRedisEnvVars(checkStream = true): void {
     }
   }
 }
-
-// async function main() {
-//   const redis = await RedisStream.initialize();
-//   const r = new OnboardingRequest();
-//   const o = new Organization();
-//   o.setClientUuid('12345');
-//   o.setName('Hello');
-//   r.setOrganization(o);
-//   const msg = new Message(r, 0);
-//   await redis.publishMessage(msg);
-//   await sleep(1000);
-//   const m = await redis.readMessage();
-//   console.log(m.redisMessageId, m.data.toObject());
-// }
-// main();

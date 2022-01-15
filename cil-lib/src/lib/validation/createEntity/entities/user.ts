@@ -9,8 +9,10 @@ import {
 } from '../../../errors';
 import { Entity, User as PbUser } from '../../../protos';
 import { Context } from '../../../utils/context';
-import { JOI_VALIDATION_SETTINGS } from '../../validate';
-import { VALIDATION_RULES } from '../../validationRules';
+import {
+  JOI_VALIDATION_SETTINGS,
+  VALIDATION_RULES,
+} from '../../validationRules';
 
 export class ValidatedUser {
   public static entity = Entity.USER;

@@ -17,7 +17,8 @@ export class School {
   public static entity = Entity.SCHOOL;
 
   public static async insertOne(
-    school: Prisma.SchoolCreateInput
+    school: Prisma.SchoolCreateInput,
+    log: Logger
   ): Promise<void> {
     try {
       await prisma.school.create({
@@ -28,14 +29,18 @@ export class School {
       throw new OnboardingError(
         MachineError.WRITE,
         msg,
-        Entity.SCHOOL,
         Category.POSTGRES,
+        log,
+        [],
         { entityId: school.externalUuid, operation: 'INSERT ONE' }
       );
     }
   }
 
-  public static async findOne(id: ExternalUuid): Promise<DbSchool> {
+  public static async findOne(
+    id: ExternalUuid,
+    log: Logger
+  ): Promise<DbSchool> {
     try {
       const school = await prisma.school.findUnique({
         where: {
@@ -49,8 +54,9 @@ export class School {
       throw new OnboardingError(
         MachineError.READ,
         msg,
-        Entity.SCHOOL,
         Category.POSTGRES,
+        log,
+        [],
         { entityId: id, operation: 'FIND ONE' }
       );
     }
@@ -84,57 +90,12 @@ export class School {
           klUuid: true,
         },
       });
-      if (!klUuid) throw new Error(`${this.entity}: ${id} is not valid`)
+      if (!klUuid) throw new Error(`${this.entity}: ${id} is not valid`);
       if (klUuid && klUuid.klUuid) return klUuid.klUuid;
       throw new Error(`Unable to find KidsLoop ID for ${this.entity}: ${id}`);
     } catch (error) {
       const msg = error instanceof Error ? error.message : `${error}`;
       throw POSTGRES_GET_KIDSLOOP_ID_QUERY(id, this.entity, msg, log);
     }
-  }
-
-  public static async getPrograms(id: ExternalUuid): Promise<string[]> {
-    try {
-      const programs = await prisma.school.findUnique({
-        where: {
-          externalUuid: id,
-        },
-        select: {
-          programUuids: true,
-        },
-      });
-      if (!programs) throw new Error(`School: ${id} not found`);
-      return programs.programUuids;
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : `${error}`;
-      throw new OnboardingError(
-        MachineError.READ,
-        msg,
-        Entity.SCHOOL,
-        Category.POSTGRES,
-        { entityId: id, operation: 'GET PROGRAMS' }
-      );
-    }
-  }
-
-  public static async programsAreValid(
-    schoolId: ExternalUuid,
-    programs: ExternalUuid[]
-  ): Promise<void> {
-    const validPrograms = new Set(await School.getPrograms(schoolId));
-    const invalidPrograms = [];
-    for (const program of programs) {
-      if (!validPrograms.has(program)) invalidPrograms.push(program);
-    }
-    if (invalidPrograms.length > 0)
-      throw new OnboardingError(
-        MachineError.VALIDATION,
-        `Programs: ${invalidPrograms.join(
-          ', '
-        )} are invalid when comparing to the parent School ${schoolId}`,
-        Entity.PROGRAM,
-        Category.REQUEST,
-        { entityIds: programs, operation: 'PROGRAMS ARE VALID' }
-      );
   }
 }

@@ -15,7 +15,10 @@ const prisma = new PrismaClient();
 
 export class User {
   public static entity = Entity.USER;
-  public static async insertOne(user: Prisma.UserCreateInput): Promise<void> {
+  public static async insertOne(
+    user: Prisma.UserCreateInput,
+    log: Logger
+  ): Promise<void> {
     try {
       await prisma.user.create({
         data: user,
@@ -25,14 +28,15 @@ export class User {
       throw new OnboardingError(
         MachineError.WRITE,
         msg,
-        Entity.USER,
         Category.POSTGRES,
+        log,
+        [],
         { entityId: user.externalUuid, operation: 'INSERT ONE' }
       );
     }
   }
 
-  public static async findOne(id: ExternalUuid): Promise<DbUser> {
+  public static async findOne(id: ExternalUuid, log: Logger): Promise<DbUser> {
     try {
       const user = await prisma.user.findUnique({
         where: {
@@ -46,8 +50,9 @@ export class User {
       throw new OnboardingError(
         MachineError.READ,
         msg,
-        Entity.USER,
         Category.POSTGRES,
+        log,
+        [],
         { entityId: id, operation: 'FIND ONE' }
       );
     }

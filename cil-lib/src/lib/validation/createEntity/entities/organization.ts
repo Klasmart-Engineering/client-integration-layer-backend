@@ -10,8 +10,10 @@ import {
 } from '../../../errors';
 import { Entity, Organization as PbOrganization } from '../../../protos';
 import { Context } from '../../../utils/context';
-import { JOI_VALIDATION_SETTINGS } from '../../validate';
-import { VALIDATION_RULES } from '../../validationRules';
+import {
+  JOI_VALIDATION_SETTINGS,
+  VALIDATION_RULES,
+} from '../../validationRules';
 
 export class ValidatedOrganization {
   public static entity = Entity.ORGANIZATION;

@@ -1,9 +1,10 @@
 import R from 'ioredis';
+import { Logger } from 'pino';
 import { v4 as uuidv4 } from 'uuid';
 
 import { Category, MachineError, OnboardingError } from '../errors';
-import { Entity, Message } from '../types';
-import { log, Uuid } from '../utils';
+import { Message } from '../types';
+import { Uuid } from '../utils';
 
 import { RedisClient } from '.';
 
@@ -29,10 +30,10 @@ export class RedisStream {
     };
   }
 
-  public static async getInstance(): Promise<RedisStream> {
+  public static async getInstance(log: Logger): Promise<RedisStream> {
     if (this._instance) return this._instance;
     log.info('Attempting to initialize Redis stream');
-    const client = (await RedisClient.getInstance()).client;
+    const client = (await RedisClient.getInstance(log)).client;
     const stream = process.env.REDIS_STREAM_NAME || '';
     const consumerGroup = process.env.REDIS_CONSUMER_GROUP_NAME || '';
     const props = {
@@ -57,8 +58,9 @@ export class RedisStream {
       throw new OnboardingError(
         MachineError.STREAM,
         `Failed to initialize stream. ${msg}`,
-        Entity.UNKNOWN,
         Category.REDIS,
+        log,
+        [],
         props
       );
     }
@@ -67,17 +69,18 @@ export class RedisStream {
     return this._instance;
   }
 
-  public async publishMessage(msg: Message): Promise<void> {
+  public async publishMessage(msg: Message, log: Logger): Promise<void> {
     try {
-      const payload = msg.serialize();
+      const payload = msg.serialize(log);
       await this.redis.xadd(this.stream, '*', 'PROTO', payload.join(','));
     } catch (error) {
       const m = error instanceof Error ? error.message : `${error}`;
       throw new OnboardingError(
         MachineError.STREAM,
         `Failed to publish message to stream. ${m}`,
-        msg.entity,
         Category.REDIS,
+        log,
+        [],
         this.props
       );
     }
@@ -86,11 +89,11 @@ export class RedisStream {
   /**
    * Tries to read an unread message from the queue.
    */
-  public async readMessage(): Promise<Message> {
+  public async readMessage(log: Logger): Promise<Message> {
     log.trace(this.props, 'Attempting to read message from stream');
     if (this.incrementCounter() === 0) {
       try {
-        const msg = await this.tryAndClaimStaleMessage();
+        const msg = await this.tryAndClaimStaleMessage(log);
         return msg;
       } catch (_) {
         /* Logged in function */
@@ -115,7 +118,7 @@ export class RedisStream {
 
       // This indexing gets the `Value` for the K-V pair of the message
       const msg = m[0][1][0][1][1];
-      const message = Message.deserialize(msg, msgId);
+      const message = Message.deserialize(msg, log, msgId);
 
       return message;
     } catch (error) {
@@ -125,14 +128,15 @@ export class RedisStream {
       throw new OnboardingError(
         MachineError.STREAM,
         `Failed to read message from stream. ${m}`,
-        Entity.UNKNOWN,
         Category.REDIS,
+        log,
+        [],
         this.props
       );
     }
   }
 
-  public async acknowledgeMessage(msg: Message): Promise<void> {
+  public async acknowledgeMessage(msg: Message, log: Logger): Promise<void> {
     try {
       if (msg.redisMessageId === undefined)
         throw new Error(
@@ -148,14 +152,15 @@ export class RedisStream {
       throw new OnboardingError(
         MachineError.STREAM,
         `Failed to acknowledge message from stream. ${m}`,
-        msg.entity,
         Category.REDIS,
+        log,
+        [],
         this.props
       );
     }
   }
 
-  private async tryAndClaimStaleMessage(): Promise<Message> {
+  private async tryAndClaimStaleMessage(log: Logger): Promise<Message> {
     log.trace(this.props, 'Trying to claim stale message');
     try {
       const m = await this.redis.xautoclaim(
@@ -174,7 +179,7 @@ export class RedisStream {
 
       const msgId = m[1][0][0];
       const msg = m[1][0][1][1];
-      const message = Message.deserialize(msg, msgId);
+      const message = Message.deserialize(msg, log, msgId);
 
       return message;
     } catch (error) {

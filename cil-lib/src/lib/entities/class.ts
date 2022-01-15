@@ -15,7 +15,10 @@ const prisma = new PrismaClient();
 
 export class Class {
   public static entity = Entity.CLASS;
-  public static async insertOne(c: Prisma.ClassCreateInput): Promise<void> {
+  public static async insertOne(
+    c: Prisma.ClassCreateInput,
+    log: Logger
+  ): Promise<void> {
     try {
       await prisma.class.create({
         data: c,
@@ -25,14 +28,15 @@ export class Class {
       throw new OnboardingError(
         MachineError.WRITE,
         msg,
-        Entity.CLASS,
         Category.POSTGRES,
+        log,
+        [],
         { entityId: c.externalUuid, operation: 'INSERT ONE' }
       );
     }
   }
 
-  public static async findOne(id: ExternalUuid): Promise<DbClass> {
+  public static async findOne(id: ExternalUuid, log: Logger): Promise<DbClass> {
     try {
       const c = await prisma.class.findUnique({
         where: {
@@ -46,8 +50,9 @@ export class Class {
       throw new OnboardingError(
         MachineError.READ,
         msg,
-        Entity.CLASS,
         Category.POSTGRES,
+        log,
+        [],
         { entityId: id, operation: 'FIND ONE' }
       );
     }
@@ -92,7 +97,8 @@ export class Class {
 
   public static async areValid(
     schoolId: ExternalUuid,
-    ids: ExternalUuid[]
+    ids: ExternalUuid[],
+    log: Logger
   ): Promise<void> {
     try {
       const count = (
@@ -121,8 +127,9 @@ export class Class {
       throw new OnboardingError(
         MachineError.READ,
         msg,
-        Entity.CLASS,
         Category.POSTGRES,
+        log,
+        [],
         { entityIds: ids, operation: 'ARE VALID' }
       );
     }

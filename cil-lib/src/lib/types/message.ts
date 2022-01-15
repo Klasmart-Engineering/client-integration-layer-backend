@@ -1,14 +1,7 @@
-import {
-  Category,
-  MachineError,
-  OnboardingError,
-  tryGetMember,
-  UNREACHABLE,
-} from '../errors';
-import { Job, OnboardingRequest } from '../protos';
-import { Uuid } from '../utils';
+import { Logger } from 'pino';
 
-import { Entity } from '.';
+import { Category, MachineError, OnboardingError } from '../errors';
+import { Job, OnboardingRequest } from '../protos';
 
 export class Message {
   private constructor(
@@ -16,27 +9,15 @@ export class Message {
     public readonly redisMessageId?: string
   ) {}
 
-  get data(): OnboardingRequest {
-    return tryGetMember(this.job.getRequest());
+  get request(): OnboardingRequest | undefined {
+    return this.job.getRequest();
   }
 
-  get entity(): Entity {
-    switch (this.data.getEntityCase()) {
-      case OnboardingRequest.EntityCase.ORGANIZATION:
-        return Entity.ORGANIZATION;
-      case OnboardingRequest.EntityCase.SCHOOL:
-        return Entity.SCHOOL;
-      case OnboardingRequest.EntityCase.CLASS:
-        return Entity.CLASS;
-      case OnboardingRequest.EntityCase.USER:
-        return Entity.USER;
-      default:
-        // Unreachable
-        throw UNREACHABLE();
-    }
-  }
-
-  public static deserialize(data: string, redisMessageId?: string): Message {
+  public static deserialize(
+    data: string,
+    log: Logger,
+    redisMessageId?: string
+  ): Message {
     const d = data.split(',').map((n) => Number(n));
     const bytes = new Uint8Array(d);
     const msg = Job.deserializeBinary(bytes);
@@ -44,23 +25,19 @@ export class Message {
       throw new OnboardingError(
         MachineError.SERDE,
         'Failed to deserialize binary message from stream',
-        Entity.UNKNOWN,
-        Category.PROTOBUF
+        Category.PROTOBUF,
+        log
       );
     return new Message(msg, redisMessageId);
   }
 
-  public static fromOnboardingRequest(
-    r: OnboardingRequest,
-    requestId: Uuid
-  ): Message {
+  public static fromOnboardingRequest(r: OnboardingRequest): Message {
     const j = new Job();
     j.setRequest(r);
-    j.setRequestId(requestId);
     return new Message(j);
   }
 
-  public serialize(): Uint8Array {
+  public serialize(log: Logger): Uint8Array {
     try {
       const bytes = this.job.serializeBinary();
       return bytes;
@@ -72,8 +49,8 @@ export class Message {
       throw new OnboardingError(
         MachineError.SERDE,
         msg,
-        this.,
-        Category.PROTOBUF
+        Category.PROTOBUF,
+        log
       );
     }
   }

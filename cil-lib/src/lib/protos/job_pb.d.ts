@@ -8,8 +8,6 @@ import * as jspb from "google-protobuf";
 import * as api_pb from "./api_pb";
 
 export class Job extends jspb.Message { 
-    getRequestId(): string;
-    setRequestId(value: string): Job;
 
     hasRequest(): boolean;
     clearRequest(): void;
@@ -28,7 +26,6 @@ export class Job extends jspb.Message {
 
 export namespace Job {
     export type AsObject = {
-        requestId: string,
         request?: api_pb.OnboardingRequest.AsObject,
     }
 }

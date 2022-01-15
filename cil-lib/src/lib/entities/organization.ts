@@ -22,7 +22,8 @@ export class Organization {
   public static entity = Entity.ORGANIZATION;
 
   public static async insertOne(
-    organization: Prisma.OrganizationCreateInput
+    organization: Prisma.OrganizationCreateInput,
+    log: Logger
   ): Promise<void> {
     try {
       await prisma.organization.create({
@@ -33,14 +34,15 @@ export class Organization {
       throw new OnboardingError(
         MachineError.WRITE,
         msg,
-        Entity.ORGANIZATION,
         Category.POSTGRES,
+        log,
+        [],
         { entityId: organization.externalUuid, operation: 'INSERT ONE' }
       );
     }
   }
 
-  public static async findOne(id: ExternalUuid): Promise<DbOrg> {
+  public static async findOne(id: ExternalUuid, log: Logger): Promise<DbOrg> {
     try {
       const org = await prisma.organization.findUnique({
         where: {
@@ -54,8 +56,9 @@ export class Organization {
       throw new OnboardingError(
         MachineError.READ,
         msg,
-        Entity.ORGANIZATION,
         Category.POSTGRES,
+        log,
+        [],
         { entityId: id, operation: 'FIND ONE' }
       );
     }
@@ -98,7 +101,10 @@ export class Organization {
     }
   }
 
-  public static async getPrograms(id: ExternalUuid): Promise<string[]> {
+  public static async getPrograms(
+    id: ExternalUuid,
+    log: Logger
+  ): Promise<string[]> {
     try {
       const programs = await prisma.organization.findUnique({
         where: {
@@ -119,8 +125,9 @@ export class Organization {
       throw new OnboardingError(
         MachineError.READ,
         msg,
-        Entity.ORGANIZATION,
         Category.POSTGRES,
+        log,
+        [],
         { entityId: id, operation: 'GET PROGRAMS' }
       );
     }
@@ -128,9 +135,10 @@ export class Organization {
 
   public static async programsAreValid(
     orgId: ExternalUuid,
-    programs: ExternalUuid[]
+    programs: ExternalUuid[],
+    log: Logger
   ): Promise<void> {
-    const validPrograms = new Set(await Organization.getPrograms(orgId));
+    const validPrograms = new Set(await Organization.getPrograms(orgId, log));
     const invalidPrograms = [];
     for (const program of programs) {
       if (!validPrograms.has(program)) invalidPrograms.push(program);
@@ -141,13 +149,17 @@ export class Organization {
         `Programs: ${invalidPrograms.join(
           ', '
         )} are invalid when comparing to the parent Organization ${orgId}`,
-        Entity.PROGRAM,
         Category.REQUEST,
+        log,
+        [],
         { entityIds: programs, operation: 'PROGRAMS ARE VALID' }
       );
   }
 
-  public static async getRoles(id: ExternalUuid): Promise<ExternalUuid[]> {
+  public static async getRoles(
+    id: ExternalUuid,
+    log: Logger
+  ): Promise<ExternalUuid[]> {
     try {
       const roles = await prisma.organization.findUnique({
         where: {
@@ -168,30 +180,12 @@ export class Organization {
       throw new OnboardingError(
         MachineError.READ,
         msg,
-        Entity.ORGANIZATION,
         Category.POSTGRES,
+        log,
+        [],
         { entityId: id, operation: 'GET ROLES' }
       );
     }
-  }
-
-  public static async rolesAreValid(
-    orgId: ExternalUuid,
-    roles: ExternalUuid[]
-  ): Promise<void> {
-    const validRoles = new Set(await Organization.getRoles(orgId));
-    const invalidRoles = [];
-    for (const role of roles) {
-      if (!validRoles.has(role)) invalidRoles.push(role);
-    }
-    if (invalidRoles.length > 0)
-      throw new OnboardingError(
-        MachineError.VALIDATION,
-        `Roles: ${invalidRoles.join(', ')} are invalid`,
-        Entity.ROLE,
-        Category.REQUEST,
-        { entityIds: roles, operation: 'ROLES ARE VALID' }
-      );
   }
 
   public static async initializeOrganization(
@@ -200,20 +194,23 @@ export class Organization {
   ): Promise<void> {
     const admin = await AdminService.getInstance();
     const { name, externalUuid } = org;
-    const klUuid = await admin.getOrganization(name);
-    const systemPrograms = await admin.getSystemPrograms();
-    const systemRoles = await admin.getSystemRoles();
-    const customPrograms = await admin.getOrganizationPrograms(klUuid);
-    const customRoles = await admin.getOrganizationRoles(klUuid);
+    const klUuid = await admin.getOrganization(name, log);
+    const systemPrograms = await admin.getSystemPrograms(log);
+    const systemRoles = await admin.getSystemRoles(log);
+    const customPrograms = await admin.getOrganizationPrograms(klUuid, log);
+    const customRoles = await admin.getOrganizationRoles(klUuid, log);
     const programUuids = systemPrograms.concat(customPrograms);
     const roleUuids = systemRoles.concat(customRoles);
 
-    await Organization.insertOne({
-      externalUuid,
-      klUuid,
-      name,
-    });
-    await Program.insertMany(programUuids, externalUuid);
-    await Role.insertMany(roleUuids, externalUuid);
+    await Organization.insertOne(
+      {
+        externalUuid,
+        klUuid,
+        name,
+      },
+      log
+    );
+    await Program.insertMany(programUuids, externalUuid, log);
+    await Role.insertMany(roleUuids, externalUuid, log);
   }
 }

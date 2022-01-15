@@ -32,7 +32,7 @@ export async function parseLinkEntities(
   req: OnboardingRequest,
   log: Logger,
   props: Props
-): Promise<Logger> {
+): Promise<[PbEntity, ExternalUuid, Logger]> {
   const path = [...BASE_PATH];
   const payload = req.getPayloadCase();
   if (payload !== OnboardingRequest.PayloadCase.LINK_ENTITIES)
@@ -45,7 +45,7 @@ export async function parseLinkEntities(
 
   path.push('linkEntities');
   const body = tryGetMember(req.getLinkEntities(), log, path);
-  const { targetEntity, targetEntityId } = await parseTargetEntity(
+  const { pbEntity, targetEntity, targetEntityId } = await parseTargetEntity(
     body,
     log,
     path
@@ -65,7 +65,7 @@ export async function parseLinkEntities(
   props['entityToLink'] = childEntites;
   props['entityIdsToLink'] = childIds;
 
-  return log.child(props);
+  return [pbEntity, targetEntityId, log.child(props)];
 }
 
 async function parseTargetEntity(
@@ -73,14 +73,17 @@ async function parseTargetEntity(
   log: Logger,
   path: string[]
 ): Promise<{
+  pbEntity: PbEntity;
   targetEntity: Entity;
   targetEntityId: ExternalUuid;
 }> {
+  let pbEntity: PbEntity;
   let targetEntity: Entity;
   let targetEntityId: ExternalUuid;
   const ctx = Context.getInstance();
   switch (body.getTargetCase()) {
     case LinkEntities.TargetCase.ORGANIZATION: {
+      pbEntity = PbEntity.ORGANIZATION;
       targetEntity = Entity.ORGANIZATION;
       targetEntityId = tryGetMember(body.getOrganization(), log, [
         ...path,
@@ -98,6 +101,7 @@ async function parseTargetEntity(
       break;
     }
     case LinkEntities.TargetCase.SCHOOL: {
+      pbEntity = PbEntity.SCHOOL;
       targetEntity = Entity.SCHOOL;
       targetEntityId = tryGetMember(body.getSchool(), log, [
         ...path,
@@ -107,6 +111,7 @@ async function parseTargetEntity(
       break;
     }
     case LinkEntities.TargetCase.CLASS: {
+      pbEntity = PbEntity.CLASS;
       targetEntity = Entity.CLASS;
       targetEntityId = tryGetMember(body.getClass(), log, [
         ...path,
@@ -116,6 +121,7 @@ async function parseTargetEntity(
       break;
     }
     case LinkEntities.TargetCase.USER: {
+      pbEntity = PbEntity.USER;
       targetEntity = Entity.USER;
       targetEntityId = tryGetMember(body.getUser(), log, [
         ...path,
@@ -132,7 +138,7 @@ async function parseTargetEntity(
         log
       );
   }
-  return { targetEntity, targetEntityId };
+  return { pbEntity, targetEntity, targetEntityId };
 }
 
 async function parseEntitiesToLink(

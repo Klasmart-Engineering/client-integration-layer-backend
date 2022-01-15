@@ -1,7 +1,8 @@
 import { Logger } from 'pino';
 
 import { BAD_REQUEST, BASE_PATH, Props, tryGetMember } from '../../errors';
-import { OnboardingRequest } from '../../protos/api_pb';
+import { Entity, OnboardingRequest } from '../../protos/api_pb';
+import { ExternalUuid } from '../../utils';
 
 import {
   ValidatedClass,
@@ -14,7 +15,7 @@ export async function parseCreateEntity(
   req: OnboardingRequest,
   log: Logger,
   props: Props
-): Promise<Logger> {
+): Promise<[Entity, ExternalUuid, Logger]> {
   const path = [...BASE_PATH];
   const payload = req.getPayloadCase();
   switch (payload) {
@@ -27,7 +28,11 @@ export async function parseCreateEntity(
         path,
         props
       );
-      return validated.logger;
+      return [
+        Entity.ORGANIZATION,
+        validated.org.getExternalUuid(),
+        validated.logger,
+      ];
     }
     case OnboardingRequest.PayloadCase.SCHOOL: {
       path.push('school');
@@ -38,7 +43,11 @@ export async function parseCreateEntity(
         path,
         props
       );
-      return validated.logger;
+      return [
+        Entity.ORGANIZATION,
+        validated.school.getExternalUuid(),
+        validated.logger,
+      ];
     }
     case OnboardingRequest.PayloadCase.CLASS: {
       path.push('class');
@@ -49,7 +58,11 @@ export async function parseCreateEntity(
         path,
         props
       );
-      return validated.logger;
+      return [
+        Entity.ORGANIZATION,
+        validated.cl.getExternalUuid(),
+        validated.logger,
+      ];
     }
     case OnboardingRequest.PayloadCase.USER: {
       path.push('user');
@@ -60,7 +73,11 @@ export async function parseCreateEntity(
         path,
         props
       );
-      return validated.logger;
+      return [
+        Entity.ORGANIZATION,
+        validated.user.getExternalUuid(),
+        validated.logger,
+      ];
     }
     default:
       throw BAD_REQUEST(

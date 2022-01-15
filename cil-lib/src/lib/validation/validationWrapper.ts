@@ -2,8 +2,9 @@ import { Logger } from 'pino';
 
 import { log } from '../..';
 import { Props } from '../errors';
-import { Action, OnboardingRequest } from '../protos/api_pb';
+import { Action, Entity, OnboardingRequest } from '../protos/api_pb';
 import { actionToString } from '../types/action';
+import { ExternalUuid } from '../utils';
 import { RequestIdTracker } from '../utils/requestId';
 
 import { parseCreateEntity } from './createEntity';
@@ -12,6 +13,8 @@ import { parseLinkEntities } from './linkEntities';
 export class ValidationWrapper {
   private constructor(
     public readonly data: OnboardingRequest,
+    public readonly entity: Entity,
+    public readonly entityId: ExternalUuid,
     public logger: Logger
   ) {}
 
@@ -27,17 +30,27 @@ export class ValidationWrapper {
       action: actionToString(action),
     };
 
+    let entity: Entity;
+    let entityId: ExternalUuid;
     switch (action) {
       case Action.CREATE: {
-        logger = await parseCreateEntity(data, logger, props);
+        [entity, entityId, logger] = await parseCreateEntity(
+          data,
+          logger,
+          props
+        );
         break;
       }
       case Action.LINK: {
-        logger = await parseLinkEntities(data, logger, props);
+        [entity, entityId, logger] = await parseLinkEntities(
+          data,
+          logger,
+          props
+        );
         break;
       }
     }
     const childLogger = logger.child(props);
-    return new ValidationWrapper(data, childLogger);
+    return new ValidationWrapper(data, entity, entityId, childLogger);
   }
 }

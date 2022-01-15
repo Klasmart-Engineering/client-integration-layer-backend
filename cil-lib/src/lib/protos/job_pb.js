@@ -115,7 +115,6 @@ proto.cil_onboarding.jobs.Job.prototype.toObject = function(opt_includeInstance)
  */
 proto.cil_onboarding.jobs.Job.toObject = function(includeInstance, msg) {
   var f, obj = {
-    requestId: jspb.Message.getFieldWithDefault(msg, 1, ""),
     request: (f = msg.getRequest()) && api_pb.OnboardingRequest.toObject(includeInstance, f)
   };
 
@@ -153,10 +152,6 @@ proto.cil_onboarding.jobs.Job.deserializeBinaryFromReader = function(msg, reader
     }
     var field = reader.getFieldNumber();
     switch (field) {
-    case 1:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setRequestId(value);
-      break;
     case 2:
       var value = new api_pb.OnboardingRequest;
       reader.readMessage(value,api_pb.OnboardingRequest.deserializeBinaryFromReader);
@@ -191,13 +186,6 @@ proto.cil_onboarding.jobs.Job.prototype.serializeBinary = function() {
  */
 proto.cil_onboarding.jobs.Job.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getRequestId();
-  if (f.length > 0) {
-    writer.writeString(
-      1,
-      f
-    );
-  }
   f = message.getRequest();
   if (f != null) {
     writer.writeMessage(
@@ -206,24 +194,6 @@ proto.cil_onboarding.jobs.Job.serializeBinaryToWriter = function(message, writer
       api_pb.OnboardingRequest.serializeBinaryToWriter
     );
   }
-};
-
-
-/**
- * optional string request_id = 1;
- * @return {string}
- */
-proto.cil_onboarding.jobs.Job.prototype.getRequestId = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
-};
-
-
-/**
- * @param {string} value
- * @return {!proto.cil_onboarding.jobs.Job} returns this
- */
-proto.cil_onboarding.jobs.Job.prototype.setRequestId = function(value) {
-  return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 

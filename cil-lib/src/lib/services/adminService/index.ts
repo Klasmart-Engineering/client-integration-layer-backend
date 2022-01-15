@@ -10,6 +10,7 @@ import {
 import { onError } from '@apollo/client/link/error';
 import { RetryLink } from '@apollo/client/link/retry';
 import fetch from 'cross-fetch';
+import { Logger } from 'pino';
 
 import {
   Category,
@@ -18,7 +19,7 @@ import {
   OnboardingError,
 } from '../../errors';
 import { Entity } from '../../types';
-import { log, Uuid } from '../../utils';
+import { log as baseLogger, Uuid } from '../../utils';
 
 import { GET_ORGANIZATION } from './organization';
 import { GET_PROGRAMS_BY_ORGANIZATION, GET_SYSTEM_PROGRAMS } from './programs';
@@ -90,7 +91,7 @@ export class AdminService {
        */
       if (graphQLErrors)
         graphQLErrors.forEach(({ message, path }) =>
-          log.error(`GraphQL query failed`, {
+          baseLogger.error(`GraphQL query failed`, {
             error: message,
             api: 'admin',
             path,
@@ -99,13 +100,13 @@ export class AdminService {
 
       // 4xx/5xx errors
       if (networkError)
-        log.error(`Network error while attempting a GraphQL call`, {
+        baseLogger.error(`Network error while attempting a GraphQL call`, {
           error: networkError,
           api: 'admin',
         });
 
       if (response)
-        log.error(`Received response but found an error`, {
+        baseLogger.error(`Received response but found an error`, {
           error: response,
           api: 'admin',
         });
@@ -118,10 +119,12 @@ export class AdminService {
       });
 
       this._instance = new AdminService(client, jwt);
-      log.info('Connected to KidsLoop admin service');
+      baseLogger.info('Connected to KidsLoop admin service');
       return this._instance;
     } catch (error) {
-      log.error('❌ Failed to connect KidsLoop admin service', { error });
+      baseLogger.error('❌ Failed to connect KidsLoop admin service', {
+        error,
+      });
       throw error;
     }
   }
@@ -130,50 +133,61 @@ export class AdminService {
     return this._client;
   }
 
-  public async getSystemPrograms(): Promise<IdNameMapper[]> {
+  public async getSystemPrograms(log: Logger): Promise<IdNameMapper[]> {
     const results = await this.traversePaginatedQuery(
       GET_SYSTEM_PROGRAMS,
       idNameTransformer,
-      'programsConnection'
+      'programsConnection',
+      log
     );
     return results;
   }
 
-  public async getOrganizationPrograms(orgId: Uuid): Promise<IdNameMapper[]> {
+  public async getOrganizationPrograms(
+    orgId: Uuid,
+    log: Logger
+  ): Promise<IdNameMapper[]> {
     const results = await this.traversePaginatedQuery(
       GET_PROGRAMS_BY_ORGANIZATION,
       idNameTransformer,
       'programsConnection',
+      log,
       { orgId }
     );
     return results;
   }
 
-  public async getSystemRoles(): Promise<IdNameMapper[]> {
+  public async getSystemRoles(log: Logger): Promise<IdNameMapper[]> {
     const results = await this.traversePaginatedQuery(
       GET_SYSTEM_ROLES,
       idNameTransformer,
-      'rolesConnection'
+      'rolesConnection',
+      log
     );
     return results;
   }
 
-  public async getOrganizationRoles(orgId: Uuid): Promise<IdNameMapper[]> {
+  public async getOrganizationRoles(
+    orgId: Uuid,
+    log: Logger
+  ): Promise<IdNameMapper[]> {
     const results = await this.traversePaginatedQuery(
       GET_ORGANIZATION_ROLES,
       idNameTransformer,
       'rolesConnection',
+      log,
       { orgId }
     );
     return results;
   }
 
-  public async getOrganization(orgName: string): Promise<Uuid> {
+  public async getOrganization(orgName: string, log: Logger): Promise<Uuid> {
     const transformer = ({ id }: { id: string }) => id;
     const org = await this.traversePaginatedQuery(
       GET_ORGANIZATION,
       transformer,
       'organizationConnection',
+      log,
       { orgName }
     );
     if (org.length > 1)
@@ -200,6 +214,7 @@ export class AdminService {
     query: DocumentNode | TypedDocumentNode,
     transformer: (responseData: U) => T,
     connectionName: SupportedConnections,
+    logger: Logger,
     variables?: Record<string, unknown>
   ): Promise<T[]> {
     let hasNextPage = true;
@@ -243,8 +258,10 @@ export class AdminService {
         throw new OnboardingError(
           MachineError.NOT_FOUND,
           'When trying to parse the paginated query, found no pages of data',
-          entity,
-          Category.ADMIN_SERVICE
+          Category.ADMIN_SERVICE,
+          logger,
+          [],
+          { entity }
         );
       }
       hasNextPage = responseData.pageInfo.hasNextPage;

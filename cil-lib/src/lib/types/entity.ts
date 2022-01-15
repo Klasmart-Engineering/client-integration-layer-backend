@@ -1,3 +1,5 @@
+import { Logger } from 'pino';
+
 import { proto } from '../..';
 import { Category, MachineError, OnboardingError } from '../errors';
 
@@ -11,7 +13,7 @@ export enum Entity {
   UNKNOWN = 'Unknown',
 }
 
-export function entityToProtobuf(e: Entity): proto.Entity {
+export function entityToProtobuf(e: Entity, log: Logger): proto.Entity {
   switch (e) {
     case Entity.ORGANIZATION:
       return proto.Entity.ORGANIZATION;
@@ -29,13 +31,13 @@ export function entityToProtobuf(e: Entity): proto.Entity {
       throw new OnboardingError(
         MachineError.APP_CONFIG,
         'Unable to map app Entity to protobuf Entity',
-        Entity.UNKNOWN,
-        Category.APP
+        Category.APP,
+        log
       );
   }
 }
 
-export function protobufToEntity(e: proto.Entity): Entity {
+export function protobufToEntity(e: proto.Entity, log: Logger): Entity {
   switch (e) {
     case proto.Entity.ORGANIZATION:
       return Entity.ORGANIZATION;
@@ -53,30 +55,8 @@ export function protobufToEntity(e: proto.Entity): Entity {
       throw new OnboardingError(
         MachineError.APP_CONFIG,
         'Unable to map protobuf Entity to app Entity',
-        Entity.UNKNOWN,
-        Category.APP
-      );
-  }
-}
-
-export function onboardingRequestToProtobuf(
-  e: proto.OnboardingRequest.EntityCase
-): Entity {
-  switch (e) {
-    case proto.OnboardingRequest.EntityCase.ORGANIZATION:
-      return Entity.ORGANIZATION;
-    case proto.OnboardingRequest.EntityCase.SCHOOL:
-      return Entity.SCHOOL;
-    case proto.OnboardingRequest.EntityCase.CLASS:
-      return Entity.CLASS;
-    case proto.OnboardingRequest.EntityCase.USER:
-      return Entity.USER;
-    default:
-      throw new OnboardingError(
-        MachineError.APP_CONFIG,
-        'Unable to map protobuf Entity to app Entity',
-        Entity.UNKNOWN,
-        Category.APP
+        Category.APP,
+        log
       );
   }
 }
