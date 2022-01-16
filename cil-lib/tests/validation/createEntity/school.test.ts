@@ -1,8 +1,11 @@
 import { expect } from 'chai';
+import sinon from 'sinon';
 import { v4 as uuidv4 } from 'uuid';
 
-import { schoolSchema } from '../../src';
-import { School } from '../../src/lib/protos';
+import { ValidationWrapper } from '../../../src';
+import { School } from '../../../src/lib/protos';
+import { log } from '../../../src/lib/utils';
+import { LOG_STUB, wrapRequest } from '../util';
 
 export type SchoolTestCase = {
   scenario: string;
@@ -122,19 +125,34 @@ export const INVALID_SCHOOLS: SchoolTestCase[] = [
 ];
 
 describe('school validation', () => {
+  before(() => {
+    sinon.stub(log, 'child').returns(LOG_STUB);
+  });
+
   VALID_SCHOOLS.forEach(({ scenario, school }) => {
-    it(`should pass when an organization is ${scenario}`, () => {
-      const { error } = schoolSchema.validate(school.toObject());
-      expect(error).to.be.undefined;
+    it(`should pass when a school is ${scenario}`, async () => {
+      const req = wrapRequest(school);
+      try {
+        const resp = await ValidationWrapper.parseRequest(req, log);
+        expect(resp).not.to.be.undefined;
+      } catch (error) {
+        expect(error).to.be.undefined;
+      }
     });
   });
 
   describe('should fail when ', () => {
     INVALID_SCHOOLS.forEach(({ scenario, school }) => {
-      it(scenario, () => {
-        const { error } = schoolSchema.validate(school.toObject());
-        expect(error).to.not.be.undefined;
-        expect(error?.details).to.have.length(1);
+      it(scenario, async () => {
+        const req = wrapRequest(school);
+        try {
+          const resp = await ValidationWrapper.parseRequest(req, log);
+          expect(resp).to.be.undefined;
+        } catch (error) {
+          expect(error).not.to.be.undefined;
+          console.log(error);
+          expect(error).to.be.string('test');
+        }
       });
     });
   });

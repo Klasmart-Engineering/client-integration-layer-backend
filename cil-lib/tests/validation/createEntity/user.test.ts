@@ -1,16 +1,11 @@
 import { expect } from 'chai';
+import sinon from 'sinon';
 import { v4 as uuidv4 } from 'uuid';
 
-import { userSchema } from '../../src';
-import { Gender, User } from '../../src/lib/protos';
-
-// NOTE:
-// This validation test can't test that the phone & email
-// are valid and that at least one exists
-//
-// This is a limitation of JOI
-//
-// The validation for these members must occur in ValidationWrapper.validate
+import { ValidationWrapper } from '../../../src';
+import { Gender, User } from '../../../src/lib/protos';
+import { log } from '../../../src/lib/utils';
+import { LOG_STUB, wrapRequest } from '../util';
 
 const USER = Object.freeze({
   externalUuid: true,
@@ -151,20 +146,34 @@ export const INVALID_USERS: UserTestCase[] = [
 ];
 
 describe('user validation', () => {
+  before(() => {
+    sinon.stub(log, 'child').returns(LOG_STUB);
+  });
+
   VALID_USERS.forEach(({ scenario, user }) => {
-    it(`should pass when a user is ${scenario}`, () => {
-      const { error } = userSchema.validate(user.toObject());
-      console.log(error?.details);
-      expect(error).to.be.undefined;
+    it(`should pass when a user is ${scenario}`, async () => {
+      const req = wrapRequest(user);
+      try {
+        const resp = await ValidationWrapper.parseRequest(req, log);
+        expect(resp).not.to.be.undefined;
+      } catch (error) {
+        expect(error).to.be.undefined;
+      }
     });
   });
 
   describe('should fail when ', () => {
     INVALID_USERS.forEach(({ scenario, user }) => {
-      it(scenario, () => {
-        const { error } = userSchema.validate(user.toObject());
-        expect(error).to.not.be.undefined;
-        expect(error?.details).to.have.length(1);
+      it(scenario, async () => {
+        const req = wrapRequest(user);
+        try {
+          const resp = await ValidationWrapper.parseRequest(req, log);
+          expect(resp).to.be.undefined;
+        } catch (error) {
+          expect(error).not.to.be.undefined;
+          console.log(error);
+          expect(error).to.be.string('test');
+        }
       });
     });
   });

@@ -1,6 +1,5 @@
 import { Logger } from 'pino';
 
-import { log } from '../..';
 import { Props } from '../errors';
 import { Action, Entity, OnboardingRequest } from '../protos/api_pb';
 import { actionToString } from '../types/action';
@@ -19,7 +18,8 @@ export class ValidationWrapper {
   ) {}
 
   public static async parseRequest(
-    data: OnboardingRequest
+    data: OnboardingRequest,
+    log: Logger
   ): Promise<ValidationWrapper> {
     let logger = log.child({ currentOperation: 'VALIDATION' });
     const action = data.getAction();
@@ -29,6 +29,9 @@ export class ValidationWrapper {
     const props: Props = {
       action: actionToString(action),
     };
+    logger.info(`Attempting to validate ${props.action} ${data.getPayloadCase()}`, {
+      requestId
+    });
 
     let entity: Entity;
     let entityId: ExternalUuid;

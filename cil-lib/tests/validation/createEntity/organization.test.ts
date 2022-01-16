@@ -1,8 +1,9 @@
 import { expect } from 'chai';
 import { v4 as uuidv4 } from 'uuid';
 
-import { organizationSchema } from '../../src';
-import { Organization } from '../../src/lib/protos';
+import { ValidationWrapper } from '../../../src';
+import { Organization } from '../../../src/lib/protos';
+import { LOG_STUB, wrapRequest } from '../util';
 
 export type OrgTestCase = {
   scenario: string;
@@ -53,20 +54,39 @@ export const INVALID_ORGANIZATIONS: OrgTestCase[] = [
   },
 ];
 
-describe('organization validation', () => {
+describe.only('organization validation', () => {
+  before(() => {
+    process.env.ADMIN_SERVICE_JWT = 'abcdefg';
+  });
+
   VALID_ORGANIZATIONS.forEach(({ scenario, org }) => {
-    it(`should pass when an organization is ${scenario}`, () => {
-      const { error } = organizationSchema.validate(org.toObject());
-      expect(error).to.be.undefined;
+    it.only(`should pass when an organization is ${scenario}`, async (done) => {
+      const req = wrapRequest(org);
+      try {
+        const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
+        console.log(resp);
+        expect(resp).not.to.be.undefined;
+        done();
+      } catch (error) {
+        console.log(error);
+        expect(error).to.be.undefined;
+        done();
+      }
     });
   });
 
   describe('should fail when ', () => {
     INVALID_ORGANIZATIONS.forEach(({ scenario, org }) => {
-      it(scenario, () => {
-        const { error } = organizationSchema.validate(org.toObject());
-        expect(error).to.not.be.undefined;
-        expect(error?.details).to.have.length(1);
+      it(scenario, async () => {
+        const req = wrapRequest(org);
+        try {
+          const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
+          expect(resp).to.be.undefined;
+        } catch (error) {
+          expect(error).not.to.be.undefined;
+          console.log(error);
+          expect(error).to.be.string('test');
+        }
       });
     });
   });

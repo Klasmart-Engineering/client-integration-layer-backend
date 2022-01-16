@@ -1,8 +1,11 @@
 import { expect } from 'chai';
+import sinon from 'sinon';
 import { v4 as uuidv4 } from 'uuid';
 
-import { classSchema } from '../../src';
-import { Class } from '../../src/lib/protos';
+import { ValidationWrapper } from '../../../src';
+import { Class } from '../../../src/lib/protos';
+import { log } from '../../../src/lib/utils';
+import { LOG_STUB, wrapRequest } from '../util';
 
 export type ClassTestCase = {
   scenario: string;
@@ -122,19 +125,34 @@ export const INVALID_CLASSES: ClassTestCase[] = [
 ];
 
 describe('class validation', () => {
+  before(() => {
+    sinon.stub(log, 'child').returns(LOG_STUB);
+  });
+
   VALID_CLASSES.forEach(({ scenario, c }) => {
-    it(`should pass when an organization is ${scenario}`, () => {
-      const { error } = classSchema.validate(c.toObject());
-      expect(error).to.be.undefined;
+    it(`should pass when a class is ${scenario}`, async () => {
+      const req = wrapRequest(c);
+      try {
+        const resp = await ValidationWrapper.parseRequest(req, log);
+        expect(resp).not.to.be.undefined;
+      } catch (error) {
+        expect(error).to.be.undefined;
+      }
     });
   });
 
   describe('should fail when ', () => {
     INVALID_CLASSES.forEach(({ scenario, c }) => {
-      it(scenario, () => {
-        const { error } = classSchema.validate(c.toObject());
-        expect(error).to.not.be.undefined;
-        expect(error?.details).to.have.length(1);
+      it(scenario, async () => {
+        const req = wrapRequest(c);
+        try {
+          const resp = await ValidationWrapper.parseRequest(req, log);
+          expect(resp).to.be.undefined;
+        } catch (error) {
+          expect(error).not.to.be.undefined;
+          console.log(error);
+          expect(error).to.be.string('test');
+        }
       });
     });
   });

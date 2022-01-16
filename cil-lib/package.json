@@ -59,6 +59,7 @@
     "lru-cache": "^6.0.0",
     "newrelic": "8.6.0",
     "pino": "^7.6.3",
+    "sinon": "^12.0.1",
     "uuid": "8.3.2"
   },
   "devDependencies": {
@@ -70,6 +71,7 @@
     "@types/mocha": "^9.0.0",
     "@types/newrelic": "7.0.2",
     "@types/node": "16.11.8",
+    "@types/sinon": "^10.0.6",
     "@types/uuid": "8.3.4",
     "@typescript-eslint/eslint-plugin": "^4.0.1",
     "@typescript-eslint/parser": "^4.0.1",
