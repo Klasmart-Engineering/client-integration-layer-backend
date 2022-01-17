@@ -4,6 +4,7 @@ import { Logger } from 'pino';
 import { Organization } from '../../../entities';
 import {
   Category,
+  Errors,
   MachineError,
   OnboardingError,
   Props,
@@ -49,20 +50,28 @@ export class ValidatedOrganization {
     path: string[],
     props: Props
   ): void {
+    const errors = new Map();
     const { error } = organizationSchema.validate(
       entity,
       JOI_VALIDATION_SETTINGS
     );
-    if (error)
-      throw new OnboardingError(
-        MachineError.VALIDATION,
-        `Create ${this.entity} request has failed validation`,
-        Category.REQUEST,
-        log,
-        path,
-        props,
-        error.details.map((e) => e.message)
-      );
+    if (error) {
+      for (const { path: p, message } of error.details) {
+        const e =
+          errors.get(p) ||
+          new OnboardingError(
+            MachineError.VALIDATION,
+            `${this.entity} failed validation`,
+            Category.REQUEST,
+            log,
+            [...path, ...p.map((p) => p.toString())],
+            props
+          );
+        e.details.push(message);
+        errors.set(p, e);
+      }
+    }
+    if (errors.size > 0) throw new Errors(Array.from(errors.values()));
   }
 
   private static async entityValidation(

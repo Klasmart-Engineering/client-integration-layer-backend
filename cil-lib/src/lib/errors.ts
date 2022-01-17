@@ -44,7 +44,7 @@ export class OnboardingError {
     public logger: Logger = log,
     public readonly path: string[] = [],
     public readonly properties = {},
-    public readonly details: string[] = [],
+    public details: string[] = [],
     public readonly logLevel: LogLevel = 'error',
     public readonly logOnCreation = true
   ) {
@@ -144,7 +144,7 @@ export const POSTGRES_IS_VALID_QUERY = (
     [],
     { operation: 'IS VALID', targetEntity, targetEntityId: id }
   );
-}
+};
 
 export const POSTGRES_GET_KIDSLOOP_ID_QUERY = (
   id: ExternalUuid | ExternalUuid[],
@@ -153,19 +153,32 @@ export const POSTGRES_GET_KIDSLOOP_ID_QUERY = (
   log: Logger
 ) => {
   if (Array.isArray(id)) {
-    return new OnboardingError(MachineError.READ, msg, Category.POSTGRES, log, [], {
-      operation: 'GET KIDSLOOP IDS',
-      targetEntity,
-      targetEntityIds: id.join(', '),
-    });
+    return new OnboardingError(
+      MachineError.READ,
+      msg,
+      Category.POSTGRES,
+      log,
+      [],
+      {
+        operation: 'GET KIDSLOOP IDS',
+        targetEntity,
+        targetEntityIds: id.join(', '),
+      }
+    );
   }
-  return new OnboardingError(MachineError.READ, msg, Category.POSTGRES, log, [], {
-    operation: 'GET KIDSLOOP ID',
-    targetEntity,
-    targetEntityId: id,
-  });
-}
-
+  return new OnboardingError(
+    MachineError.READ,
+    msg,
+    Category.POSTGRES,
+    log,
+    [],
+    {
+      operation: 'GET KIDSLOOP ID',
+      targetEntity,
+      targetEntityId: id,
+    }
+  );
+};
 
 export function tryGetMember<T>(
   e: T | undefined,

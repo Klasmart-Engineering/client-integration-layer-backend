@@ -20,6 +20,7 @@ export const processMessage = async (
 ): Promise<Response> => {
   const resp = new Response();
   resp.setRequestId(data.getRequestId());
+  resp.setSuccess(false);
 
   const logger: Logger = log;
   try {
@@ -42,9 +43,11 @@ export const processMessage = async (
     }
     return resp;
   }
-  const msg = Message.fromOnboardingRequest(data);
-  const stream = await RedisStream.getInstance(logger);
-  await stream.publishMessage(msg, logger);
-  resp.setSuccess(true);
+  try {
+    const msg = Message.fromOnboardingRequest(data);
+    const stream = await RedisStream.getInstance(logger);
+    await stream.publishMessage(msg, logger);
+    resp.setSuccess(true);
+  } catch (error) {}
   return resp;
 };

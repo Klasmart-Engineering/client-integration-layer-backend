@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import {
   Category,
+  Errors,
   MachineError,
   OnboardingError,
   ValidationWrapper,
@@ -166,10 +167,13 @@ describe('class validation', () => {
         } catch (error) {
           expect(error).not.to.be.undefined;
           const isOnboardingError = error instanceof OnboardingError;
-          expect(isOnboardingError).to.be.true;
-          const e = error as OnboardingError;
-          expect(e.details).to.have.length.greaterThanOrEqual(1);
-          expect(e.error).to.equal('Validation');
+          const errors = isOnboardingError ? new Errors([error]) : error;
+          expect(errors instanceof Errors).to.be.true;
+          for (const e of (errors as Errors).errors) {
+            expect(e.details).to.have.length.greaterThanOrEqual(1);
+            expect(e.path).to.have.length.greaterThanOrEqual(1);
+            expect(e.error).to.equal('Validation');
+          }
         }
       });
     });
