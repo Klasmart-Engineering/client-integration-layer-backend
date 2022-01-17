@@ -3,10 +3,12 @@ import { Logger } from 'pino';
 
 import {
   Category,
+  ENTITY_NOT_FOUND,
   MachineError,
   OnboardingError,
   POSTGRES_GET_KIDSLOOP_ID_QUERY,
   POSTGRES_IS_VALID_QUERY,
+  returnMessageOrThrowOnboardingError,
 } from '../errors';
 import { Organization as Org } from '../protos/api_pb';
 import { AdminService } from '../services/adminService';
@@ -30,7 +32,7 @@ export class Organization {
         data: organization,
       });
     } catch (error) {
-      const msg = error instanceof Error ? error.message : `${error}`;
+      const msg = returnMessageOrThrowOnboardingError(error);
       throw new OnboardingError(
         MachineError.WRITE,
         msg,
@@ -49,10 +51,10 @@ export class Organization {
           externalUuid: id,
         },
       });
-      if (!org) throw new Error(`Organization: ${id} not found`);
+      if (!org) throw ENTITY_NOT_FOUND(id, this.entity, log);
       return org;
     } catch (error) {
-      const msg = error instanceof Error ? error.message : `${error}`;
+      const msg = returnMessageOrThrowOnboardingError(error);
       throw new OnboardingError(
         MachineError.READ,
         msg,
@@ -75,9 +77,9 @@ export class Organization {
         },
       });
       if (school) return true;
-      throw new Error(`${this.entity}: ${id} is not valid`);
+      throw ENTITY_NOT_FOUND(id, this.entity, log);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : `${error}`;
+      const msg = returnMessageOrThrowOnboardingError(error);
       throw POSTGRES_IS_VALID_QUERY(id, this.entity, msg, log);
     }
   }
@@ -92,11 +94,10 @@ export class Organization {
           klUuid: true,
         },
       });
-      if (!klUuid) throw new Error(`${this.entity}: ${id} is not valid`);
       if (klUuid && klUuid.klUuid) return klUuid.klUuid;
-      throw new Error(`Unable to find KidsLoop ID for ${this.entity}: ${id}`);
+      throw ENTITY_NOT_FOUND(id, this.entity, log);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : `${error}`;
+      const msg = returnMessageOrThrowOnboardingError(error);
       throw POSTGRES_GET_KIDSLOOP_ID_QUERY(id, this.entity, msg, log);
     }
   }
@@ -118,10 +119,10 @@ export class Organization {
           },
         },
       });
-      if (!programs) throw new Error(`Organization: ${id} not found`);
+      if (!programs) throw ENTITY_NOT_FOUND(id, this.entity, log);
       return programs.programs.map((p) => p.klUuid);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : `${error}`;
+      const msg = returnMessageOrThrowOnboardingError(error);
       throw new OnboardingError(
         MachineError.READ,
         msg,
@@ -173,10 +174,10 @@ export class Organization {
           },
         },
       });
-      if (!roles) throw new Error(`Organization: ${id} not found`);
+      if (!roles) throw ENTITY_NOT_FOUND(id, this.entity, log);
       return roles.roles.map((r) => r.klUuid);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : `${error}`;
+      const msg = returnMessageOrThrowOnboardingError(error);
       throw new OnboardingError(
         MachineError.READ,
         msg,
@@ -214,8 +215,7 @@ export class Organization {
       await Program.insertMany(programUuids, externalUuid, log);
       await Role.insertMany(roleUuids, externalUuid, log);
     } catch (error) {
-      if (error instanceof OnboardingError) throw error;
-      const msg = error instanceof Error ? error.message : `${error}`;
+      const msg = returnMessageOrThrowOnboardingError(error);
       throw new OnboardingError(
         MachineError.VALIDATION,
         msg,

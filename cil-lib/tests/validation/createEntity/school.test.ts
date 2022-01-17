@@ -176,7 +176,7 @@ describe('school validation', () => {
           for (const e of (errors as Errors).errors) {
             expect(e.details).to.have.length.greaterThanOrEqual(1);
             expect(e.path).to.have.length.greaterThanOrEqual(1);
-            expect(e.error).to.equal('Validation');
+            expect(e.error).to.equal(MachineError.VALIDATION);
           }
         }
       });
@@ -200,7 +200,7 @@ describe('school validation', () => {
       expect(isOnboardingError).to.be.true;
       const e = error as OnboardingError;
       expect(e.msg).to.equal('Invalid Organization');
-      expect(e.error).to.equal('Validation');
+      expect(e.error).to.equal(MachineError.VALIDATION);
     }
   });
 
@@ -215,7 +215,7 @@ describe('school validation', () => {
       expect(isOnboardingError).to.be.true;
       const e = error as OnboardingError;
       expect(e.msg).to.include('already exists');
-      expect(e.error).to.equal('Entity already exists');
+      expect(e.error).to.equal(MachineError.ENTITY_ALREADY_EXISTS);
     }
   });
 });

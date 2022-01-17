@@ -4,7 +4,7 @@ import { Logger } from 'pino';
 import { Class, Organization, Program, Role, School, User } from '../entities';
 import {
   Category,
-  INVALID_ENTITY,
+  ENTITY_NOT_FOUND,
   MachineError,
   OnboardingError,
 } from '../errors';
@@ -78,7 +78,7 @@ export class Context {
     log: Logger
   ): Promise<Uuid> {
     if (this.invalidOrganizations.has(id))
-      throw INVALID_ENTITY(id, Entity.ORGANIZATION, log);
+      throw ENTITY_NOT_FOUND(id, Entity.ORGANIZATION, log);
     {
       const klId = this.organizations.get(id);
       if (klId) return klId;

@@ -1,12 +1,11 @@
 import { Logger } from 'pino';
 
+import { Errors, OnboardingError } from '../errors';
 import {
   Entity,
   LinkEntities,
   OnboardingRequest,
-  // Error as PbError,
   Response,
-  // ValidationError,
 } from '../protos/api_pb';
 import { RedisStream } from '../redis';
 import { Message } from '../types';
@@ -53,7 +52,15 @@ export const processMessage = async (
     resp.setSuccess(true);
     return resp;
   } catch (error) {
-    // @TODO MAP ERROR TO RESPONSE;
+    if (error instanceof Errors || error instanceof OnboardingError) {
+      const err = error.toProtobufError();
+      resp.setErrors(err);
+    } else {
+      log.warn(
+        `Found an error that wasn't correctly converted to a response - if you're seeing this the code needs an update`
+      );
+    }
+
     return resp;
   }
 };

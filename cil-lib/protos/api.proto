@@ -102,6 +102,7 @@ message Error {
     InvalidRequestError request = 2;
     InternalServerError internal_server = 3;
     EntityAlreadyExistsError entity_exists = 4;
+    EntityDoesNotExistError entity_does_not_exist = 5;
   }
 }
 
@@ -118,6 +119,10 @@ message EntityAlreadyExistsError {
   repeated string details = 1;
 }
 
+message EntityDoesNotExistError {
+  repeated string details = 1;
+}
+
 message InvalidRequestError {
   repeated PathBasedError errors = 1;
   repeated string additional_details = 2;
@@ -130,5 +135,5 @@ message PathBasedError {
 
 service Onboarding {
   rpc Onboard(BatchOnboarding) returns (Responses) {};
-  rpc OnboardStream(stream BatchOnboarding) returns (stream Responses) {};
+  rpc OnboardStream(stream BatchOnboarding) returns (stream Response) {};
 }

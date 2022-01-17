@@ -29,9 +29,12 @@ export class ValidationWrapper {
     const props: Props = {
       action: actionToString(action),
     };
-    logger.info(`Attempting to validate ${props.action} ${data.getPayloadCase()}`, {
-      requestId
-    });
+    logger.info(
+      `Attempting to validate ${props.action} ${data.getPayloadCase()}`,
+      {
+        requestId,
+      }
+    );
 
     let entity: Entity;
     let entityId: ExternalUuid;

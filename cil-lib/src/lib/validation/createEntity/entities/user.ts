@@ -132,15 +132,16 @@ export const userSchema = Joi.object({
     .required(),
 
   familyName: Joi.string()
-  .min(VALIDATION_RULES.USER_GIVEN_FAMILY_NAME_MIN_LENGTH)
-  .max(VALIDATION_RULES.USER_GIVEN_FAMILY_NAME_MAX_LENGTH)
+    .min(VALIDATION_RULES.USER_GIVEN_FAMILY_NAME_MIN_LENGTH)
+    .max(VALIDATION_RULES.USER_GIVEN_FAMILY_NAME_MAX_LENGTH)
     .regex(VALIDATION_RULES.ALPHANUMERIC)
     .required(),
 
   username: Joi.string()
-  .min(VALIDATION_RULES.USERNAME_MIN_LENGTH)
-  .max(VALIDATION_RULES.USERNAME_MAX_LENGTH)
-  .alphanum().required(),
+    .min(VALIDATION_RULES.USERNAME_MIN_LENGTH)
+    .max(VALIDATION_RULES.USERNAME_MAX_LENGTH)
+    .alphanum()
+    .required(),
 
   // Due to niche rules, need to validate in ValidationWrapper.validate
   email: Joi.any(),

@@ -8,9 +8,8 @@
 
 ## TODO
 
-- Validate lower entities programs (Class requires school programs)
-- Fix tests
-- Verify stream processing logic
+- Update streams processing to be multi-stream
+- Update stream consuming to factor in multi-stream
 
 # Installation
 
@@ -60,4 +59,3 @@ You can also run the application with its dependencies through a docker-compose.
 ### Migration
 
 - `npm run migrate:dev`
-

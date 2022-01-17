@@ -3,10 +3,12 @@ import { Logger } from 'pino';
 
 import {
   Category,
+  ENTITY_NOT_FOUND,
   MachineError,
   OnboardingError,
   POSTGRES_GET_KIDSLOOP_ID_QUERY,
   POSTGRES_IS_VALID_QUERY,
+  returnMessageOrThrowOnboardingError,
 } from '../errors';
 import { Entity } from '../types';
 import { ExternalUuid, Uuid } from '../utils';
@@ -24,7 +26,7 @@ export class User {
         data: user,
       });
     } catch (error) {
-      const msg = error instanceof Error ? error.message : `${error}`;
+      const msg = returnMessageOrThrowOnboardingError(error);
       throw new OnboardingError(
         MachineError.WRITE,
         msg,
@@ -43,10 +45,10 @@ export class User {
           externalUuid: id,
         },
       });
-      if (!user) throw new Error(`User: ${id} not found`);
+      if (!user) throw ENTITY_NOT_FOUND(id, this.entity, log);
       return user;
     } catch (error) {
-      const msg = error instanceof Error ? error.message : `${error}`;
+      const msg = returnMessageOrThrowOnboardingError(error);
       throw new OnboardingError(
         MachineError.READ,
         msg,
@@ -69,9 +71,9 @@ export class User {
         },
       });
       if (entity) return true;
-      throw new Error(`${this.entity}: ${id} is not valid`);
+      throw ENTITY_NOT_FOUND(id, this.entity, log);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : `${error}`;
+      const msg = returnMessageOrThrowOnboardingError(error);
       throw POSTGRES_IS_VALID_QUERY(id, this.entity, msg, log);
     }
   }
@@ -88,9 +90,9 @@ export class User {
       });
       if (!klUuid) throw new Error(`${this.entity}: ${id} is not valid`);
       if (klUuid && klUuid.klUuid) return klUuid.klUuid;
-      throw new Error(`Unable to find KidsLoop ID for ${this.entity}: ${id}`);
+      throw ENTITY_NOT_FOUND(id, this.entity, log);
     } catch (error) {
-      const msg = error instanceof Error ? error.message : `${error}`;
+      const msg = returnMessageOrThrowOnboardingError(error);
       throw POSTGRES_GET_KIDSLOOP_ID_QUERY(id, this.entity, msg, log);
     }
   }

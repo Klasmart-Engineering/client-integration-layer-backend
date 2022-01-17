@@ -3,8 +3,8 @@ import { Logger } from 'pino';
 
 import {
   Category,
+  ENTITY_NOT_FOUND,
   Errors,
-  INVALID_ENTITY,
   MachineError,
   OnboardingError,
   POSTGRES_GET_KIDSLOOP_ID_QUERY,
@@ -205,7 +205,8 @@ export class Program {
           programUuids: true,
         },
       });
-      if (!schoolsPrograms) throw INVALID_ENTITY(schoolId, Entity.SCHOOL, log);
+      if (!schoolsPrograms)
+        throw ENTITY_NOT_FOUND(schoolId, Entity.SCHOOL, log);
       if (!klUuids)
         throw POSTGRES_GET_KIDSLOOP_ID_QUERY(
           programNames,

@@ -386,6 +386,11 @@ export class Error extends jspb.Message {
     getEntityExists(): EntityAlreadyExistsError | undefined;
     setEntityExists(value?: EntityAlreadyExistsError): Error;
 
+    hasEntityDoesNotExist(): boolean;
+    clearEntityDoesNotExist(): void;
+    getEntityDoesNotExist(): EntityDoesNotExistError | undefined;
+    setEntityDoesNotExist(value?: EntityDoesNotExistError): Error;
+
     getErrorTypeCase(): Error.ErrorTypeCase;
 
     serializeBinary(): Uint8Array;
@@ -404,6 +409,7 @@ export namespace Error {
         request?: InvalidRequestError.AsObject,
         internalServer?: InternalServerError.AsObject,
         entityExists?: EntityAlreadyExistsError.AsObject,
+        entityDoesNotExist?: EntityDoesNotExistError.AsObject,
     }
 
     export enum ErrorTypeCase {
@@ -412,6 +418,7 @@ export namespace Error {
         REQUEST = 2,
         INTERNAL_SERVER = 3,
         ENTITY_EXISTS = 4,
+        ENTITY_DOES_NOT_EXIST = 5,
     }
 
 }
@@ -482,6 +489,28 @@ export class EntityAlreadyExistsError extends jspb.Message {
 }
 
 export namespace EntityAlreadyExistsError {
+    export type AsObject = {
+        detailsList: Array<string>,
+    }
+}
+
+export class EntityDoesNotExistError extends jspb.Message { 
+    clearDetailsList(): void;
+    getDetailsList(): Array<string>;
+    setDetailsList(value: Array<string>): EntityDoesNotExistError;
+    addDetails(value: string, index?: number): string;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): EntityDoesNotExistError.AsObject;
+    static toObject(includeInstance: boolean, msg: EntityDoesNotExistError): EntityDoesNotExistError.AsObject;
+    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+    static serializeBinaryToWriter(message: EntityDoesNotExistError, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): EntityDoesNotExistError;
+    static deserializeBinaryFromReader(message: EntityDoesNotExistError, reader: jspb.BinaryReader): EntityDoesNotExistError;
+}
+
+export namespace EntityDoesNotExistError {
     export type AsObject = {
         detailsList: Array<string>,
     }
