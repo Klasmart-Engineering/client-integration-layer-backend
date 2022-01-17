@@ -1,10 +1,15 @@
 import { expect } from 'chai';
-import sinon from 'sinon';
+import sinon, { SinonStub } from 'sinon';
 import { v4 as uuidv4 } from 'uuid';
 
-import { ValidationWrapper } from '../../../src';
+import {
+  Category,
+  MachineError,
+  OnboardingError,
+  ValidationWrapper,
+} from '../../../src';
 import { School } from '../../../src/lib/protos';
-import { log } from '../../../src/lib/utils';
+import { Context } from '../../../src/lib/utils';
 import { LOG_STUB, wrapRequest } from '../util';
 
 export type SchoolTestCase = {
@@ -125,15 +130,22 @@ export const INVALID_SCHOOLS: SchoolTestCase[] = [
 ];
 
 describe('school validation', () => {
-  before(() => {
-    sinon.stub(log, 'child').returns(LOG_STUB);
+  let contextStub: SinonStub;
+  const ctx = Context.getInstance();
+
+  beforeEach(async () => {
+    contextStub = sinon.stub(ctx, 'organizationIdIsValid').resolves(uuidv4());
+  });
+
+  afterEach(() => {
+    contextStub.restore();
   });
 
   VALID_SCHOOLS.forEach(({ scenario, school }) => {
     it(`should pass when a school is ${scenario}`, async () => {
       const req = wrapRequest(school);
       try {
-        const resp = await ValidationWrapper.parseRequest(req, log);
+        const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
         expect(resp).not.to.be.undefined;
       } catch (error) {
         expect(error).to.be.undefined;
@@ -146,15 +158,39 @@ describe('school validation', () => {
       it(scenario, async () => {
         const req = wrapRequest(school);
         try {
-          const resp = await ValidationWrapper.parseRequest(req, log);
+          const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
           expect(resp).to.be.undefined;
         } catch (error) {
           expect(error).not.to.be.undefined;
-          console.log(error);
-          expect(error).to.be.string('test');
+          const isOnboardingError = error instanceof OnboardingError;
+          expect(isOnboardingError).to.be.true;
+          const e = error as OnboardingError;
+          expect(e.details).to.have.length.greaterThanOrEqual(1);
+          expect(e.error).to.equal('Validation');
         }
       });
     });
+  });
+
+  it('should fail if the organization ID is not in the database', async () => {
+    const req = wrapRequest(VALID_SCHOOLS[0].school);
+    contextStub.rejects(
+      new OnboardingError(
+        MachineError.VALIDATION,
+        'Invalid Organization',
+        Category.REQUEST
+      )
+    );
+    try {
+      const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
+      expect(resp).not.to.be.undefined;
+    } catch (error) {
+      const isOnboardingError = error instanceof OnboardingError;
+      expect(isOnboardingError).to.be.true;
+      const e = error as OnboardingError;
+      expect(e.msg).to.equal('Invalid Organization');
+      expect(e.error).to.equal('Validation');
+    }
   });
 });
 

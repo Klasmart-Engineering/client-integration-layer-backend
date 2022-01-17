@@ -71,6 +71,8 @@ export class ValidatedUser {
         `${this.entity} failed validation`,
         Category.REQUEST,
         log,
+        ['$', 'user', '[email | phone]'],
+        {},
         [
           'Phone and Email are invalid, at least one of the two must be valid',
           `Must provide a combination of either 'PHONE' + 'USERNAME' or 'EMAIL' + 'USERNAME'`,

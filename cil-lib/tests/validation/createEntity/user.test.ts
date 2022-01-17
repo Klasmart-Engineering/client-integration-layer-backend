@@ -1,10 +1,15 @@
 import { expect } from 'chai';
-import sinon from 'sinon';
+import sinon, { SinonStub } from 'sinon';
 import { v4 as uuidv4 } from 'uuid';
 
-import { ValidationWrapper } from '../../../src';
+import {
+  Category,
+  MachineError,
+  OnboardingError,
+  ValidationWrapper,
+} from '../../../src';
 import { Gender, User } from '../../../src/lib/protos';
-import { log } from '../../../src/lib/utils';
+import { Context } from '../../../src/lib/utils';
 import { LOG_STUB, wrapRequest } from '../util';
 
 const USER = Object.freeze({
@@ -27,8 +32,16 @@ export type UserTestCase = {
 
 export const VALID_USERS: UserTestCase[] = [
   {
-    scenario: 'valid',
+    scenario: 'is valid',
     user: setUpUser(),
+  },
+  {
+    scenario: 'contains everything but a phone number',
+    user: setUpUser({ ...USER, phone: false }),
+  },
+  {
+    scenario: 'contains everything but an email',
+    user: setUpUser({ ...USER, email: false }),
   },
 ];
 
@@ -143,20 +156,38 @@ export const INVALID_USERS: UserTestCase[] = [
       return s;
     })(),
   },
+  {
+    scenario: 'the phone and email are missing',
+    user: (() => {
+      const s = setUpUser({ ...USER, phone: false, email: false });
+      return s;
+    })(),
+  },
 ];
 
 describe('user validation', () => {
-  before(() => {
-    sinon.stub(log, 'child').returns(LOG_STUB);
+  let orgStub: SinonStub;
+  let schoolStub: SinonStub;
+  const ctx = Context.getInstance();
+
+  beforeEach(async () => {
+    orgStub = sinon.stub(ctx, 'organizationIdIsValid').resolves(uuidv4());
+    schoolStub = sinon.stub(ctx, 'schoolIdIsValid').resolves();
+  });
+
+  afterEach(() => {
+    orgStub.restore();
+    schoolStub.restore();
   });
 
   VALID_USERS.forEach(({ scenario, user }) => {
-    it(`should pass when a user is ${scenario}`, async () => {
+    it(`should pass when a user ${scenario}`, async () => {
       const req = wrapRequest(user);
       try {
-        const resp = await ValidationWrapper.parseRequest(req, log);
+        const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
         expect(resp).not.to.be.undefined;
       } catch (error) {
+        console.error(error);
         expect(error).to.be.undefined;
       }
     });
@@ -167,15 +198,60 @@ describe('user validation', () => {
       it(scenario, async () => {
         const req = wrapRequest(user);
         try {
-          const resp = await ValidationWrapper.parseRequest(req, log);
+          const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
           expect(resp).to.be.undefined;
         } catch (error) {
           expect(error).not.to.be.undefined;
-          console.log(error);
-          expect(error).to.be.string('test');
+          const isOnboardingError = error instanceof OnboardingError;
+          expect(isOnboardingError).to.be.true;
+          const e = error as OnboardingError;
+          expect(e.details).to.have.length.greaterThanOrEqual(1);
+          expect(e.error).to.equal('Validation');
         }
       });
     });
+  });
+
+  it('should fail if the organization ID is not in the database', async () => {
+    const req = wrapRequest(VALID_USERS[0].user);
+    orgStub.rejects(
+      new OnboardingError(
+        MachineError.VALIDATION,
+        'Invalid Organization',
+        Category.REQUEST
+      )
+    );
+    try {
+      const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
+      expect(resp).not.to.be.undefined;
+    } catch (error) {
+      const isOnboardingError = error instanceof OnboardingError;
+      expect(isOnboardingError).to.be.true;
+      const e = error as OnboardingError;
+      expect(e.msg).to.equal('Invalid Organization');
+      expect(e.error).to.equal('Validation');
+    }
+  });
+
+  it('should fail if the school ID is not in the database', async () => {
+    const req = wrapRequest(VALID_USERS[0].user);
+    schoolStub.rejects(
+      new OnboardingError(
+        MachineError.VALIDATION,
+        'Invalid School',
+        Category.REQUEST
+      )
+    );
+    try {
+      const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
+      expect(resp).not.to.be.undefined;
+    } catch (error) {
+      const isOnboardingError = error instanceof OnboardingError;
+      expect(isOnboardingError).to.be.true;
+      const e = error as OnboardingError;
+      expect(e.msg).to.equal('Invalid School');
+      expect(e.error).to.equal('Validation');
+    }
   });
 });
 

@@ -65,6 +65,7 @@ export class ValidatedClass {
   ): Promise<void> {
     const ctx = Context.getInstance();
     await ctx.organizationIdIsValid(e.externalOrganizationUuid, log);
+    await ctx.schoolIdIsValid(e.externalSchoolUuid, log);
   }
 }
 
