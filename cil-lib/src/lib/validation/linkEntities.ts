@@ -29,7 +29,7 @@ export type LinkEntity = {
 };
 
 export async function parseLinkEntities(
-  req: OnboardingRequest,
+req: OnboardingRequest,
   log: Logger,
   props: Props
 ): Promise<[PbEntity, ExternalUuid, Logger]> {
@@ -37,7 +37,7 @@ export async function parseLinkEntities(
   const payload = req.getPayloadCase();
   if (payload !== OnboardingRequest.PayloadCase.LINK_ENTITIES)
     throw BAD_REQUEST(
-      `If Action is of type 'LINK', payload must be 'LinkEntites'`,
+      `If Action is of type 'LINK', payload must be 'LinkEntities'`,
       path,
       log,
       props
@@ -55,7 +55,7 @@ export async function parseLinkEntities(
   props['targetEntityId'] = targetEntityId;
 
   const childPath = [...path, 'entities'];
-  const { childEntites, childIds } = await parseEntitiesToLink(
+  const { childEntities: childEntities, childIds } = await parseEntitiesToLink(
     body.getExternalOrganizationUuid(),
     tryGetMember(body.getEntities(), log, childPath),
     { entity: targetEntity, targetId: targetEntityId },
@@ -63,7 +63,7 @@ export async function parseLinkEntities(
     childPath
   );
 
-  props['entityToLink'] = childEntites;
+  props['entityToLink'] = childEntities;
   props['entityIdsToLink'] = childIds;
 
   return [pbEntity, targetEntityId, log.child(props)];
@@ -91,7 +91,7 @@ async function parseTargetEntity(
         'organization',
       ]).getExternalUuid();
       await ctx.organizationIdIsValid(targetEntityId, log);
-      if (body.getExternalOrganizationUuid() !== targetEntity)
+      if (body.getExternalOrganizationUuid() !== targetEntityId)
         throw new OnboardingError(
           MachineError.REQUEST,
           `Found that the Organization ID provided and the entity identifier provided did not match despite the entity being set to 'ORGANIZATION'`,
@@ -133,8 +133,7 @@ async function parseTargetEntity(
     }
     default:
       throw BAD_REQUEST(
-        `A request to LinkEntites must include either an 'ORGANIZATION',
-        'SCHOOL', 'CLASS' or 'USER'`,
+        `A request to LinkEntities must include either an 'ORGANIZATION', 'SCHOOL', 'CLASS' or 'USER'`,
         path,
         log
       );
@@ -149,7 +148,7 @@ async function parseEntitiesToLink(
   log: Logger,
   path: string[]
 ): Promise<{
-  childEntites: Entity;
+  childEntities: Entity;
   childIds: ExternalUuid[];
 }> {
   const { externalEntityIdentifiersList, entity } = body.toObject();
@@ -211,7 +210,7 @@ async function parseEntitiesToLink(
       );
   }
   return {
-    childEntites: e,
+    childEntities: e,
     childIds: externalEntityIdentifiersList,
   };
 }
