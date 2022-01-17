@@ -1,5 +1,6 @@
 export { log } from './log';
 export { processMessage } from './process';
+export { Context } from './context';
 
 export type ExternalUuid = string;
 export type Uuid = string;

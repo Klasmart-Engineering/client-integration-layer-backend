@@ -1,7 +1,15 @@
 import { expect } from 'chai';
+import sinon, { SinonStub } from 'sinon';
 import { v4 as uuidv4 } from 'uuid';
 
-import { ValidationWrapper } from '../../../src';
+import {
+  Category,
+  Context,
+  MachineError,
+  OnboardingError,
+  Organization as OrgRepo,
+  ValidationWrapper,
+} from '../../../src';
 import { Organization } from '../../../src/lib/protos';
 import { LOG_STUB, wrapRequest } from '../util';
 
@@ -54,43 +62,83 @@ export const INVALID_ORGANIZATIONS: OrgTestCase[] = [
   },
 ];
 
-describe.only('organization validation', () => {
-  before(() => {
-    process.env.ADMIN_SERVICE_JWT = 'abcdefg';
-  });
+describe
+  .only('organization validation', () => {
+    let contextStub: SinonStub;
+    let orgStub: SinonStub;
+    const ctx = Context.getInstance();
 
-  VALID_ORGANIZATIONS.forEach(({ scenario, org }) => {
-    it.only(`should pass when an organization is ${scenario}`, async (done) => {
-      const req = wrapRequest(org);
-      try {
-        const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
-        console.log(resp);
-        expect(resp).not.to.be.undefined;
-        done();
-      } catch (error) {
-        console.log(error);
-        expect(error).to.be.undefined;
-        done();
-      }
+    before(() => {
+      process.env.ADMIN_SERVICE_JWT = 'abcdefg';
     });
-  });
 
-  describe('should fail when ', () => {
-    INVALID_ORGANIZATIONS.forEach(({ scenario, org }) => {
-      it(scenario, async () => {
+    beforeEach(async () => {
+      contextStub = sinon.stub(ctx, 'organizationIdIsValid').resolves(uuidv4());
+      orgStub = sinon.stub(OrgRepo, 'initializeOrganization').resolves();
+    });
+
+    afterEach(() => {
+      contextStub.restore();
+      orgStub.restore();
+      // adminStub.restore();
+    });
+
+    VALID_ORGANIZATIONS.forEach(({ scenario, org }) => {
+      it(`should pass when an organization is ${scenario}`, async () => {
         const req = wrapRequest(org);
         try {
           const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
-          expect(resp).to.be.undefined;
+          expect(resp).not.to.be.undefined;
         } catch (error) {
-          expect(error).not.to.be.undefined;
-          console.log(error);
-          expect(error).to.be.string('test');
+          expect(error).to.be.undefined;
         }
       });
     });
-  });
-});
+
+    describe('should fail when ', () => {
+      INVALID_ORGANIZATIONS.forEach(({ scenario, org }) => {
+        it(scenario, async () => {
+          const req = wrapRequest(org);
+          try {
+            const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
+            expect(resp).to.be.undefined;
+          } catch (error) {
+            expect(error).not.to.be.undefined;
+            const isOnboardingError = error instanceof OnboardingError;
+            expect(isOnboardingError).to.be.true;
+            const e = error as OnboardingError;
+            expect(e.details).to.have.length.greaterThanOrEqual(1);
+            expect(e.error).to.equal('Validation');
+          }
+        });
+      });
+    });
+
+    // @TODO
+    // INIT ORG FAILs
+    // Is Valid is false
+    it('should fail if the organization ID is not in the database', async () => {
+      const req = wrapRequest(VALID_ORGANIZATIONS[0].org);
+      orgStub.rejects(
+        new OnboardingError(
+          MachineError.VALIDATION,
+          'Invalid Organization',
+          Category.REQUEST
+        )
+      );
+      try {
+        const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
+        expect(resp).not.to.be.undefined;
+      } catch (error) {
+        const isOnboardingError = error instanceof OnboardingError;
+        expect(isOnboardingError).to.be.true;
+        const e = error as OnboardingError;
+        expect(e.msg).to.equal('Invalid Organization');
+        expect(e.error).to.equal('Validation');
+      }
+    });
+  })
+  .timeout(5000);
 
 function setUpOrganization(name?: string, id?: string): Organization {
   const org = new Organization();
