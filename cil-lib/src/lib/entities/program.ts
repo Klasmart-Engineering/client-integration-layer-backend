@@ -4,6 +4,7 @@ import { Logger } from 'pino';
 import {
   Category,
   Errors,
+  INVALID_ENTITY,
   MachineError,
   OnboardingError,
   POSTGRES_GET_KIDSLOOP_ID_QUERY,
@@ -119,7 +120,7 @@ export class Program {
   }
 
   public static async getIdsByNames(
-    names: string[],
+    programNames: string[],
     orgId: ExternalUuid,
     log: Logger
   ): Promise<IdNameMapper[]> {
@@ -127,7 +128,7 @@ export class Program {
       const klUuids = await prisma.program.findMany({
         where: {
           name: {
-            in: names,
+            in: programNames,
           },
           organization: {
             externalUuid: orgId,
@@ -140,21 +141,97 @@ export class Program {
       });
       if (!klUuids)
         throw POSTGRES_GET_KIDSLOOP_ID_QUERY(
-          names,
+          programNames,
           this.entity,
-          `Programs: ${names.join(', ')} not found for organization ${orgId}`,
+          `Programs: ${programNames.join(
+            ', '
+          )} not found for organization ${orgId}`,
           log
         );
-      const targets = new Set(names);
+      const targets = new Set(programNames);
       for (const { klUuid } of klUuids) {
         targets.delete(klUuid);
       }
       if (targets.size === 0)
         return klUuids.map((id) => ({ id: id.klUuid, name: id.name }));
       throw POSTGRES_GET_KIDSLOOP_ID_QUERY(
-        names,
+        programNames,
         this.entity,
-        `Programs: ${names.join(', ')} not found for organization ${orgId}`,
+        `Programs: ${programNames.join(
+          ', '
+        )} not found for organization ${orgId}`,
+        log
+      );
+    } catch (error) {
+      if (error instanceof OnboardingError) throw error;
+      const msg = error instanceof Error ? error.message : `${error}`;
+      throw new OnboardingError(
+        MachineError.WRITE,
+        msg,
+        Category.POSTGRES,
+        log,
+        [],
+        { operation: 'FIND MANY' }
+      );
+    }
+  }
+
+  public static async getIdsByNamesForClass(
+    programNames: string[],
+    orgId: ExternalUuid,
+    schoolId: ExternalUuid,
+    log: Logger
+  ): Promise<IdNameMapper[]> {
+    try {
+      const klUuids = await prisma.program.findMany({
+        where: {
+          name: {
+            in: programNames,
+          },
+          organization: {
+            externalUuid: orgId,
+          },
+        },
+        select: {
+          klUuid: true,
+          name: true,
+        },
+      });
+      const schoolsPrograms = await prisma.school.findUnique({
+        where: {
+          externalUuid: schoolId,
+        },
+        select: {
+          programUuids: true,
+        },
+      });
+      if (!schoolsPrograms) throw INVALID_ENTITY(schoolId, Entity.SCHOOL, log);
+      if (!klUuids)
+        throw POSTGRES_GET_KIDSLOOP_ID_QUERY(
+          programNames,
+          this.entity,
+          `Programs: ${programNames.join(
+            ', '
+          )} not found for organization ${orgId}`,
+          log
+        );
+      const validForSchool = new Set(schoolsPrograms.programUuids);
+      const targets = new Set(programNames);
+      for (const { klUuid } of klUuids) {
+        // If the school also has the program, then add it
+        if (validForSchool.has(klUuid)) targets.delete(klUuid);
+        // Otherwise that program hasn't been added to that school yet
+        // so it is treated as invalid
+      }
+      if (targets.size === 0)
+        return klUuids.map((id) => ({ id: id.klUuid, name: id.name }));
+      throw POSTGRES_GET_KIDSLOOP_ID_QUERY(
+        programNames,
+        this.entity,
+        `Programs: ${programNames.join(
+          ', '
+        )} not found for organization ${orgId},
+        school: ${schoolId}`,
         log
       );
     } catch (error) {

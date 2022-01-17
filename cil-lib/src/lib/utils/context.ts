@@ -148,8 +148,17 @@ export class Context {
   public async programsAreValid(
     programs: string[],
     orgId: ExternalUuid,
-    log: Logger
+    log: Logger,
+    schoolId?: ExternalUuid
   ): Promise<IdNameMapper[]> {
+    // @TODO - Implement some form of caching on this
+    if (schoolId)
+      return await Program.getIdsByNamesForClass(
+        programs,
+        orgId,
+        schoolId,
+        log
+      );
     const p = this.programs.get(orgId);
     if (!p) {
       const ids = await Program.getIdsByNames(programs, orgId, log);

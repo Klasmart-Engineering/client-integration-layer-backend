@@ -6,12 +6,11 @@
 
 ![architecture](diagrams/architecture.png)
 
-## TODO - Generalize the API
+## TODO
 
-In order to support multiple clients, the code needs to be updated to generate a
-unique REDIS stream for each client. Then based off authentication of the
-request maker, you choose the appropriate stream to publish the message to.
-Workers can then be specific to each client.
+- Validate lower entities programs (Class requires school programs)
+- Fix tests
+- Verify stream processing logic
 
 # Installation
 

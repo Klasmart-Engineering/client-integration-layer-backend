@@ -58,6 +58,7 @@ export async function parseLinkEntities(
   const { childEntites, childIds } = await parseEntitiesToLink(
     body.getExternalOrganizationUuid(),
     tryGetMember(body.getEntities(), log, childPath),
+    { entity: targetEntity, targetId: targetEntityId },
     log,
     childPath
   );
@@ -144,6 +145,7 @@ async function parseTargetEntity(
 async function parseEntitiesToLink(
   orgId: ExternalUuid,
   body: EntitiesToLink,
+  targets: { entity: Entity; targetId: ExternalUuid },
   log: Logger,
   path: string[]
 ): Promise<{
@@ -187,7 +189,12 @@ async function parseEntitiesToLink(
       break;
     }
     case PbEntity.PROGRAM: {
-      await ctx.programsAreValid(externalEntityIdentifiersList, orgId, log);
+      await ctx.programsAreValid(
+        externalEntityIdentifiersList,
+        orgId,
+        log,
+        targets.entity === Entity.SCHOOL ? targets.targetId : undefined
+      );
       e = Entity.PROGRAM;
       break;
     }
