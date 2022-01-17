@@ -7,11 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Status {
-  QUEUED
-  PROCESSED
-}
-
 model Organization {
   externalUuid String @id @map("external_uuid") @db.Uuid
   klUuid       String @unique @map("kl_uuid") @db.Uuid
@@ -41,10 +36,8 @@ model School {
 
   programUuids String[] @map("program_uuids") @db.Uuid
 
-  klUuid String? @unique @map("kl_uuid") @db.Uuid
+  klUuid String @unique @map("kl_uuid") @db.Uuid
 
-  status    Status    @default(QUEUED) @map("status")
-  attempts  Int       @default(0)
   requestId String    @map("request_id") @db.Uuid
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -64,11 +57,9 @@ model Class {
   externalSchoolUuid String @map("external_school_uuid") @db.Uuid
   school             School @relation(fields: [externalSchoolUuid], references: [externalUuid])
 
-  klUuid String? @unique @map("kl_uuid") @db.Uuid
+  klUuid String @unique @map("kl_uuid") @db.Uuid
 
   // Metadata
-  status    Status    @default(QUEUED) @map("status")
-  attempts  Int       @default(0)
   requestId String    @map("request_id") @db.Uuid
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
@@ -88,10 +79,9 @@ model User {
   externalSchoolUuid String @map("external_school_uuid") @db.Uuid
   school             School @relation(fields: [externalSchoolUuid], references: [externalUuid])
 
-  klUuid String? @unique @map("kl_uuid") @db.Uuid
+  klUuid String @unique @map("kl_uuid") @db.Uuid
 
-  status    Status    @default(QUEUED) @map("status")
-  attempts  Int       @default(0)
+  // Metadata
   requestId String    @map("request_id") @db.Uuid
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")

@@ -60,7 +60,7 @@ export class User {
 
   public static async isValid(id: ExternalUuid, log: Logger): Promise<boolean> {
     try {
-      const entity = await prisma.user.findFirst({
+      const entity = await prisma.user.findUnique({
         where: {
           externalUuid: id,
         },

@@ -16,15 +16,17 @@ export enum Category {
 
 export enum MachineError {
   VALIDATION = 'Validation',
+  ENTITY_ALREADY_EXISTS = 'Entity already exists',
+  ENTITY_DOES_NOT_EXIST = 'Entity does not exist',
   UNREACHABLE_CODE = 'Unreachable',
   READ = 'Read Operation',
   WRITE = 'Write Operation',
   STREAM = 'Data Stream',
-  APP_CONFIG = 'Application Configuration',
+  APP_CONFIG = 'Application configuration',
   SERDE = 'Serde',
   NETWORK = 'Network',
-  NOT_FOUND = 'Not Found',
-  REQUEST = 'Bad Request',
+  NOT_FOUND = 'Not found',
+  REQUEST = 'Bad request',
 }
 
 type LogLevel = 'error' | 'warn' | 'info' | 'debug' | 'trace';
@@ -113,8 +115,20 @@ export const BAD_REQUEST = (
 
 export const INVALID_ENTITY = (id: ExternalUuid, entity: Entity, log: Logger) =>
   new OnboardingError(
-    MachineError.VALIDATION,
-    `Entity ${entity} has no valid item for id ${id}`,
+    MachineError.ENTITY_DOES_NOT_EXIST,
+    `${entity} with id ${id} does not exist`,
+    Category.REQUEST,
+    log
+  );
+
+export const ENTITY_ALREADY_EXISTS = (
+  id: ExternalUuid,
+  entity: Entity,
+  log: Logger
+) =>
+  new OnboardingError(
+    MachineError.ENTITY_ALREADY_EXISTS,
+    `${entity} with id ${id} already exists`,
     Category.REQUEST,
     log
   );

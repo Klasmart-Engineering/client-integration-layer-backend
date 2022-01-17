@@ -133,16 +133,21 @@ export const INVALID_CLASSES: ClassTestCase[] = [
 describe('class validation', () => {
   let orgStub: SinonStub;
   let schoolStub: SinonStub;
+  let classStub: SinonStub;
   const ctx = Context.getInstance();
 
   beforeEach(async () => {
     orgStub = sinon.stub(ctx, 'organizationIdIsValid').resolves(uuidv4());
     schoolStub = sinon.stub(ctx, 'schoolIdIsValid').resolves();
+    classStub = sinon
+      .stub(ctx, 'classIdIsValid')
+      .rejects(new Error('Does not exist'));
   });
 
   afterEach(() => {
     orgStub.restore();
     schoolStub.restore();
+    classStub.restore();
   });
 
   VALID_CLASSES.forEach(({ scenario, c }) => {
@@ -218,6 +223,21 @@ describe('class validation', () => {
       const e = error as OnboardingError;
       expect(e.msg).to.equal('Invalid School');
       expect(e.error).to.equal('Validation');
+    }
+  });
+
+  it('should fail if the school ID already exists', async () => {
+    const req = wrapRequest(VALID_CLASSES[0].c);
+    classStub.resolves();
+    try {
+      const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
+      expect(resp).not.to.be.undefined;
+    } catch (error) {
+      const isOnboardingError = error instanceof OnboardingError;
+      expect(isOnboardingError).to.be.true;
+      const e = error as OnboardingError;
+      expect(e.msg).to.include('already exists');
+      expect(e.error).to.equal('Entity already exists');
     }
   });
 });

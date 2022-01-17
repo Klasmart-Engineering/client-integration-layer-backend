@@ -80,6 +80,7 @@ export class ValidatedOrganization {
   ): Promise<void> {
     try {
       const ctx = Context.getInstance();
+      // Organizations should already exist
       await ctx.organizationIdIsValid(e.externalUuid, log);
     } catch (_) {
       /* In this case we can try and fetch the organization*/

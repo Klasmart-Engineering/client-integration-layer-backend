@@ -169,16 +169,21 @@ export const INVALID_USERS: UserTestCase[] = [
 describe('user validation', () => {
   let orgStub: SinonStub;
   let schoolStub: SinonStub;
+  let userStub: SinonStub;
   const ctx = Context.getInstance();
 
   beforeEach(async () => {
     orgStub = sinon.stub(ctx, 'organizationIdIsValid').resolves(uuidv4());
     schoolStub = sinon.stub(ctx, 'schoolIdIsValid').resolves();
+    userStub = sinon
+      .stub(ctx, 'userIdIsValid')
+      .rejects(new Error('Does not exist'));
   });
 
   afterEach(() => {
     orgStub.restore();
     schoolStub.restore();
+    userStub.restore();
   });
 
   VALID_USERS.forEach(({ scenario, user }) => {
@@ -237,12 +242,12 @@ describe('user validation', () => {
     }
   });
 
-  it('should fail if the school ID is not in the database', async () => {
+  it('should fail if the user ID is not in the database', async () => {
     const req = wrapRequest(VALID_USERS[0].user);
     schoolStub.rejects(
       new OnboardingError(
         MachineError.VALIDATION,
-        'Invalid School',
+        'Invalid User',
         Category.REQUEST
       )
     );
@@ -253,8 +258,23 @@ describe('user validation', () => {
       const isOnboardingError = error instanceof OnboardingError;
       expect(isOnboardingError).to.be.true;
       const e = error as OnboardingError;
-      expect(e.msg).to.equal('Invalid School');
+      expect(e.msg).to.equal('Invalid User');
       expect(e.error).to.equal('Validation');
+    }
+  });
+
+  it('should fail if the user ID already exists', async () => {
+    const req = wrapRequest(VALID_USERS[0].user);
+    userStub.resolves();
+    try {
+      const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
+      expect(resp).not.to.be.undefined;
+    } catch (error) {
+      const isOnboardingError = error instanceof OnboardingError;
+      expect(isOnboardingError).to.be.true;
+      const e = error as OnboardingError;
+      expect(e.msg).to.include('already exists');
+      expect(e.error).to.equal('Entity already exists');
     }
   });
 });

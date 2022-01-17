@@ -3,12 +3,14 @@ import { Logger } from 'pino';
 
 import {
   Category,
+  ENTITY_ALREADY_EXISTS,
   Errors,
   MachineError,
   OnboardingError,
   Props,
 } from '../../../errors';
 import { Entity, School as PbSchool } from '../../../protos';
+import { Entity as AppEntity } from '../../../types';
 import { Context } from '../../../utils/context';
 import {
   JOI_VALIDATION_SETTINGS,
@@ -76,6 +78,15 @@ export class ValidatedSchool {
     log: Logger
   ): Promise<void> {
     const ctx = Context.getInstance();
+    let alreadyExists = false;
+    try {
+      await ctx.schoolIdIsValid(e.externalUuid, log);
+      alreadyExists = true;
+    } catch (_) {
+      /* if the school id is NOT valid, then we want to add it */
+    }
+    if (alreadyExists)
+      throw ENTITY_ALREADY_EXISTS(e.externalUuid, AppEntity.SCHOOL, log);
     await ctx.organizationIdIsValid(e.externalOrganizationUuid, log);
   }
 }

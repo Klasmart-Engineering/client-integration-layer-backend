@@ -3,12 +3,14 @@ import { Logger } from 'pino';
 
 import {
   Category,
+  ENTITY_ALREADY_EXISTS,
   Errors,
   MachineError,
   OnboardingError,
   Props,
 } from '../../../errors';
 import { Entity, User as PbUser } from '../../../protos';
+import { Entity as AppEntity } from '../../../types';
 import { Context } from '../../../utils/context';
 import {
   JOI_VALIDATION_SETTINGS,
@@ -97,6 +99,16 @@ export class ValidatedUser {
     log: Logger
   ): Promise<void> {
     const ctx = Context.getInstance();
+    let alreadyExists = false;
+    try {
+      await ctx.userIdIsValid(e.externalUuid, log);
+      // If the user already exists, then we want to error and not add it
+      alreadyExists = true;
+    } catch (_) {
+      /* if the user id is NOT valid, then we want to add it */
+    }
+    if (alreadyExists)
+      throw ENTITY_ALREADY_EXISTS(e.externalUuid, AppEntity.USER, log);
     await ctx.organizationIdIsValid(e.externalOrganizationUuid, log);
     await ctx.schoolIdIsValid(e.externalSchoolUuid, log);
   }
@@ -114,18 +126,21 @@ export const userSchema = Joi.object({
     .required(),
 
   givenName: Joi.string()
-    .min(VALIDATION_RULES.USER_NAME_MIN_LENGTH)
-    .max(VALIDATION_RULES.USER_NAME_MAX_LENGTH)
+    .min(VALIDATION_RULES.USER_GIVEN_FAMILY_NAME_MIN_LENGTH)
+    .max(VALIDATION_RULES.USER_GIVEN_FAMILY_NAME_MAX_LENGTH)
     .regex(VALIDATION_RULES.ALPHANUMERIC)
     .required(),
 
   familyName: Joi.string()
-    .min(VALIDATION_RULES.USER_NAME_MIN_LENGTH)
-    .max(VALIDATION_RULES.USER_NAME_MAX_LENGTH)
+  .min(VALIDATION_RULES.USER_GIVEN_FAMILY_NAME_MIN_LENGTH)
+  .max(VALIDATION_RULES.USER_GIVEN_FAMILY_NAME_MAX_LENGTH)
     .regex(VALIDATION_RULES.ALPHANUMERIC)
     .required(),
 
-  username: Joi.string().required(),
+  username: Joi.string()
+  .min(VALIDATION_RULES.USERNAME_MIN_LENGTH)
+  .max(VALIDATION_RULES.USERNAME_MAX_LENGTH)
+  .alphanum().required(),
 
   // Due to niche rules, need to validate in ValidationWrapper.validate
   email: Joi.any(),

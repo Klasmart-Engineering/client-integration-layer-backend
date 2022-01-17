@@ -131,15 +131,22 @@ export const INVALID_SCHOOLS: SchoolTestCase[] = [
 ];
 
 describe('school validation', () => {
-  let contextStub: SinonStub;
+  let orgIsValidStub: SinonStub;
+  let schoolIsValidStub: SinonStub;
   const ctx = Context.getInstance();
 
   beforeEach(async () => {
-    contextStub = sinon.stub(ctx, 'organizationIdIsValid').resolves(uuidv4());
+    orgIsValidStub = sinon
+      .stub(ctx, 'organizationIdIsValid')
+      .resolves(uuidv4());
+    schoolIsValidStub = sinon
+      .stub(ctx, 'schoolIdIsValid')
+      .rejects(new Error('Does not exist'));
   });
 
   afterEach(() => {
-    contextStub.restore();
+    orgIsValidStub.restore();
+    schoolIsValidStub.restore();
   });
 
   VALID_SCHOOLS.forEach(({ scenario, school }) => {
@@ -178,7 +185,7 @@ describe('school validation', () => {
 
   it('should fail if the organization ID is not in the database', async () => {
     const req = wrapRequest(VALID_SCHOOLS[0].school);
-    contextStub.rejects(
+    orgIsValidStub.rejects(
       new OnboardingError(
         MachineError.VALIDATION,
         'Invalid Organization',
@@ -194,6 +201,21 @@ describe('school validation', () => {
       const e = error as OnboardingError;
       expect(e.msg).to.equal('Invalid Organization');
       expect(e.error).to.equal('Validation');
+    }
+  });
+
+  it('should fail if the school ID already exists', async () => {
+    const req = wrapRequest(VALID_SCHOOLS[0].school);
+    schoolIsValidStub.resolves();
+    try {
+      const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
+      expect(resp).not.to.be.undefined;
+    } catch (error) {
+      const isOnboardingError = error instanceof OnboardingError;
+      expect(isOnboardingError).to.be.true;
+      const e = error as OnboardingError;
+      expect(e.msg).to.include('already exists');
+      expect(e.error).to.equal('Entity already exists');
     }
   });
 });

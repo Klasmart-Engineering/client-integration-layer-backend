@@ -1,6 +1,3 @@
--- CreateEnum
-CREATE TYPE "Status" AS ENUM ('QUEUED', 'PROCESSED');
-
 -- CreateTable
 CREATE TABLE "validation_organizations" (
     "external_uuid" UUID NOT NULL,
@@ -18,9 +15,7 @@ CREATE TABLE "validation_schools" (
     "external_uuid" UUID NOT NULL,
     "external_org_uuid" UUID NOT NULL,
     "program_uuids" UUID[],
-    "kl_uuid" UUID,
-    "status" "Status" NOT NULL DEFAULT E'QUEUED',
-    "attempts" INTEGER NOT NULL DEFAULT 0,
+    "kl_uuid" UUID NOT NULL,
     "request_id" UUID NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -34,9 +29,7 @@ CREATE TABLE "validation_classes" (
     "external_uuid" UUID NOT NULL,
     "external_org_uuid" UUID NOT NULL,
     "external_school_uuid" UUID NOT NULL,
-    "kl_uuid" UUID,
-    "status" "Status" NOT NULL DEFAULT E'QUEUED',
-    "attempts" INTEGER NOT NULL DEFAULT 0,
+    "kl_uuid" UUID NOT NULL,
     "request_id" UUID NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -50,9 +43,7 @@ CREATE TABLE "validation_users" (
     "external_uuid" UUID NOT NULL,
     "external_org_uuid" UUID NOT NULL,
     "external_school_uuid" UUID NOT NULL,
-    "kl_uuid" UUID,
-    "status" "Status" NOT NULL DEFAULT E'QUEUED',
-    "attempts" INTEGER NOT NULL DEFAULT 0,
+    "kl_uuid" UUID NOT NULL,
     "request_id" UUID NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,

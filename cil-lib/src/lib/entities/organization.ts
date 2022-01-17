@@ -66,7 +66,7 @@ export class Organization {
 
   public static async isValid(id: ExternalUuid, log: Logger): Promise<boolean> {
     try {
-      const school = await prisma.organization.findFirst({
+      const school = await prisma.organization.findUnique({
         where: {
           externalUuid: id,
         },
