@@ -19,6 +19,14 @@ export class OnboardingServer implements proto.IOnboardingServer {
     call: ServerUnaryCall<proto.BatchOnboarding, proto.Responses>,
     callback: sendUnaryData<proto.Responses>
   ): Promise<void> {
+    const apiKey = call.metadata.get('x-api-key');
+    if (apiKey.length !== 1 || apiKey[0] !== process.env.API_KEY) {
+      const error = new StatusBuilder();
+      error.withCode(Status.UNAUTHENTICATED);
+      error.withDetails('Unauthorized');
+      callback(error.build());
+    }
+
     const resp = new proto.Responses();
     const results = [];
     for (const req of call.request.getRequestsList()) {
@@ -39,6 +47,17 @@ export class OnboardingServer implements proto.IOnboardingServer {
   public async onboardStream(
     call: ServerDuplexStream<proto.BatchOnboarding, proto.Response>
   ): Promise<void> {
+    const apiKey = call.metadata.get('x-api-key');
+    if (apiKey.length !== 1 || apiKey[0] !== process.env.API_KEY) {
+      const error = new StatusBuilder();
+      error.withCode(Status.UNAUTHENTICATED);
+      error.withDetails('Unauthorized');
+      call.write(null, null, (cb: (err: Partial<StatusObject>) => void) =>
+        cb(error.build())
+      );
+      call.end();
+    }
+
     call.on('data', async (req: proto.BatchOnboarding) => {
       for (const data of req.getRequestsList()) {
         const resp = await processMessage(data, logger);

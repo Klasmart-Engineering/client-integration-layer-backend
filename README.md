@@ -8,9 +8,6 @@
 
 ## TODO
 
-- Update streams processing to be multi-stream
-- Update stream consuming to factor in multi-stream
-
 # Installation
 
 Setup environment variables:
