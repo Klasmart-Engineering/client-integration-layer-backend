@@ -5,6 +5,7 @@ import {
   Entity,
   LinkEntities,
   OnboardingRequest,
+  Error as PbError,
   Response,
 } from '../protos/api_pb';
 import { Producer } from '../redis';
@@ -26,10 +27,11 @@ export const processMessage = async (
   resp.setEntity(e);
   resp.setEntityId(id);
   resp.setSuccess(false);
+  let logger = log;
 
   try {
     const wrapper = await ValidationWrapper.parseRequest(data, log);
-    const logger = wrapper.logger.child({ currentOperation: 'PUBLISH' });
+    logger = wrapper.logger.child({ currentOperation: 'PUBLISH' });
     logger.info(
       `Received request to perform action: ${actionToString(
         wrapper.data.getAction()
@@ -55,8 +57,14 @@ export const processMessage = async (
     if (error instanceof Errors || error instanceof OnboardingError) {
       const err = error.toProtobufError();
       resp.setErrors(err);
+
+      // Write the error to the failure queue
+      if (err.getErrorTypeCase() === PbError.ErrorTypeCase.VALIDATION) {
+        const producer = await Producer.getInstance(logger);
+        await producer.publishFailure(resp, logger);
+      }
     } else {
-      log.warn(
+      logger.warn(
         `Found an error that wasn't correctly converted to a response - if you're seeing this the code needs an update`
       );
     }
