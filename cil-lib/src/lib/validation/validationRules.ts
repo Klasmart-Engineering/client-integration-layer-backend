@@ -24,7 +24,7 @@ export const VALIDATION_RULES = {
 
   USERNAME_MIN_LENGTH: 2,
   // This might need to be truncated to 35
-  USERNAME_MAX_LENGTH: 100,
+  USERNAME_MAX_LENGTH: 50,
 
   EMAIL_MAX_LENGTH: 250,
   EMAIL_REGEX:

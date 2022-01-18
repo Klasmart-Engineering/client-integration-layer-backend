@@ -7,7 +7,7 @@ import {
   OnboardingRequest,
   Response,
 } from '../protos/api_pb';
-import { RedisStream } from '../redis';
+import { Producer } from '../redis';
 import { Message } from '../types';
 import { actionToString } from '../types/action';
 import { ValidationWrapper } from '../validation';
@@ -46,9 +46,9 @@ export const processMessage = async (
       );
     resp.setEntity(wrapper.entity);
     resp.setEntityId(wrapper.entityId);
-    const msg = Message.fromOnboardingRequest(data);
-    const stream = await RedisStream.getInstance(logger);
-    await stream.publishMessage(msg, logger);
+    const msg = Message.fromOnboardingRequest(data, logger);
+    const producer = await Producer.getInstance(logger);
+    await producer.publishMessage(msg, logger);
     resp.setSuccess(true);
     return resp;
   } catch (error) {

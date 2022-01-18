@@ -1,2 +1,3 @@
 export { RedisClient } from './client';
-export { RedisStream } from './stream';
+export { Producer } from './producer';
+export { Consumer } from './consumer';
