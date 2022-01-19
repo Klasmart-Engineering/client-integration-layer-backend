@@ -15,8 +15,6 @@ import { ValidationWrapper } from '../validation';
 
 import { ExternalUuid } from '.';
 
-// @TODO - Need to actually implement error handling around this
-// Currently we either throw an error or succeed (don't send error messages back)
 export const processMessage = async (
   data: OnboardingRequest,
   log: Logger
@@ -30,7 +28,7 @@ export const processMessage = async (
   let logger = log;
 
   try {
-    const wrapper = await ValidationWrapper.parseRequest(data, log);
+    const wrapper = await ValidationWrapper.parseRequest(data, logger);
     logger = wrapper.logger.child({ currentOperation: 'PUBLISH' });
     logger.info(
       `Received request to perform action: ${actionToString(

@@ -82,7 +82,7 @@ export function serve(): void {
   // @ts-ignore
   server.addService(proto.OnboardingService, new OnboardingServer());
   server.bindAsync(
-    `localhost:${process.env.PORT || 8080}`,
+    `0.0.0.0:${process.env.PORT || 8080}`,
     ServerCredentials.createInsecure(),
     (err, port) => {
       if (err) {
