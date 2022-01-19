@@ -172,7 +172,7 @@ describe('user validation', () => {
   let userStub: SinonStub;
   const ctx = Context.getInstance();
 
-  beforeEach(async () => {
+  beforeEach(() => {
     orgStub = sinon.stub(ctx, 'organizationIdIsValid').resolves(uuidv4());
     schoolStub = sinon.stub(ctx, 'schoolIdIsValid').resolves();
     userStub = sinon
