@@ -7,13 +7,13 @@ import {
   OnboardingError,
   returnMessageOrThrowOnboardingError,
 } from '../errors';
+import { Response } from '../protos';
 import { Message } from '../types';
+import { Serde } from '../utils';
 
 import { RedisKeys } from './keys';
 
 import { RedisClient } from '.';
-import { Response } from '../protos';
-import { Serde } from '../utils';
 
 export class Producer {
   private static _instance: Producer;

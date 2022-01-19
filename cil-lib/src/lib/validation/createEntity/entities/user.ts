@@ -109,21 +109,11 @@ export class ValidatedUser {
     }
     if (alreadyExists)
       throw ENTITY_ALREADY_EXISTS(e.externalUuid, AppEntity.USER, log);
-    await ctx.organizationIdIsValid(e.externalOrganizationUuid, log);
-    await ctx.schoolIdIsValid(e.externalSchoolUuid, log);
   }
 }
 
 export const userSchema = Joi.object({
   externalUuid: Joi.string().guid({ version: ['uuidv4'] }),
-
-  externalOrganizationUuid: Joi.string()
-    .guid({ version: ['uuidv4'] })
-    .required(),
-
-  externalSchoolUuid: Joi.string()
-    .guid({ version: ['uuidv4'] })
-    .required(),
 
   givenName: Joi.string()
     .min(VALIDATION_RULES.USER_GIVEN_FAMILY_NAME_MIN_LENGTH)
@@ -151,4 +141,10 @@ export const userSchema = Joi.object({
 
   // 0 = Male, 1 = Female
   gender: Joi.number().min(0).max(1).required(),
+
+  shortCode: Joi.string()
+    .optional()
+    .min(VALIDATION_RULES.SHORTCODE_MIN_LENGTH)
+    .max(VALIDATION_RULES.SHORTCODE_MAX_LENGTH)
+    .alphanum(),
 });

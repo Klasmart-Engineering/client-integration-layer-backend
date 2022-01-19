@@ -29,7 +29,7 @@ export type LinkEntity = {
 };
 
 export async function parseLinkEntities(
-req: OnboardingRequest,
+  req: OnboardingRequest,
   log: Logger,
   props: Props
 ): Promise<[PbEntity, ExternalUuid, Logger]> {

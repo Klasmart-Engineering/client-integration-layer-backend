@@ -15,8 +15,6 @@ import { LOG_STUB, wrapRequest } from '../util';
 
 const USER = Object.freeze({
   externalUuid: true,
-  externalOrganizationUuid: true,
-  externalSchoolUuid: true,
   email: true,
   phone: true,
   username: true,
@@ -24,6 +22,7 @@ const USER = Object.freeze({
   familyName: true,
   gender: true,
   dateOfBirth: true,
+  shortCode: true
 });
 
 export type UserTestCase = {
@@ -52,22 +51,6 @@ export const INVALID_USERS: UserTestCase[] = [
     user: (() => {
       const s = setUpUser();
       s.setExternalUuid('6aec2c48-aa45-464c-b3ee-59cd');
-      return s;
-    })(),
-  },
-  {
-    scenario: 'the external organization uuid is invalid',
-    user: (() => {
-      const s = setUpUser();
-      s.setExternalOrganizationUuid('6aec2c48-aa45-464c-b3ee-59cd');
-      return s;
-    })(),
-  },
-  {
-    scenario: 'the external school uuid is invalid',
-    user: (() => {
-      const s = setUpUser();
-      s.setExternalSchoolUuid('6aec2c48-aa45-464c-b3ee-59cd');
       return s;
     })(),
   },
@@ -136,20 +119,6 @@ export const INVALID_USERS: UserTestCase[] = [
     })(),
   },
   {
-    scenario: 'the organization uuid is missing',
-    user: (() => {
-      const s = setUpUser({ ...USER, externalOrganizationUuid: false });
-      return s;
-    })(),
-  },
-  {
-    scenario: 'the school uuid is missing',
-    user: (() => {
-      const s = setUpUser({ ...USER, externalSchoolUuid: false });
-      return s;
-    })(),
-  },
-  {
     scenario: 'the date of birth is an invalid format',
     user: (() => {
       const s = setUpUser();
@@ -161,6 +130,38 @@ export const INVALID_USERS: UserTestCase[] = [
     scenario: 'the phone and email are missing',
     user: (() => {
       const s = setUpUser({ ...USER, phone: false, email: false });
+      return s;
+    })(),
+  },
+  {
+    scenario: 'the short code is empty',
+    user: (() => {
+      const s = setUpUser();
+      s.setShortCode('');
+      return s;
+    })(),
+  },
+  {
+    scenario: 'the short code is too short',
+    user: (() => {
+      const s = setUpUser();
+      s.setShortCode('AB');
+      return s;
+    })(),
+  },
+  {
+    scenario: 'the short code is too long',
+    user: (() => {
+      const s = setUpUser();
+      s.setShortCode('ABCdefHIJklmNOPqr');
+      return s;
+    })(),
+  },
+  {
+    scenario: 'the short code is invalid',
+    user: (() => {
+      const s = setUpUser();
+      s.setShortCode('****');
       return s;
     })(),
   },
@@ -193,7 +194,6 @@ describe('user validation', () => {
         const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
         expect(resp).not.to.be.undefined;
       } catch (error) {
-        console.error(error);
         expect(error).to.be.undefined;
       }
     });
@@ -282,8 +282,6 @@ describe('user validation', () => {
 function setUpUser(user = USER): User {
   const {
     externalUuid,
-    externalOrganizationUuid,
-    externalSchoolUuid,
     email,
     phone,
     username,
@@ -291,11 +289,10 @@ function setUpUser(user = USER): User {
     familyName,
     gender,
     dateOfBirth,
+    shortCode
   } = user;
   const u = new User();
   if (externalUuid) u.setExternalUuid(uuidv4());
-  if (externalOrganizationUuid) u.setExternalOrganizationUuid(uuidv4());
-  if (externalSchoolUuid) u.setExternalSchoolUuid(uuidv4());
   if (email) u.setEmail('test@test.com');
   if (phone) u.setPhone('+912212345678');
   if (username) u.setUsername('USERNAME');
@@ -303,5 +300,6 @@ function setUpUser(user = USER): User {
   if (familyName) u.setFamilyName('Name');
   if (gender) u.setGender(Gender.MALE);
   if (dateOfBirth) u.setDateOfBirth('09-01-2017');
+  if (shortCode) u.setShortCode("abcdef");
   return u;
 }

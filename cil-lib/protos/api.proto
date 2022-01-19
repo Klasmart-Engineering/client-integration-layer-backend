@@ -22,15 +22,14 @@ message Class {
 
 message User {
   string external_uuid = 1;
-  string external_organization_uuid = 2;
-  string external_school_uuid = 3;
-  string email = 4;
-  string phone = 5;
-  string username = 6;
-  string given_name = 7;
-  string family_name = 8;
-  Gender gender = 9;
-  string date_of_birth = 10;
+  string email = 2;
+  string phone = 3;
+  string username = 4;
+  string given_name = 5;
+  string family_name = 6;
+  Gender gender = 7;
+  string date_of_birth = 8;
+  string short_code = 9;
 }
 
 enum Gender {
@@ -131,6 +130,46 @@ message InvalidRequestError {
 message PathBasedError {
   string path = 1;
   repeated string details = 2;
+}
+
+message AddUsersToClass {
+  string external_class_uuid = 1;
+  repeated string external_teacher_uuid = 2;
+  repeated string external_student_uuid = 3;   
+}
+
+message AddUserToSchool {
+  repeated string external_user_uuids = 1;
+  string external_school_uuid = 2;
+}
+
+message AddProgramsToSchool {
+  string external_organization_uuid = 1;
+  string external_school_uuid = 2;
+  repeated string program_names = 3; 
+}
+
+message AddProgramsToClass {
+  string external_organization_uuid = 1;
+  string external_class_uuid = 2;
+  repeated string program_names = 3; 
+}
+
+message AddClassesToSchool {
+  string external_school_uuid = 1;
+  repeated string external_class_uuids = 2;
+}
+
+message AddOrganizationRolesToUser {
+  string external_organization_uuid = 1;
+  string external_user_uuid = 2;
+  repeated string role_names = 3;
+}
+
+message AddUsersToOrganizations {
+  string external_organization_uuid = 1;
+  repeated string role_names = 2;
+  repeated string external_user_uuids = 3;
 }
 
 service Onboarding {
