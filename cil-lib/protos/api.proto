@@ -22,14 +22,16 @@ message Class {
 
 message User {
   string external_uuid = 1;
-  string email = 2;
-  string phone = 3;
-  string username = 4;
-  string given_name = 5;
-  string family_name = 6;
-  Gender gender = 7;
-  string date_of_birth = 8;
-  string short_code = 9;
+  string external_organization_uuid = 2;
+  string email = 3;
+  string phone = 4;
+  string username = 5;
+  string given_name = 6;
+  string family_name = 7;
+  Gender gender = 8;
+  string date_of_birth = 9;
+  string short_code = 10;
+  repeated string role_names = 11;
 }
 
 enum Gender {
@@ -48,30 +50,65 @@ enum Entity {
 
 enum Action {
   CREATE = 0;
-  LINK = 1;
 }
 
-message EntitiesToLink {
-  Entity entity = 1;
-  repeated string external_entity_identifiers = 2;
+message AddUsersToClass {
+  string external_class_uuid = 1;
+  repeated string external_teacher_uuid = 2;
+  repeated string external_student_uuid = 3;
 }
 
-message LinkEntities {
+message AddUserToSchool {
+  repeated string external_user_uuids = 1;
+  string external_school_uuid = 2;
+}
+
+message AddProgramsToSchool {
   string external_organization_uuid = 1;
-  oneof target {
-    Organization organization = 3;
-    School school = 4;
-    Class class = 5;
-    User user = 6;
+  string external_school_uuid = 2;
+  repeated string program_names = 3;
+}
+
+message AddProgramsToClass {
+  string external_organization_uuid = 1;
+  string external_class_uuid = 2;
+  repeated string program_names = 3;
+}
+
+message AddClassesToSchool {
+  string external_school_uuid = 1;
+  repeated string external_class_uuids = 2;
+}
+
+message AddOrganizationRolesToUser {
+  string external_organization_uuid = 1;
+  string external_user_uuid = 2;
+  repeated string role_names = 3;
+}
+
+message AddUsersToOrganizations {
+  string external_organization_uuid = 1;
+  repeated string role_names = 2;
+  repeated string external_user_uuids = 3;
+}
+
+message Link {
+  oneof link {
+    AddUsersToOrganizations add_users_to_organizations = 1;
+    AddOrganizationRolesToUser add_organization_roles_to_user = 2;
+    AddUserToSchool add_user_to_school = 3;
+    AddUsersToClass add_users_to_class = 4;
+    AddProgramsToSchool add_programs_to_school = 5;
+    AddProgramsToClass add_programs_to_class = 6;
+    AddClassesToSchool add_classes_to_school = 7;
   }
-  EntitiesToLink entities = 2;
 }
 
 message OnboardingRequest {
   string request_id = 1;
   Action action = 2;
   oneof payload {
-    LinkEntities link_entities = 16;
+    Link link_entities = 16;
     Organization organization = 17;
     School school = 18;
     Class class = 19;
@@ -130,46 +167,6 @@ message InvalidRequestError {
 message PathBasedError {
   string path = 1;
   repeated string details = 2;
-}
-
-message AddUsersToClass {
-  string external_class_uuid = 1;
-  repeated string external_teacher_uuid = 2;
-  repeated string external_student_uuid = 3;   
-}
-
-message AddUserToSchool {
-  repeated string external_user_uuids = 1;
-  string external_school_uuid = 2;
-}
-
-message AddProgramsToSchool {
-  string external_organization_uuid = 1;
-  string external_school_uuid = 2;
-  repeated string program_names = 3; 
-}
-
-message AddProgramsToClass {
-  string external_organization_uuid = 1;
-  string external_class_uuid = 2;
-  repeated string program_names = 3; 
-}
-
-message AddClassesToSchool {
-  string external_school_uuid = 1;
-  repeated string external_class_uuids = 2;
-}
-
-message AddOrganizationRolesToUser {
-  string external_organization_uuid = 1;
-  string external_user_uuid = 2;
-  repeated string role_names = 3;
-}
-
-message AddUsersToOrganizations {
-  string external_organization_uuid = 1;
-  repeated string role_names = 2;
-  repeated string external_user_uuids = 3;
 }
 
 service Onboarding {

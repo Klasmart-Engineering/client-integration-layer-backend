@@ -90,6 +90,8 @@ export namespace Class {
 export class User extends jspb.Message { 
     getExternalUuid(): string;
     setExternalUuid(value: string): User;
+    getExternalOrganizationUuid(): string;
+    setExternalOrganizationUuid(value: string): User;
     getEmail(): string;
     setEmail(value: string): User;
     getPhone(): string;
@@ -106,6 +108,10 @@ export class User extends jspb.Message {
     setDateOfBirth(value: string): User;
     getShortCode(): string;
     setShortCode(value: string): User;
+    clearRoleNamesList(): void;
+    getRoleNamesList(): Array<string>;
+    setRoleNamesList(value: Array<string>): User;
+    addRoleNames(value: string, index?: number): string;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): User.AsObject;
@@ -120,6 +126,7 @@ export class User extends jspb.Message {
 export namespace User {
     export type AsObject = {
         externalUuid: string,
+        externalOrganizationUuid: string,
         email: string,
         phone: string,
         username: string,
@@ -128,91 +135,273 @@ export namespace User {
         gender: Gender,
         dateOfBirth: string,
         shortCode: string,
+        roleNamesList: Array<string>,
     }
 }
 
-export class EntitiesToLink extends jspb.Message { 
-    getEntity(): Entity;
-    setEntity(value: Entity): EntitiesToLink;
-    clearExternalEntityIdentifiersList(): void;
-    getExternalEntityIdentifiersList(): Array<string>;
-    setExternalEntityIdentifiersList(value: Array<string>): EntitiesToLink;
-    addExternalEntityIdentifiers(value: string, index?: number): string;
+export class AddUsersToClass extends jspb.Message { 
+    getExternalClassUuid(): string;
+    setExternalClassUuid(value: string): AddUsersToClass;
+    clearExternalTeacherUuidList(): void;
+    getExternalTeacherUuidList(): Array<string>;
+    setExternalTeacherUuidList(value: Array<string>): AddUsersToClass;
+    addExternalTeacherUuid(value: string, index?: number): string;
+    clearExternalStudentUuidList(): void;
+    getExternalStudentUuidList(): Array<string>;
+    setExternalStudentUuidList(value: Array<string>): AddUsersToClass;
+    addExternalStudentUuid(value: string, index?: number): string;
 
     serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): EntitiesToLink.AsObject;
-    static toObject(includeInstance: boolean, msg: EntitiesToLink): EntitiesToLink.AsObject;
+    toObject(includeInstance?: boolean): AddUsersToClass.AsObject;
+    static toObject(includeInstance: boolean, msg: AddUsersToClass): AddUsersToClass.AsObject;
     static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
     static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-    static serializeBinaryToWriter(message: EntitiesToLink, writer: jspb.BinaryWriter): void;
-    static deserializeBinary(bytes: Uint8Array): EntitiesToLink;
-    static deserializeBinaryFromReader(message: EntitiesToLink, reader: jspb.BinaryReader): EntitiesToLink;
+    static serializeBinaryToWriter(message: AddUsersToClass, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): AddUsersToClass;
+    static deserializeBinaryFromReader(message: AddUsersToClass, reader: jspb.BinaryReader): AddUsersToClass;
 }
 
-export namespace EntitiesToLink {
+export namespace AddUsersToClass {
     export type AsObject = {
-        entity: Entity,
-        externalEntityIdentifiersList: Array<string>,
+        externalClassUuid: string,
+        externalTeacherUuidList: Array<string>,
+        externalStudentUuidList: Array<string>,
     }
 }
 
-export class LinkEntities extends jspb.Message { 
-    getExternalOrganizationUuid(): string;
-    setExternalOrganizationUuid(value: string): LinkEntities;
-
-    hasOrganization(): boolean;
-    clearOrganization(): void;
-    getOrganization(): Organization | undefined;
-    setOrganization(value?: Organization): LinkEntities;
-
-    hasSchool(): boolean;
-    clearSchool(): void;
-    getSchool(): School | undefined;
-    setSchool(value?: School): LinkEntities;
-
-    hasClass(): boolean;
-    clearClass(): void;
-    getClass(): Class | undefined;
-    setClass(value?: Class): LinkEntities;
-
-    hasUser(): boolean;
-    clearUser(): void;
-    getUser(): User | undefined;
-    setUser(value?: User): LinkEntities;
-
-    hasEntities(): boolean;
-    clearEntities(): void;
-    getEntities(): EntitiesToLink | undefined;
-    setEntities(value?: EntitiesToLink): LinkEntities;
-
-    getTargetCase(): LinkEntities.TargetCase;
+export class AddUserToSchool extends jspb.Message { 
+    clearExternalUserUuidsList(): void;
+    getExternalUserUuidsList(): Array<string>;
+    setExternalUserUuidsList(value: Array<string>): AddUserToSchool;
+    addExternalUserUuids(value: string, index?: number): string;
+    getExternalSchoolUuid(): string;
+    setExternalSchoolUuid(value: string): AddUserToSchool;
 
     serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): LinkEntities.AsObject;
-    static toObject(includeInstance: boolean, msg: LinkEntities): LinkEntities.AsObject;
+    toObject(includeInstance?: boolean): AddUserToSchool.AsObject;
+    static toObject(includeInstance: boolean, msg: AddUserToSchool): AddUserToSchool.AsObject;
     static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
     static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-    static serializeBinaryToWriter(message: LinkEntities, writer: jspb.BinaryWriter): void;
-    static deserializeBinary(bytes: Uint8Array): LinkEntities;
-    static deserializeBinaryFromReader(message: LinkEntities, reader: jspb.BinaryReader): LinkEntities;
+    static serializeBinaryToWriter(message: AddUserToSchool, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): AddUserToSchool;
+    static deserializeBinaryFromReader(message: AddUserToSchool, reader: jspb.BinaryReader): AddUserToSchool;
 }
 
-export namespace LinkEntities {
+export namespace AddUserToSchool {
+    export type AsObject = {
+        externalUserUuidsList: Array<string>,
+        externalSchoolUuid: string,
+    }
+}
+
+export class AddProgramsToSchool extends jspb.Message { 
+    getExternalOrganizationUuid(): string;
+    setExternalOrganizationUuid(value: string): AddProgramsToSchool;
+    getExternalSchoolUuid(): string;
+    setExternalSchoolUuid(value: string): AddProgramsToSchool;
+    clearProgramNamesList(): void;
+    getProgramNamesList(): Array<string>;
+    setProgramNamesList(value: Array<string>): AddProgramsToSchool;
+    addProgramNames(value: string, index?: number): string;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): AddProgramsToSchool.AsObject;
+    static toObject(includeInstance: boolean, msg: AddProgramsToSchool): AddProgramsToSchool.AsObject;
+    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+    static serializeBinaryToWriter(message: AddProgramsToSchool, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): AddProgramsToSchool;
+    static deserializeBinaryFromReader(message: AddProgramsToSchool, reader: jspb.BinaryReader): AddProgramsToSchool;
+}
+
+export namespace AddProgramsToSchool {
     export type AsObject = {
         externalOrganizationUuid: string,
-        organization?: Organization.AsObject,
-        school?: School.AsObject,
-        pb_class?: Class.AsObject,
-        user?: User.AsObject,
-        entities?: EntitiesToLink.AsObject,
+        externalSchoolUuid: string,
+        programNamesList: Array<string>,
+    }
+}
+
+export class AddProgramsToClass extends jspb.Message { 
+    getExternalOrganizationUuid(): string;
+    setExternalOrganizationUuid(value: string): AddProgramsToClass;
+    getExternalClassUuid(): string;
+    setExternalClassUuid(value: string): AddProgramsToClass;
+    clearProgramNamesList(): void;
+    getProgramNamesList(): Array<string>;
+    setProgramNamesList(value: Array<string>): AddProgramsToClass;
+    addProgramNames(value: string, index?: number): string;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): AddProgramsToClass.AsObject;
+    static toObject(includeInstance: boolean, msg: AddProgramsToClass): AddProgramsToClass.AsObject;
+    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+    static serializeBinaryToWriter(message: AddProgramsToClass, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): AddProgramsToClass;
+    static deserializeBinaryFromReader(message: AddProgramsToClass, reader: jspb.BinaryReader): AddProgramsToClass;
+}
+
+export namespace AddProgramsToClass {
+    export type AsObject = {
+        externalOrganizationUuid: string,
+        externalClassUuid: string,
+        programNamesList: Array<string>,
+    }
+}
+
+export class AddClassesToSchool extends jspb.Message { 
+    getExternalSchoolUuid(): string;
+    setExternalSchoolUuid(value: string): AddClassesToSchool;
+    clearExternalClassUuidsList(): void;
+    getExternalClassUuidsList(): Array<string>;
+    setExternalClassUuidsList(value: Array<string>): AddClassesToSchool;
+    addExternalClassUuids(value: string, index?: number): string;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): AddClassesToSchool.AsObject;
+    static toObject(includeInstance: boolean, msg: AddClassesToSchool): AddClassesToSchool.AsObject;
+    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+    static serializeBinaryToWriter(message: AddClassesToSchool, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): AddClassesToSchool;
+    static deserializeBinaryFromReader(message: AddClassesToSchool, reader: jspb.BinaryReader): AddClassesToSchool;
+}
+
+export namespace AddClassesToSchool {
+    export type AsObject = {
+        externalSchoolUuid: string,
+        externalClassUuidsList: Array<string>,
+    }
+}
+
+export class AddOrganizationRolesToUser extends jspb.Message { 
+    getExternalOrganizationUuid(): string;
+    setExternalOrganizationUuid(value: string): AddOrganizationRolesToUser;
+    getExternalUserUuid(): string;
+    setExternalUserUuid(value: string): AddOrganizationRolesToUser;
+    clearRoleNamesList(): void;
+    getRoleNamesList(): Array<string>;
+    setRoleNamesList(value: Array<string>): AddOrganizationRolesToUser;
+    addRoleNames(value: string, index?: number): string;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): AddOrganizationRolesToUser.AsObject;
+    static toObject(includeInstance: boolean, msg: AddOrganizationRolesToUser): AddOrganizationRolesToUser.AsObject;
+    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+    static serializeBinaryToWriter(message: AddOrganizationRolesToUser, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): AddOrganizationRolesToUser;
+    static deserializeBinaryFromReader(message: AddOrganizationRolesToUser, reader: jspb.BinaryReader): AddOrganizationRolesToUser;
+}
+
+export namespace AddOrganizationRolesToUser {
+    export type AsObject = {
+        externalOrganizationUuid: string,
+        externalUserUuid: string,
+        roleNamesList: Array<string>,
+    }
+}
+
+export class AddUsersToOrganizations extends jspb.Message { 
+    getExternalOrganizationUuid(): string;
+    setExternalOrganizationUuid(value: string): AddUsersToOrganizations;
+    clearRoleNamesList(): void;
+    getRoleNamesList(): Array<string>;
+    setRoleNamesList(value: Array<string>): AddUsersToOrganizations;
+    addRoleNames(value: string, index?: number): string;
+    clearExternalUserUuidsList(): void;
+    getExternalUserUuidsList(): Array<string>;
+    setExternalUserUuidsList(value: Array<string>): AddUsersToOrganizations;
+    addExternalUserUuids(value: string, index?: number): string;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): AddUsersToOrganizations.AsObject;
+    static toObject(includeInstance: boolean, msg: AddUsersToOrganizations): AddUsersToOrganizations.AsObject;
+    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+    static serializeBinaryToWriter(message: AddUsersToOrganizations, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): AddUsersToOrganizations;
+    static deserializeBinaryFromReader(message: AddUsersToOrganizations, reader: jspb.BinaryReader): AddUsersToOrganizations;
+}
+
+export namespace AddUsersToOrganizations {
+    export type AsObject = {
+        externalOrganizationUuid: string,
+        roleNamesList: Array<string>,
+        externalUserUuidsList: Array<string>,
+    }
+}
+
+export class Link extends jspb.Message { 
+
+    hasAddUsersToOrganizations(): boolean;
+    clearAddUsersToOrganizations(): void;
+    getAddUsersToOrganizations(): AddUsersToOrganizations | undefined;
+    setAddUsersToOrganizations(value?: AddUsersToOrganizations): Link;
+
+    hasAddOrganizationRolesToUser(): boolean;
+    clearAddOrganizationRolesToUser(): void;
+    getAddOrganizationRolesToUser(): AddOrganizationRolesToUser | undefined;
+    setAddOrganizationRolesToUser(value?: AddOrganizationRolesToUser): Link;
+
+    hasAddUserToSchool(): boolean;
+    clearAddUserToSchool(): void;
+    getAddUserToSchool(): AddUserToSchool | undefined;
+    setAddUserToSchool(value?: AddUserToSchool): Link;
+
+    hasAddUsersToClass(): boolean;
+    clearAddUsersToClass(): void;
+    getAddUsersToClass(): AddUsersToClass | undefined;
+    setAddUsersToClass(value?: AddUsersToClass): Link;
+
+    hasAddProgramsToSchool(): boolean;
+    clearAddProgramsToSchool(): void;
+    getAddProgramsToSchool(): AddProgramsToSchool | undefined;
+    setAddProgramsToSchool(value?: AddProgramsToSchool): Link;
+
+    hasAddProgramsToClass(): boolean;
+    clearAddProgramsToClass(): void;
+    getAddProgramsToClass(): AddProgramsToClass | undefined;
+    setAddProgramsToClass(value?: AddProgramsToClass): Link;
+
+    hasAddClassesToSchool(): boolean;
+    clearAddClassesToSchool(): void;
+    getAddClassesToSchool(): AddClassesToSchool | undefined;
+    setAddClassesToSchool(value?: AddClassesToSchool): Link;
+
+    getLinkCase(): Link.LinkCase;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): Link.AsObject;
+    static toObject(includeInstance: boolean, msg: Link): Link.AsObject;
+    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+    static serializeBinaryToWriter(message: Link, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): Link;
+    static deserializeBinaryFromReader(message: Link, reader: jspb.BinaryReader): Link;
+}
+
+export namespace Link {
+    export type AsObject = {
+        addUsersToOrganizations?: AddUsersToOrganizations.AsObject,
+        addOrganizationRolesToUser?: AddOrganizationRolesToUser.AsObject,
+        addUserToSchool?: AddUserToSchool.AsObject,
+        addUsersToClass?: AddUsersToClass.AsObject,
+        addProgramsToSchool?: AddProgramsToSchool.AsObject,
+        addProgramsToClass?: AddProgramsToClass.AsObject,
+        addClassesToSchool?: AddClassesToSchool.AsObject,
     }
 
-    export enum TargetCase {
-        TARGET_NOT_SET = 0,
-        ORGANIZATION = 3,
-        SCHOOL = 4,
-        CLASS = 5,
-        USER = 6,
+    export enum LinkCase {
+        LINK_NOT_SET = 0,
+        ADD_USERS_TO_ORGANIZATIONS = 1,
+        ADD_ORGANIZATION_ROLES_TO_USER = 2,
+        ADD_USER_TO_SCHOOL = 3,
+        ADD_USERS_TO_CLASS = 4,
+        ADD_PROGRAMS_TO_SCHOOL = 5,
+        ADD_PROGRAMS_TO_CLASS = 6,
+        ADD_CLASSES_TO_SCHOOL = 7,
     }
 
 }
@@ -225,8 +414,8 @@ export class OnboardingRequest extends jspb.Message {
 
     hasLinkEntities(): boolean;
     clearLinkEntities(): void;
-    getLinkEntities(): LinkEntities | undefined;
-    setLinkEntities(value?: LinkEntities): OnboardingRequest;
+    getLinkEntities(): Link | undefined;
+    setLinkEntities(value?: Link): OnboardingRequest;
 
     hasOrganization(): boolean;
     clearOrganization(): void;
@@ -264,7 +453,7 @@ export namespace OnboardingRequest {
     export type AsObject = {
         requestId: string,
         action: Action,
-        linkEntities?: LinkEntities.AsObject,
+        linkEntities?: Link.AsObject,
         organization?: Organization.AsObject,
         school?: School.AsObject,
         pb_class?: Class.AsObject,
@@ -565,200 +754,6 @@ export namespace PathBasedError {
     }
 }
 
-export class AddUsersToClass extends jspb.Message { 
-    getExternalClassUuid(): string;
-    setExternalClassUuid(value: string): AddUsersToClass;
-    clearExternalTeacherUuidList(): void;
-    getExternalTeacherUuidList(): Array<string>;
-    setExternalTeacherUuidList(value: Array<string>): AddUsersToClass;
-    addExternalTeacherUuid(value: string, index?: number): string;
-    clearExternalStudentUuidList(): void;
-    getExternalStudentUuidList(): Array<string>;
-    setExternalStudentUuidList(value: Array<string>): AddUsersToClass;
-    addExternalStudentUuid(value: string, index?: number): string;
-
-    serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): AddUsersToClass.AsObject;
-    static toObject(includeInstance: boolean, msg: AddUsersToClass): AddUsersToClass.AsObject;
-    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
-    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-    static serializeBinaryToWriter(message: AddUsersToClass, writer: jspb.BinaryWriter): void;
-    static deserializeBinary(bytes: Uint8Array): AddUsersToClass;
-    static deserializeBinaryFromReader(message: AddUsersToClass, reader: jspb.BinaryReader): AddUsersToClass;
-}
-
-export namespace AddUsersToClass {
-    export type AsObject = {
-        externalClassUuid: string,
-        externalTeacherUuidList: Array<string>,
-        externalStudentUuidList: Array<string>,
-    }
-}
-
-export class AddUserToSchool extends jspb.Message { 
-    clearExternalUserUuidsList(): void;
-    getExternalUserUuidsList(): Array<string>;
-    setExternalUserUuidsList(value: Array<string>): AddUserToSchool;
-    addExternalUserUuids(value: string, index?: number): string;
-    getExternalSchoolUuid(): string;
-    setExternalSchoolUuid(value: string): AddUserToSchool;
-
-    serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): AddUserToSchool.AsObject;
-    static toObject(includeInstance: boolean, msg: AddUserToSchool): AddUserToSchool.AsObject;
-    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
-    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-    static serializeBinaryToWriter(message: AddUserToSchool, writer: jspb.BinaryWriter): void;
-    static deserializeBinary(bytes: Uint8Array): AddUserToSchool;
-    static deserializeBinaryFromReader(message: AddUserToSchool, reader: jspb.BinaryReader): AddUserToSchool;
-}
-
-export namespace AddUserToSchool {
-    export type AsObject = {
-        externalUserUuidsList: Array<string>,
-        externalSchoolUuid: string,
-    }
-}
-
-export class AddProgramsToSchool extends jspb.Message { 
-    getExternalOrganizationUuid(): string;
-    setExternalOrganizationUuid(value: string): AddProgramsToSchool;
-    getExternalSchoolUuid(): string;
-    setExternalSchoolUuid(value: string): AddProgramsToSchool;
-    clearProgramNamesList(): void;
-    getProgramNamesList(): Array<string>;
-    setProgramNamesList(value: Array<string>): AddProgramsToSchool;
-    addProgramNames(value: string, index?: number): string;
-
-    serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): AddProgramsToSchool.AsObject;
-    static toObject(includeInstance: boolean, msg: AddProgramsToSchool): AddProgramsToSchool.AsObject;
-    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
-    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-    static serializeBinaryToWriter(message: AddProgramsToSchool, writer: jspb.BinaryWriter): void;
-    static deserializeBinary(bytes: Uint8Array): AddProgramsToSchool;
-    static deserializeBinaryFromReader(message: AddProgramsToSchool, reader: jspb.BinaryReader): AddProgramsToSchool;
-}
-
-export namespace AddProgramsToSchool {
-    export type AsObject = {
-        externalOrganizationUuid: string,
-        externalSchoolUuid: string,
-        programNamesList: Array<string>,
-    }
-}
-
-export class AddProgramsToClass extends jspb.Message { 
-    getExternalOrganizationUuid(): string;
-    setExternalOrganizationUuid(value: string): AddProgramsToClass;
-    getExternalClassUuid(): string;
-    setExternalClassUuid(value: string): AddProgramsToClass;
-    clearProgramNamesList(): void;
-    getProgramNamesList(): Array<string>;
-    setProgramNamesList(value: Array<string>): AddProgramsToClass;
-    addProgramNames(value: string, index?: number): string;
-
-    serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): AddProgramsToClass.AsObject;
-    static toObject(includeInstance: boolean, msg: AddProgramsToClass): AddProgramsToClass.AsObject;
-    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
-    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-    static serializeBinaryToWriter(message: AddProgramsToClass, writer: jspb.BinaryWriter): void;
-    static deserializeBinary(bytes: Uint8Array): AddProgramsToClass;
-    static deserializeBinaryFromReader(message: AddProgramsToClass, reader: jspb.BinaryReader): AddProgramsToClass;
-}
-
-export namespace AddProgramsToClass {
-    export type AsObject = {
-        externalOrganizationUuid: string,
-        externalClassUuid: string,
-        programNamesList: Array<string>,
-    }
-}
-
-export class AddClassesToSchool extends jspb.Message { 
-    getExternalSchoolUuid(): string;
-    setExternalSchoolUuid(value: string): AddClassesToSchool;
-    clearExternalClassUuidsList(): void;
-    getExternalClassUuidsList(): Array<string>;
-    setExternalClassUuidsList(value: Array<string>): AddClassesToSchool;
-    addExternalClassUuids(value: string, index?: number): string;
-
-    serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): AddClassesToSchool.AsObject;
-    static toObject(includeInstance: boolean, msg: AddClassesToSchool): AddClassesToSchool.AsObject;
-    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
-    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-    static serializeBinaryToWriter(message: AddClassesToSchool, writer: jspb.BinaryWriter): void;
-    static deserializeBinary(bytes: Uint8Array): AddClassesToSchool;
-    static deserializeBinaryFromReader(message: AddClassesToSchool, reader: jspb.BinaryReader): AddClassesToSchool;
-}
-
-export namespace AddClassesToSchool {
-    export type AsObject = {
-        externalSchoolUuid: string,
-        externalClassUuidsList: Array<string>,
-    }
-}
-
-export class AddOrganizationRolesToUser extends jspb.Message { 
-    getExternalOrganizationUuid(): string;
-    setExternalOrganizationUuid(value: string): AddOrganizationRolesToUser;
-    getExternalUserUuid(): string;
-    setExternalUserUuid(value: string): AddOrganizationRolesToUser;
-    clearRoleNamesList(): void;
-    getRoleNamesList(): Array<string>;
-    setRoleNamesList(value: Array<string>): AddOrganizationRolesToUser;
-    addRoleNames(value: string, index?: number): string;
-
-    serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): AddOrganizationRolesToUser.AsObject;
-    static toObject(includeInstance: boolean, msg: AddOrganizationRolesToUser): AddOrganizationRolesToUser.AsObject;
-    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
-    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-    static serializeBinaryToWriter(message: AddOrganizationRolesToUser, writer: jspb.BinaryWriter): void;
-    static deserializeBinary(bytes: Uint8Array): AddOrganizationRolesToUser;
-    static deserializeBinaryFromReader(message: AddOrganizationRolesToUser, reader: jspb.BinaryReader): AddOrganizationRolesToUser;
-}
-
-export namespace AddOrganizationRolesToUser {
-    export type AsObject = {
-        externalOrganizationUuid: string,
-        externalUserUuid: string,
-        roleNamesList: Array<string>,
-    }
-}
-
-export class AddUsersToOrganizations extends jspb.Message { 
-    getExternalOrganizationUuid(): string;
-    setExternalOrganizationUuid(value: string): AddUsersToOrganizations;
-    clearRoleNamesList(): void;
-    getRoleNamesList(): Array<string>;
-    setRoleNamesList(value: Array<string>): AddUsersToOrganizations;
-    addRoleNames(value: string, index?: number): string;
-    clearExternalUserUuidsList(): void;
-    getExternalUserUuidsList(): Array<string>;
-    setExternalUserUuidsList(value: Array<string>): AddUsersToOrganizations;
-    addExternalUserUuids(value: string, index?: number): string;
-
-    serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): AddUsersToOrganizations.AsObject;
-    static toObject(includeInstance: boolean, msg: AddUsersToOrganizations): AddUsersToOrganizations.AsObject;
-    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
-    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-    static serializeBinaryToWriter(message: AddUsersToOrganizations, writer: jspb.BinaryWriter): void;
-    static deserializeBinary(bytes: Uint8Array): AddUsersToOrganizations;
-    static deserializeBinaryFromReader(message: AddUsersToOrganizations, reader: jspb.BinaryReader): AddUsersToOrganizations;
-}
-
-export namespace AddUsersToOrganizations {
-    export type AsObject = {
-        externalOrganizationUuid: string,
-        roleNamesList: Array<string>,
-        externalUserUuidsList: Array<string>,
-    }
-}
-
 export enum Gender {
     MALE = 0,
     FEMALE = 1,
@@ -775,5 +770,4 @@ export enum Entity {
 
 export enum Action {
     CREATE = 0,
-    LINK = 1,
 }
