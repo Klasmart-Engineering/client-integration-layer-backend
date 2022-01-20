@@ -1176,7 +1176,7 @@ proto.cil_onboarding.api.User.toObject = function(includeInstance, msg) {
     gender: jspb.Message.getFieldWithDefault(msg, 8, 0),
     dateOfBirth: jspb.Message.getFieldWithDefault(msg, 9, ""),
     shortCode: jspb.Message.getFieldWithDefault(msg, 10, ""),
-    roleNamesList: (f = jspb.Message.getRepeatedField(msg, 11)) == null ? undefined : f
+    roleIdentifiersList: (f = jspb.Message.getRepeatedField(msg, 11)) == null ? undefined : f
   };
 
   if (includeInstance) {
@@ -1255,7 +1255,7 @@ proto.cil_onboarding.api.User.deserializeBinaryFromReader = function(msg, reader
       break;
     case 11:
       var value = /** @type {string} */ (reader.readString());
-      msg.addRoleNames(value);
+      msg.addRoleIdentifiers(value);
       break;
     default:
       reader.skipField();
@@ -1356,7 +1356,7 @@ proto.cil_onboarding.api.User.serializeBinaryToWriter = function(message, writer
       f
     );
   }
-  f = message.getRoleNamesList();
+  f = message.getRoleIdentifiersList();
   if (f.length > 0) {
     writer.writeRepeatedString(
       11,
@@ -1547,10 +1547,10 @@ proto.cil_onboarding.api.User.prototype.setShortCode = function(value) {
 
 
 /**
- * repeated string role_names = 11;
+ * repeated string role_identifiers = 11;
  * @return {!Array<string>}
  */
-proto.cil_onboarding.api.User.prototype.getRoleNamesList = function() {
+proto.cil_onboarding.api.User.prototype.getRoleIdentifiersList = function() {
   return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 11));
 };
 
@@ -1559,7 +1559,7 @@ proto.cil_onboarding.api.User.prototype.getRoleNamesList = function() {
  * @param {!Array<string>} value
  * @return {!proto.cil_onboarding.api.User} returns this
  */
-proto.cil_onboarding.api.User.prototype.setRoleNamesList = function(value) {
+proto.cil_onboarding.api.User.prototype.setRoleIdentifiersList = function(value) {
   return jspb.Message.setField(this, 11, value || []);
 };
 
@@ -1569,7 +1569,7 @@ proto.cil_onboarding.api.User.prototype.setRoleNamesList = function(value) {
  * @param {number=} opt_index
  * @return {!proto.cil_onboarding.api.User} returns this
  */
-proto.cil_onboarding.api.User.prototype.addRoleNames = function(value, opt_index) {
+proto.cil_onboarding.api.User.prototype.addRoleIdentifiers = function(value, opt_index) {
   return jspb.Message.addToRepeatedField(this, 11, value, opt_index);
 };
 
@@ -1578,8 +1578,8 @@ proto.cil_onboarding.api.User.prototype.addRoleNames = function(value, opt_index
  * Clears the list making it empty but non-null.
  * @return {!proto.cil_onboarding.api.User} returns this
  */
-proto.cil_onboarding.api.User.prototype.clearRoleNamesList = function() {
-  return this.setRoleNamesList([]);
+proto.cil_onboarding.api.User.prototype.clearRoleIdentifiersList = function() {
+  return this.setRoleIdentifiersList([]);
 };
 
 
@@ -2663,7 +2663,7 @@ proto.cil_onboarding.api.AddOrganizationRolesToUser.toObject = function(includeI
   var f, obj = {
     externalOrganizationUuid: jspb.Message.getFieldWithDefault(msg, 1, ""),
     externalUserUuid: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    roleNamesList: (f = jspb.Message.getRepeatedField(msg, 3)) == null ? undefined : f
+    roleIdentifiersList: (f = jspb.Message.getRepeatedField(msg, 3)) == null ? undefined : f
   };
 
   if (includeInstance) {
@@ -2710,7 +2710,7 @@ proto.cil_onboarding.api.AddOrganizationRolesToUser.deserializeBinaryFromReader 
       break;
     case 3:
       var value = /** @type {string} */ (reader.readString());
-      msg.addRoleNames(value);
+      msg.addRoleIdentifiers(value);
       break;
     default:
       reader.skipField();
@@ -2755,7 +2755,7 @@ proto.cil_onboarding.api.AddOrganizationRolesToUser.serializeBinaryToWriter = fu
       f
     );
   }
-  f = message.getRoleNamesList();
+  f = message.getRoleIdentifiersList();
   if (f.length > 0) {
     writer.writeRepeatedString(
       3,
@@ -2802,10 +2802,10 @@ proto.cil_onboarding.api.AddOrganizationRolesToUser.prototype.setExternalUserUui
 
 
 /**
- * repeated string role_names = 3;
+ * repeated string role_identifiers = 3;
  * @return {!Array<string>}
  */
-proto.cil_onboarding.api.AddOrganizationRolesToUser.prototype.getRoleNamesList = function() {
+proto.cil_onboarding.api.AddOrganizationRolesToUser.prototype.getRoleIdentifiersList = function() {
   return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 3));
 };
 
@@ -2814,7 +2814,7 @@ proto.cil_onboarding.api.AddOrganizationRolesToUser.prototype.getRoleNamesList =
  * @param {!Array<string>} value
  * @return {!proto.cil_onboarding.api.AddOrganizationRolesToUser} returns this
  */
-proto.cil_onboarding.api.AddOrganizationRolesToUser.prototype.setRoleNamesList = function(value) {
+proto.cil_onboarding.api.AddOrganizationRolesToUser.prototype.setRoleIdentifiersList = function(value) {
   return jspb.Message.setField(this, 3, value || []);
 };
 
@@ -2824,7 +2824,7 @@ proto.cil_onboarding.api.AddOrganizationRolesToUser.prototype.setRoleNamesList =
  * @param {number=} opt_index
  * @return {!proto.cil_onboarding.api.AddOrganizationRolesToUser} returns this
  */
-proto.cil_onboarding.api.AddOrganizationRolesToUser.prototype.addRoleNames = function(value, opt_index) {
+proto.cil_onboarding.api.AddOrganizationRolesToUser.prototype.addRoleIdentifiers = function(value, opt_index) {
   return jspb.Message.addToRepeatedField(this, 3, value, opt_index);
 };
 
@@ -2833,8 +2833,8 @@ proto.cil_onboarding.api.AddOrganizationRolesToUser.prototype.addRoleNames = fun
  * Clears the list making it empty but non-null.
  * @return {!proto.cil_onboarding.api.AddOrganizationRolesToUser} returns this
  */
-proto.cil_onboarding.api.AddOrganizationRolesToUser.prototype.clearRoleNamesList = function() {
-  return this.setRoleNamesList([]);
+proto.cil_onboarding.api.AddOrganizationRolesToUser.prototype.clearRoleIdentifiersList = function() {
+  return this.setRoleIdentifiersList([]);
 };
 
 
@@ -2878,7 +2878,7 @@ proto.cil_onboarding.api.AddUsersToOrganizations.prototype.toObject = function(o
 proto.cil_onboarding.api.AddUsersToOrganizations.toObject = function(includeInstance, msg) {
   var f, obj = {
     externalOrganizationUuid: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    roleNamesList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f,
+    roleIdentifiersList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f,
     externalUserUuidsList: (f = jspb.Message.getRepeatedField(msg, 3)) == null ? undefined : f
   };
 
@@ -2922,7 +2922,7 @@ proto.cil_onboarding.api.AddUsersToOrganizations.deserializeBinaryFromReader = f
       break;
     case 2:
       var value = /** @type {string} */ (reader.readString());
-      msg.addRoleNames(value);
+      msg.addRoleIdentifiers(value);
       break;
     case 3:
       var value = /** @type {string} */ (reader.readString());
@@ -2964,7 +2964,7 @@ proto.cil_onboarding.api.AddUsersToOrganizations.serializeBinaryToWriter = funct
       f
     );
   }
-  f = message.getRoleNamesList();
+  f = message.getRoleIdentifiersList();
   if (f.length > 0) {
     writer.writeRepeatedString(
       2,
@@ -3000,10 +3000,10 @@ proto.cil_onboarding.api.AddUsersToOrganizations.prototype.setExternalOrganizati
 
 
 /**
- * repeated string role_names = 2;
+ * repeated string role_identifiers = 2;
  * @return {!Array<string>}
  */
-proto.cil_onboarding.api.AddUsersToOrganizations.prototype.getRoleNamesList = function() {
+proto.cil_onboarding.api.AddUsersToOrganizations.prototype.getRoleIdentifiersList = function() {
   return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 2));
 };
 
@@ -3012,7 +3012,7 @@ proto.cil_onboarding.api.AddUsersToOrganizations.prototype.getRoleNamesList = fu
  * @param {!Array<string>} value
  * @return {!proto.cil_onboarding.api.AddUsersToOrganizations} returns this
  */
-proto.cil_onboarding.api.AddUsersToOrganizations.prototype.setRoleNamesList = function(value) {
+proto.cil_onboarding.api.AddUsersToOrganizations.prototype.setRoleIdentifiersList = function(value) {
   return jspb.Message.setField(this, 2, value || []);
 };
 
@@ -3022,7 +3022,7 @@ proto.cil_onboarding.api.AddUsersToOrganizations.prototype.setRoleNamesList = fu
  * @param {number=} opt_index
  * @return {!proto.cil_onboarding.api.AddUsersToOrganizations} returns this
  */
-proto.cil_onboarding.api.AddUsersToOrganizations.prototype.addRoleNames = function(value, opt_index) {
+proto.cil_onboarding.api.AddUsersToOrganizations.prototype.addRoleIdentifiers = function(value, opt_index) {
   return jspb.Message.addToRepeatedField(this, 2, value, opt_index);
 };
 
@@ -3031,8 +3031,8 @@ proto.cil_onboarding.api.AddUsersToOrganizations.prototype.addRoleNames = functi
  * Clears the list making it empty but non-null.
  * @return {!proto.cil_onboarding.api.AddUsersToOrganizations} returns this
  */
-proto.cil_onboarding.api.AddUsersToOrganizations.prototype.clearRoleNamesList = function() {
-  return this.setRoleNamesList([]);
+proto.cil_onboarding.api.AddUsersToOrganizations.prototype.clearRoleIdentifiersList = function() {
+  return this.setRoleIdentifiersList([]);
 };
 
 

@@ -31,7 +31,7 @@ message User {
   Gender gender = 8;
   string date_of_birth = 9;
   string short_code = 10;
-  repeated string role_names = 11;
+  repeated string role_identifiers = 11;
 }
 
 enum Gender {
@@ -83,12 +83,12 @@ message AddClassesToSchool {
 message AddOrganizationRolesToUser {
   string external_organization_uuid = 1;
   string external_user_uuid = 2;
-  repeated string role_names = 3;
+  repeated string role_identifiers = 3;
 }
 
 message AddUsersToOrganizations {
   string external_organization_uuid = 1;
-  repeated string role_names = 2;
+  repeated string role_identifiers = 2;
   repeated string external_user_uuids = 3;
 }
 

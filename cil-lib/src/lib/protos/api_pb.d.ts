@@ -108,10 +108,10 @@ export class User extends jspb.Message {
     setDateOfBirth(value: string): User;
     getShortCode(): string;
     setShortCode(value: string): User;
-    clearRoleNamesList(): void;
-    getRoleNamesList(): Array<string>;
-    setRoleNamesList(value: Array<string>): User;
-    addRoleNames(value: string, index?: number): string;
+    clearRoleIdentifiersList(): void;
+    getRoleIdentifiersList(): Array<string>;
+    setRoleIdentifiersList(value: Array<string>): User;
+    addRoleIdentifiers(value: string, index?: number): string;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): User.AsObject;
@@ -135,7 +135,7 @@ export namespace User {
         gender: Gender,
         dateOfBirth: string,
         shortCode: string,
-        roleNamesList: Array<string>,
+        roleIdentifiersList: Array<string>,
     }
 }
 
@@ -280,10 +280,10 @@ export class AddOrganizationRolesToUser extends jspb.Message {
     setExternalOrganizationUuid(value: string): AddOrganizationRolesToUser;
     getExternalUserUuid(): string;
     setExternalUserUuid(value: string): AddOrganizationRolesToUser;
-    clearRoleNamesList(): void;
-    getRoleNamesList(): Array<string>;
-    setRoleNamesList(value: Array<string>): AddOrganizationRolesToUser;
-    addRoleNames(value: string, index?: number): string;
+    clearRoleIdentifiersList(): void;
+    getRoleIdentifiersList(): Array<string>;
+    setRoleIdentifiersList(value: Array<string>): AddOrganizationRolesToUser;
+    addRoleIdentifiers(value: string, index?: number): string;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): AddOrganizationRolesToUser.AsObject;
@@ -299,17 +299,17 @@ export namespace AddOrganizationRolesToUser {
     export type AsObject = {
         externalOrganizationUuid: string,
         externalUserUuid: string,
-        roleNamesList: Array<string>,
+        roleIdentifiersList: Array<string>,
     }
 }
 
 export class AddUsersToOrganizations extends jspb.Message { 
     getExternalOrganizationUuid(): string;
     setExternalOrganizationUuid(value: string): AddUsersToOrganizations;
-    clearRoleNamesList(): void;
-    getRoleNamesList(): Array<string>;
-    setRoleNamesList(value: Array<string>): AddUsersToOrganizations;
-    addRoleNames(value: string, index?: number): string;
+    clearRoleIdentifiersList(): void;
+    getRoleIdentifiersList(): Array<string>;
+    setRoleIdentifiersList(value: Array<string>): AddUsersToOrganizations;
+    addRoleIdentifiers(value: string, index?: number): string;
     clearExternalUserUuidsList(): void;
     getExternalUserUuidsList(): Array<string>;
     setExternalUserUuidsList(value: Array<string>): AddUsersToOrganizations;
@@ -328,7 +328,7 @@ export class AddUsersToOrganizations extends jspb.Message {
 export namespace AddUsersToOrganizations {
     export type AsObject = {
         externalOrganizationUuid: string,
-        roleNamesList: Array<string>,
+        roleIdentifiersList: Array<string>,
         externalUserUuidsList: Array<string>,
     }
 }
