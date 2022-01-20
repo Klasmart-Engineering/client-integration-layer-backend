@@ -14,7 +14,7 @@ model Organization {
 
   schools  School[]
   classes  Class[]
-  users    User[]
+  users    UserLinkOrganization[]
   roles    Role[]
   programs Program[]
 
@@ -27,22 +27,20 @@ model Organization {
 }
 
 model School {
-  externalUuid    String       @id @map("external_uuid") @db.Uuid
+  externalUuid String @id @map("external_uuid") @db.Uuid
+
   externalOrgUuid String       @map("external_org_uuid") @db.Uuid
   organization    Organization @relation(fields: [externalOrgUuid], references: [externalUuid])
 
-  classes Class[]
-  users   User[]
-
-  programUuids String[] @map("program_uuids") @db.Uuid
+  classes  Class[]
+  users    UserLinkSchool[]
+  programs ProgramLink[]
 
   klUuid String @unique @map("kl_uuid") @db.Uuid
 
-  requestId String    @map("request_id") @db.Uuid
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
-
 
   @@index(klUuid)
   @@map("validation_schools")
@@ -60,7 +58,6 @@ model Class {
   klUuid String @unique @map("kl_uuid") @db.Uuid
 
   // Metadata
-  requestId String    @map("request_id") @db.Uuid
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
@@ -73,23 +70,57 @@ model Class {
 model User {
   externalUuid String @id @map("external_uuid") @db.Uuid
 
-  externalOrgUuid String       @map("external_org_uuid") @db.Uuid
-  organization    Organization @relation(fields: [externalOrgUuid], references: [externalUuid])
-
-  externalSchoolUuid String @map("external_school_uuid") @db.Uuid
-  school             School @relation(fields: [externalSchoolUuid], references: [externalUuid])
+  organizations UserLinkOrganization[]
+  schools       UserLinkSchool[]
 
   klUuid String @unique @map("kl_uuid") @db.Uuid
 
   // Metadata
-  requestId String    @map("request_id") @db.Uuid
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
 
-  @@index(klUuid)
+  @@index([klUuid])
   @@map("validation_users")
+}
+
+model UserLinkOrganization {
+  id String @id @default(uuid()) @db.Uuid
+
+  externalUuid String @map("external_uuid") @db.Uuid
+  User         User   @relation(fields: [externalUuid], references: [externalUuid])
+
+  externalOrgUuid String       @map("external_org_uuid") @db.Uuid
+  organization    Organization @relation(fields: [externalOrgUuid], references: [externalUuid])
+
+  // Metadata
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@index(externalUuid)
+  @@index(externalOrgUuid)
+  @@map("validation_user_organizations")
+}
+
+model UserLinkSchool {
+  id String @id @default(uuid()) @db.Uuid
+
+  externalUuid String @map("external_uuid") @db.Uuid
+  User         User   @relation(fields: [externalUuid], references: [externalUuid])
+
+  externalSchoolUuid String @map("external_school_uuid") @db.Uuid
+  school             School @relation(fields: [externalSchoolUuid], references: [externalUuid])
+
+  // Metadata
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@index(externalUuid)
+  @@index(externalSchoolUuid)
+  @@map("validation_user_schools")
 }
 
 model Role {
@@ -115,6 +146,8 @@ model Program {
   externalOrgUuid String       @map("external_org_uuid") @db.Uuid
   organization    Organization @relation(fields: [externalOrgUuid], references: [externalUuid])
 
+  schoolPrograms ProgramLink[]
+
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
@@ -122,4 +155,22 @@ model Program {
 
   @@index([name, externalOrgUuid])
   @@map("validation_programs")
+}
+
+model ProgramLink {
+  id String @id @default(uuid()) @db.Uuid
+
+  klUuid  String  @map("external_uuid") @db.Uuid
+  program Program @relation(fields: [klUuid], references: [klUuid])
+
+  externalSchoolUuid String @map("external_school_uuid") @db.Uuid
+  school             School @relation(fields: [externalSchoolUuid], references: [externalUuid])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+
+  @@index(klUuid)
+  @@map("validation_school_programs")
 }

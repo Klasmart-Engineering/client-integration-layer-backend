@@ -213,13 +213,16 @@ export const BAD_REQUEST = (
 export const ENTITY_NOT_FOUND = (
   id: ExternalUuid,
   entity: Entity,
-  log: Logger
+  log: Logger,
+  props: Props = {}
 ) =>
   new OnboardingError(
     MachineError.ENTITY_DOES_NOT_EXIST,
     `${entity} with id ${id} does not exist`,
     Category.REQUEST,
-    log
+    log,
+    [],
+    props
   );
 
 export const ENTITY_ALREADY_EXISTS = (
