@@ -4,24 +4,17 @@ import { Logger } from 'pino';
 import { Class, Organization, Program, Role, School, User } from '../database';
 import {
   Category,
-  ENTITY_NOT_FOUND,
+  ENTITY_ALREADY_EXISTS,
   ENTITY_NOT_FOUND_FOR,
   MachineError,
   OnboardingError,
 } from '../errors';
 import { IdNameMapper } from '../services/adminService';
-import { Entity } from '../types';
+import { Entity as AppEntity, Entity } from '../types';
 
 import { ExternalUuid, Uuid } from '.';
-
 export class Context {
   private static _instance: Context;
-
-  private invalidOrganizations = new LRU<ExternalUuid, null>({
-    max: 25,
-    maxAge: 60 * 1000 * 5,
-    updateAgeOnGet: true,
-  });
 
   private organizations = new LRU<ExternalUuid, Uuid>({
     max: 25,
@@ -41,7 +34,7 @@ export class Context {
     updateAgeOnGet: true,
   });
 
-  private users = new LRU<ExternalUuid, null>({
+  private users = new LRU<ExternalUuid, Uuid>({
     max: 250,
     maxAge: 60 * 1000,
     updateAgeOnGet: true,
@@ -78,22 +71,15 @@ export class Context {
     id: ExternalUuid,
     log: Logger
   ): Promise<Uuid> {
-    if (this.invalidOrganizations.has(id))
-      throw ENTITY_NOT_FOUND(id, Entity.ORGANIZATION, log);
     {
-      const klId = this.organizations.get(id);
-      if (klId) return klId;
+      const cachedKlId = this.organizations.get(id);
+      if (cachedKlId) return cachedKlId;
     }
 
     // Will error
-    try {
-      const klId = await Organization.getId(id, log);
-      this.organizations.set(id, klId);
-      return klId;
-    } catch (e) {
-      this.invalidOrganizations.set(id, null);
-      throw e;
-    }
+    const klId = await Organization.getId(id, log);
+    this.organizations.set(id, klId);
+    return klId;
   }
 
   /**
@@ -128,17 +114,29 @@ export class Context {
 
   /**
    * @param {ExternalUuid} id - The external uuid of the user
-   * @errors if the id does not correspond to a user in our system
+   * @errors if there's a database error or entity already exists
    */
-  public async userIdIsValid(id: ExternalUuid, log: Logger): Promise<void> {
+  public async userDoesNotExist(id: ExternalUuid, log: Logger): Promise<void> {
     {
-      const klId = this.users.get(id);
-      if (klId) return klId;
+      const cachedKlId = this.users.get(id);
+      if (cachedKlId) throw ENTITY_ALREADY_EXISTS(id, AppEntity.USER, log);
     }
+    try {
+      const klId = await User.getId(id, log);
 
-    // Will error
-    await User.isValid(id, log);
-    this.users.set(id, null);
+      if (klId) {
+        this.users.set(id, klId);
+        throw ENTITY_ALREADY_EXISTS(id, AppEntity.USER, log);
+      }
+    } catch (error) {
+      if (
+        error instanceof OnboardingError &&
+        error.error === MachineError.ENTITY_DOES_NOT_EXIST
+      ) {
+        return;
+      }
+      throw error;
+    }
   }
 
   public async userIdsAreValid(
@@ -152,8 +150,8 @@ export class Context {
     }
     const { valid, invalid } = await User.areValid(Array.from(targets), log);
     // Any valid entries we can add to the cache
-    for (const { externalUuid } of valid) {
-      this.users.set(externalUuid, null);
+    for (const { externalUuid, klUuid } of valid) {
+      this.users.set(externalUuid, klUuid);
     }
     if (invalid.length > 0)
       throw new OnboardingError(
@@ -208,6 +206,7 @@ export class Context {
   }
 
   /**
+   * @param {string[]} roles - The role names to be validated
    * @param {string} orgId - The client UUID for the organization
    * @errors if any of the roles are invalid
    */

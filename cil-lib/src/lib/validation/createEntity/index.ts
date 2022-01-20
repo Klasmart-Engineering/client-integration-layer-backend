@@ -73,11 +73,7 @@ export async function parseCreateEntity(
         path,
         props
       );
-      return [
-        Entity.ORGANIZATION,
-        validated.user.getExternalUuid(),
-        validated.logger,
-      ];
+      return [Entity.USER, validated.user.getExternalUuid(), validated.logger];
     }
     default:
       throw BAD_REQUEST(

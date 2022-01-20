@@ -3,22 +3,20 @@ import { Logger } from 'pino';
 
 import {
   Category,
-  ENTITY_ALREADY_EXISTS,
   Errors,
   MachineError,
   OnboardingError,
   Props,
 } from '../../../errors';
-import { Entity, User as PbUser } from '../../../protos';
+import { User as PbUser } from '../../../protos';
 import { Entity as AppEntity } from '../../../types';
 import { Context } from '../../../utils/context';
 import {
   JOI_VALIDATION_SETTINGS,
   VALIDATION_RULES,
 } from '../../validationRules';
-
 export class ValidatedUser {
-  public static entity = Entity.USER;
+  public static entity = AppEntity.USER;
 
   private constructor(public readonly user: PbUser, public logger: Logger) {}
 
@@ -95,25 +93,36 @@ export class ValidatedUser {
   }
 
   private static async entityValidation(
-    e: PbUser.AsObject,
+    request: PbUser.AsObject,
     log: Logger
-  ): Promise<void> {
+  ): Promise<string[]> {
     const ctx = Context.getInstance();
-    let alreadyExists = false;
-    try {
-      await ctx.userIdIsValid(e.externalUuid, log);
-      // If the user already exists, then we want to error and not add it
-      alreadyExists = true;
-    } catch (_) {
-      /* if the user id is NOT valid, then we want to add it */
-    }
-    if (alreadyExists)
-      throw ENTITY_ALREADY_EXISTS(e.externalUuid, AppEntity.USER, log);
+    await ctx.userDoesNotExist(request.externalUuid, log);
+
+    // If the user does not exist then we validate the external org id & role names.
+    const organizationUuid = request.externalOrganizationUuid;
+    const roleNames = new Set(request.roleIdentifiersList);
+
+    await ctx.organizationIdIsValid(organizationUuid, log);
+
+    const roles = await ctx.rolesAreValid(
+      Array.from(roleNames),
+      organizationUuid,
+      log
+    );
+    // Returning the kidsloop role id, as in the future these would be required for the streams.
+    return roles.map((role) => role.id);
   }
 }
 
 export const userSchema = Joi.object({
-  externalUuid: Joi.string().guid({ version: ['uuidv4'] }),
+  externalUuid: Joi.string()
+    .guid({ version: ['uuidv4'] })
+    .required(),
+
+  externalOrganizationUuid: Joi.string()
+    .guid({ version: ['uuidv4'] })
+    .required(),
 
   givenName: Joi.string()
     .min(VALIDATION_RULES.USER_GIVEN_FAMILY_NAME_MIN_LENGTH)
@@ -147,4 +156,11 @@ export const userSchema = Joi.object({
     .min(VALIDATION_RULES.SHORTCODE_MIN_LENGTH)
     .max(VALIDATION_RULES.SHORTCODE_MAX_LENGTH)
     .alphanum(),
+
+  roleIdentifiersList: Joi.array()
+    .min(1)
+    .items(
+      Joi.string().min(1).max(VALIDATION_RULES.ROLE_NAME_MAX_LENGTH).required()
+    )
+    .required(),
 });

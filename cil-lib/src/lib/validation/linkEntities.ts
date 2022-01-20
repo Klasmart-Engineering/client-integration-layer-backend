@@ -1,7 +1,7 @@
 import { Logger } from 'pino';
 
 import { Entity, ExternalUuid, Uuid } from '../..';
-import { Class, Link, Organization, School } from '../database';
+import { Class, Link, School } from '../database';
 import {
   BAD_REQUEST,
   BASE_PATH,

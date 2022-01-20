@@ -4,7 +4,6 @@ import { v4 as uuidv4 } from 'uuid';
 
 import {
   Class,
-  LinkEntities,
   OnboardingRequest,
   Organization,
   School,
@@ -18,7 +17,6 @@ export function wrapRequest<T>(data: T): OnboardingRequest {
   if (data instanceof School) req.setSchool(data);
   if (data instanceof Class) req.setClass(data);
   if (data instanceof User) req.setUser(data);
-  if (data instanceof LinkEntities) req.setLinkEntities(data);
   return req;
 }
 
