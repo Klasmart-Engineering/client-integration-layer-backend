@@ -58,7 +58,7 @@ message AddUsersToClass {
   repeated string external_student_uuid = 3;
 }
 
-message AddUserToSchool {
+message AddUsersToSchool {
   repeated string external_user_uuids = 1;
   string external_school_uuid = 2;
 }
@@ -96,7 +96,7 @@ message Link {
   oneof link {
     AddUsersToOrganizations add_users_to_organizations = 1;
     AddOrganizationRolesToUser add_organization_roles_to_user = 2;
-    AddUserToSchool add_user_to_school = 3;
+    AddUsersToSchool add_user_to_school = 3;
     AddUsersToClass add_users_to_class = 4;
     AddProgramsToSchool add_programs_to_school = 5;
     AddProgramsToClass add_programs_to_class = 6;

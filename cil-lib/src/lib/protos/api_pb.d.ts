@@ -169,25 +169,25 @@ export namespace AddUsersToClass {
     }
 }
 
-export class AddUserToSchool extends jspb.Message { 
+export class AddUsersToSchool extends jspb.Message { 
     clearExternalUserUuidsList(): void;
     getExternalUserUuidsList(): Array<string>;
-    setExternalUserUuidsList(value: Array<string>): AddUserToSchool;
+    setExternalUserUuidsList(value: Array<string>): AddUsersToSchool;
     addExternalUserUuids(value: string, index?: number): string;
     getExternalSchoolUuid(): string;
-    setExternalSchoolUuid(value: string): AddUserToSchool;
+    setExternalSchoolUuid(value: string): AddUsersToSchool;
 
     serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): AddUserToSchool.AsObject;
-    static toObject(includeInstance: boolean, msg: AddUserToSchool): AddUserToSchool.AsObject;
+    toObject(includeInstance?: boolean): AddUsersToSchool.AsObject;
+    static toObject(includeInstance: boolean, msg: AddUsersToSchool): AddUsersToSchool.AsObject;
     static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
     static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-    static serializeBinaryToWriter(message: AddUserToSchool, writer: jspb.BinaryWriter): void;
-    static deserializeBinary(bytes: Uint8Array): AddUserToSchool;
-    static deserializeBinaryFromReader(message: AddUserToSchool, reader: jspb.BinaryReader): AddUserToSchool;
+    static serializeBinaryToWriter(message: AddUsersToSchool, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): AddUsersToSchool;
+    static deserializeBinaryFromReader(message: AddUsersToSchool, reader: jspb.BinaryReader): AddUsersToSchool;
 }
 
-export namespace AddUserToSchool {
+export namespace AddUsersToSchool {
     export type AsObject = {
         externalUserUuidsList: Array<string>,
         externalSchoolUuid: string,
@@ -347,8 +347,8 @@ export class Link extends jspb.Message {
 
     hasAddUserToSchool(): boolean;
     clearAddUserToSchool(): void;
-    getAddUserToSchool(): AddUserToSchool | undefined;
-    setAddUserToSchool(value?: AddUserToSchool): Link;
+    getAddUserToSchool(): AddUsersToSchool | undefined;
+    setAddUserToSchool(value?: AddUsersToSchool): Link;
 
     hasAddUsersToClass(): boolean;
     clearAddUsersToClass(): void;
@@ -386,7 +386,7 @@ export namespace Link {
     export type AsObject = {
         addUsersToOrganizations?: AddUsersToOrganizations.AsObject,
         addOrganizationRolesToUser?: AddOrganizationRolesToUser.AsObject,
-        addUserToSchool?: AddUserToSchool.AsObject,
+        addUserToSchool?: AddUsersToSchool.AsObject,
         addUsersToClass?: AddUsersToClass.AsObject,
         addProgramsToSchool?: AddProgramsToSchool.AsObject,
         addProgramsToClass?: AddProgramsToClass.AsObject,
