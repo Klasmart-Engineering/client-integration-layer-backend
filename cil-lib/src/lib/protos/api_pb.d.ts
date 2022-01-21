@@ -303,29 +303,29 @@ export namespace AddOrganizationRolesToUser {
     }
 }
 
-export class AddUsersToOrganizations extends jspb.Message { 
+export class AddUsersToOrganization extends jspb.Message { 
     getExternalOrganizationUuid(): string;
-    setExternalOrganizationUuid(value: string): AddUsersToOrganizations;
+    setExternalOrganizationUuid(value: string): AddUsersToOrganization;
     clearRoleIdentifiersList(): void;
     getRoleIdentifiersList(): Array<string>;
-    setRoleIdentifiersList(value: Array<string>): AddUsersToOrganizations;
+    setRoleIdentifiersList(value: Array<string>): AddUsersToOrganization;
     addRoleIdentifiers(value: string, index?: number): string;
     clearExternalUserUuidsList(): void;
     getExternalUserUuidsList(): Array<string>;
-    setExternalUserUuidsList(value: Array<string>): AddUsersToOrganizations;
+    setExternalUserUuidsList(value: Array<string>): AddUsersToOrganization;
     addExternalUserUuids(value: string, index?: number): string;
 
     serializeBinary(): Uint8Array;
-    toObject(includeInstance?: boolean): AddUsersToOrganizations.AsObject;
-    static toObject(includeInstance: boolean, msg: AddUsersToOrganizations): AddUsersToOrganizations.AsObject;
+    toObject(includeInstance?: boolean): AddUsersToOrganization.AsObject;
+    static toObject(includeInstance: boolean, msg: AddUsersToOrganization): AddUsersToOrganization.AsObject;
     static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
     static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
-    static serializeBinaryToWriter(message: AddUsersToOrganizations, writer: jspb.BinaryWriter): void;
-    static deserializeBinary(bytes: Uint8Array): AddUsersToOrganizations;
-    static deserializeBinaryFromReader(message: AddUsersToOrganizations, reader: jspb.BinaryReader): AddUsersToOrganizations;
+    static serializeBinaryToWriter(message: AddUsersToOrganization, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): AddUsersToOrganization;
+    static deserializeBinaryFromReader(message: AddUsersToOrganization, reader: jspb.BinaryReader): AddUsersToOrganization;
 }
 
-export namespace AddUsersToOrganizations {
+export namespace AddUsersToOrganization {
     export type AsObject = {
         externalOrganizationUuid: string,
         roleIdentifiersList: Array<string>,
@@ -335,20 +335,20 @@ export namespace AddUsersToOrganizations {
 
 export class Link extends jspb.Message { 
 
-    hasAddUsersToOrganizations(): boolean;
-    clearAddUsersToOrganizations(): void;
-    getAddUsersToOrganizations(): AddUsersToOrganizations | undefined;
-    setAddUsersToOrganizations(value?: AddUsersToOrganizations): Link;
+    hasAddUsersToOrganization(): boolean;
+    clearAddUsersToOrganization(): void;
+    getAddUsersToOrganization(): AddUsersToOrganization | undefined;
+    setAddUsersToOrganization(value?: AddUsersToOrganization): Link;
 
     hasAddOrganizationRolesToUser(): boolean;
     clearAddOrganizationRolesToUser(): void;
     getAddOrganizationRolesToUser(): AddOrganizationRolesToUser | undefined;
     setAddOrganizationRolesToUser(value?: AddOrganizationRolesToUser): Link;
 
-    hasAddUserToSchool(): boolean;
-    clearAddUserToSchool(): void;
-    getAddUserToSchool(): AddUsersToSchool | undefined;
-    setAddUserToSchool(value?: AddUsersToSchool): Link;
+    hasAddUsersToSchool(): boolean;
+    clearAddUsersToSchool(): void;
+    getAddUsersToSchool(): AddUsersToSchool | undefined;
+    setAddUsersToSchool(value?: AddUsersToSchool): Link;
 
     hasAddUsersToClass(): boolean;
     clearAddUsersToClass(): void;
@@ -384,9 +384,9 @@ export class Link extends jspb.Message {
 
 export namespace Link {
     export type AsObject = {
-        addUsersToOrganizations?: AddUsersToOrganizations.AsObject,
+        addUsersToOrganization?: AddUsersToOrganization.AsObject,
         addOrganizationRolesToUser?: AddOrganizationRolesToUser.AsObject,
-        addUserToSchool?: AddUsersToSchool.AsObject,
+        addUsersToSchool?: AddUsersToSchool.AsObject,
         addUsersToClass?: AddUsersToClass.AsObject,
         addProgramsToSchool?: AddProgramsToSchool.AsObject,
         addProgramsToClass?: AddProgramsToClass.AsObject,
@@ -395,9 +395,9 @@ export namespace Link {
 
     export enum LinkCase {
         LINK_NOT_SET = 0,
-        ADD_USERS_TO_ORGANIZATIONS = 1,
+        ADD_USERS_TO_ORGANIZATION = 1,
         ADD_ORGANIZATION_ROLES_TO_USER = 2,
-        ADD_USER_TO_SCHOOL = 3,
+        ADD_USERS_TO_SCHOOL = 3,
         ADD_USERS_TO_CLASS = 4,
         ADD_PROGRAMS_TO_SCHOOL = 5,
         ADD_PROGRAMS_TO_CLASS = 6,
