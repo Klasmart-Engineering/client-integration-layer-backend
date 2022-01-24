@@ -1,12 +1,7 @@
 import { Logger } from 'pino';
 
 import { Errors, OnboardingError } from '../errors';
-import {
-  OnboardingRequest,
-  Error as PbError,
-  Response,
-} from '../protos/api_pb';
-import { Producer } from '../redis';
+import { OnboardingRequest, Response } from '../protos/api_pb';
 import { Message } from '../types';
 import { actionToString } from '../types/action';
 import { entityToProtobuf } from '../types/entity';
@@ -46,21 +41,14 @@ export const processMessage = async (
       );
     resp.setEntity(wrapper.entity);
     resp.setEntityId(wrapper.entityId);
-    const msg = Message.fromOnboardingRequest(data, logger);
-    const producer = await Producer.getInstance(logger);
-    await producer.publishMessage(msg, logger);
+    Message.fromOnboardingRequest(data, logger);
+    // @TODO - Call admin service
     resp.setSuccess(true);
     return resp;
   } catch (error) {
     if (error instanceof Errors || error instanceof OnboardingError) {
       const err = error.toProtobufError();
       resp.setErrors(err);
-
-      // Write the error to the failure queue
-      if (err.getErrorTypeCase() === PbError.ErrorTypeCase.VALIDATION) {
-        const producer = await Producer.getInstance(logger);
-        await producer.publishFailure(resp, logger);
-      }
     } else {
       logger.warn(
         `Found an error that wasn't correctly converted to a response - if you're seeing this the code needs an update`
