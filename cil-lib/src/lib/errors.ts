@@ -219,7 +219,25 @@ export const ENTITY_NOT_FOUND = (
   new OnboardingError(
     MachineError.ENTITY_DOES_NOT_EXIST,
     `${entity} with id ${id} does not exist`,
-    Category.REQUEST,
+    Category.POSTGRES,
+    log,
+    [],
+    props
+  );
+
+export const ENTITY_NOT_FOUND_FOR = (
+  id: ExternalUuid,
+  entity: Entity,
+  targetId: ExternalUuid,
+  targetEntity: Entity,
+  log: Logger,
+  props: Props = {}
+) =>
+  new OnboardingError(
+    MachineError.ENTITY_DOES_NOT_EXIST,
+    `${entity} with id ${id} does not exist for ${targetEntity} with id
+    ${targetId}`,
+    Category.POSTGRES,
     log,
     [],
     props
@@ -306,7 +324,7 @@ export function tryGetMember<T>(
   if (e === undefined)
     throw new OnboardingError(
       MachineError.VALIDATION,
-      `Expected to find data however it was undefined`,
+      `Expected to find a valid instance of the provided data however it was undefined`,
       Category.REQUEST,
       log,
       path

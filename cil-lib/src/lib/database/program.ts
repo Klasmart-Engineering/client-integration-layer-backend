@@ -3,7 +3,6 @@ import { Logger } from 'pino';
 
 import {
   Category,
-  ENTITY_NOT_FOUND,
   Errors,
   MachineError,
   OnboardingError,
@@ -178,61 +177,57 @@ export class Program {
 
   public static async getIdsByNamesForClass(
     programNames: string[],
-    orgId: ExternalUuid,
     schoolId: ExternalUuid,
     log: Logger
   ): Promise<IdNameMapper[]> {
     try {
-      const klUuids = await prisma.program.findMany({
+      const klUuids = await prisma.programLink.findMany({
         where: {
-          name: {
-            in: programNames,
-          },
-          organization: {
-            externalUuid: orgId,
-          },
+          AND: [
+            {
+              program: {
+                name: {
+                  in: programNames,
+                },
+              },
+            },
+            {
+              externalSchoolUuid: schoolId,
+            },
+          ],
         },
         select: {
           klUuid: true,
-          name: true,
+          program: {
+            select: {
+              name: true,
+            },
+          },
         },
       });
-      const schoolsPrograms = await prisma.school.findUnique({
-        where: {
-          externalUuid: schoolId,
-        },
-        select: {
-          programUuids: true,
-        },
-      });
-      if (!schoolsPrograms)
-        throw ENTITY_NOT_FOUND(schoolId, Entity.SCHOOL, log);
-      if (!klUuids)
+      if (!klUuids || klUuids.length === 0)
         throw POSTGRES_GET_KIDSLOOP_ID_QUERY(
           programNames,
           this.entity,
           `Programs: ${programNames.join(
             ', '
-          )} not found for organization ${orgId}`,
+          )} not found for school ${schoolId}`,
           log
         );
-      const validForSchool = new Set(schoolsPrograms.programUuids);
-      const targets = new Set(programNames);
-      for (const { klUuid } of klUuids) {
-        // If the school also has the program, then add it
-        if (validForSchool.has(klUuid)) targets.delete(klUuid);
-        // Otherwise that program hasn't been added to that school yet
-        // so it is treated as invalid
+      const programsToValidate = new Set(programNames);
+      for (const {
+        program: { name },
+      } of klUuids) {
+        programsToValidate.delete(name);
       }
-      if (targets.size === 0)
-        return klUuids.map((id) => ({ id: id.klUuid, name: id.name }));
+      if (programsToValidate.size === 0)
+        return klUuids.map((id) => ({ id: id.klUuid, name: id.program.name }));
       throw POSTGRES_GET_KIDSLOOP_ID_QUERY(
         programNames,
         this.entity,
-        `Programs: ${programNames.join(
+        `Programs: ${Array.from(programsToValidate).join(
           ', '
-        )} not found for organization ${orgId},
-        school: ${schoolId}`,
+        )} not found for school: ${schoolId}`,
         log
       );
     } catch (error) {

@@ -1,4 +1,4 @@
-export * from './lib/entities';
+export * from './lib/database';
 export * from './lib/errors';
 export * as proto from './lib/protos';
 export * from './lib/redis';

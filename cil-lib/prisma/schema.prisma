@@ -89,7 +89,7 @@ model UserLinkOrganization {
   id String @id @default(uuid()) @db.Uuid
 
   externalUuid String @map("external_uuid") @db.Uuid
-  User         User   @relation(fields: [externalUuid], references: [externalUuid])
+  user         User   @relation(fields: [externalUuid], references: [externalUuid])
 
   externalOrgUuid String       @map("external_org_uuid") @db.Uuid
   organization    Organization @relation(fields: [externalOrgUuid], references: [externalUuid])
@@ -99,8 +99,7 @@ model UserLinkOrganization {
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  @@index(externalUuid)
-  @@index(externalOrgUuid)
+  @@unique([externalUuid, externalOrgUuid])
   @@map("validation_user_organizations")
 }
 
@@ -108,7 +107,7 @@ model UserLinkSchool {
   id String @id @default(uuid()) @db.Uuid
 
   externalUuid String @map("external_uuid") @db.Uuid
-  User         User   @relation(fields: [externalUuid], references: [externalUuid])
+  user         User   @relation(fields: [externalUuid], references: [externalUuid])
 
   externalSchoolUuid String @map("external_school_uuid") @db.Uuid
   school             School @relation(fields: [externalSchoolUuid], references: [externalUuid])
@@ -118,8 +117,8 @@ model UserLinkSchool {
   updatedAt DateTime  @updatedAt @map("updated_at")
   deletedAt DateTime? @map("deleted_at")
 
-  @@index(externalUuid)
-  @@index(externalSchoolUuid)
+
+  @@unique([externalUuid, externalSchoolUuid])
   @@map("validation_user_schools")
 }
 

@@ -131,16 +131,10 @@ CREATE UNIQUE INDEX "validation_users_kl_uuid_key" ON "validation_users"("kl_uui
 CREATE INDEX "validation_users_kl_uuid_idx" ON "validation_users"("kl_uuid");
 
 -- CreateIndex
-CREATE INDEX "validation_user_organizations_external_uuid_idx" ON "validation_user_organizations"("external_uuid");
+CREATE UNIQUE INDEX "validation_user_organizations_external_uuid_external_org_uu_key" ON "validation_user_organizations"("external_uuid", "external_org_uuid");
 
 -- CreateIndex
-CREATE INDEX "validation_user_organizations_external_org_uuid_idx" ON "validation_user_organizations"("external_org_uuid");
-
--- CreateIndex
-CREATE INDEX "validation_user_schools_external_uuid_idx" ON "validation_user_schools"("external_uuid");
-
--- CreateIndex
-CREATE INDEX "validation_user_schools_external_school_uuid_idx" ON "validation_user_schools"("external_school_uuid");
+CREATE UNIQUE INDEX "validation_user_schools_external_uuid_external_school_uuid_key" ON "validation_user_schools"("external_uuid", "external_school_uuid");
 
 -- CreateIndex
 CREATE INDEX "validation_roles_name_external_org_uuid_idx" ON "validation_roles"("name", "external_org_uuid");

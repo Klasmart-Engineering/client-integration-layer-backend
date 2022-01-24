@@ -1,7 +1,6 @@
 import { Logger } from 'pino';
 
 import { Category, MachineError, OnboardingError } from '../..';
-import { Action } from '../protos';
 import { Entity, Message } from '../types';
 
 export class RedisKeys {
@@ -41,34 +40,30 @@ export class RedisKeys {
 
   public static getKeyForMessage(msg: Message, log: Logger): string {
     let stream: string;
-    if (msg.action === Action.LINK) {
-      stream = RedisKeys.linkEntities();
-    } else {
-      switch (msg.entity) {
-        case Entity.ORGANIZATION: {
-          stream = RedisKeys.createOrganization();
-          break;
-        }
-        case Entity.SCHOOL: {
-          stream = RedisKeys.createSchool();
-          break;
-        }
-        case Entity.CLASS: {
-          stream = RedisKeys.createClass();
-          break;
-        }
-        case Entity.USER: {
-          stream = RedisKeys.createUser();
-          break;
-        }
-        default:
-          throw new OnboardingError(
-            MachineError.REQUEST,
-            'Unable to identify which stream should be published to',
-            Category.REDIS,
-            log
-          );
+    switch (msg.entity) {
+      case Entity.ORGANIZATION: {
+        stream = RedisKeys.createOrganization();
+        break;
       }
+      case Entity.SCHOOL: {
+        stream = RedisKeys.createSchool();
+        break;
+      }
+      case Entity.CLASS: {
+        stream = RedisKeys.createClass();
+        break;
+      }
+      case Entity.USER: {
+        stream = RedisKeys.createUser();
+        break;
+      }
+      default:
+        throw new OnboardingError(
+          MachineError.REQUEST,
+          'Unable to identify which stream should be published to',
+          Category.REDIS,
+          log
+        );
     }
     return stream;
   }

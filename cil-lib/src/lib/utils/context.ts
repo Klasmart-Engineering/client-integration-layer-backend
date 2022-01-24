@@ -1,10 +1,11 @@
 import LRU from 'lru-cache';
 import { Logger } from 'pino';
 
-import { Class, Organization, Program, Role, School, User } from '../entities';
+import { Class, Organization, Program, Role, School, User } from '../database';
 import {
   Category,
   ENTITY_NOT_FOUND,
+  ENTITY_NOT_FOUND_FOR,
   MachineError,
   OnboardingError,
 } from '../errors';
@@ -17,13 +18,13 @@ export class Context {
   private static _instance: Context;
 
   private invalidOrganizations = new LRU<ExternalUuid, null>({
-    max: 100,
+    max: 25,
     maxAge: 60 * 1000 * 5,
     updateAgeOnGet: true,
   });
 
   private organizations = new LRU<ExternalUuid, Uuid>({
-    max: 50,
+    max: 25,
     maxAge: 60 * 1000,
     updateAgeOnGet: true,
   });
@@ -35,13 +36,13 @@ export class Context {
   });
 
   private classes = new LRU<ExternalUuid, null>({
-    max: 50,
+    max: 75,
     maxAge: 60 * 1000,
     updateAgeOnGet: true,
   });
 
   private users = new LRU<ExternalUuid, null>({
-    max: 100,
+    max: 250,
     maxAge: 60 * 1000,
     updateAgeOnGet: true,
   });
@@ -127,17 +128,40 @@ export class Context {
 
   /**
    * @param {ExternalUuid} id - The external uuid of the user
-   * @errors if the id does not correspond to a school in our system
+   * @errors if the id does not correspond to a user in our system
    */
   public async userIdIsValid(id: ExternalUuid, log: Logger): Promise<void> {
     {
-      const klId = this.schools.get(id);
+      const klId = this.users.get(id);
       if (klId) return klId;
     }
 
     // Will error
     await User.isValid(id, log);
     this.users.set(id, null);
+  }
+
+  public async userIdsAreValid(
+    ids: ExternalUuid[],
+    log: Logger
+  ): Promise<void> {
+    const targets = new Set(ids);
+    // Check the cache
+    for (const id of ids) {
+      if (this.users.has(id)) targets.delete(id);
+    }
+    const { valid, invalid } = await User.areValid(Array.from(targets), log);
+    // Any valid entries we can add to the cache
+    for (const { externalUuid } of valid) {
+      this.users.set(externalUuid, null);
+    }
+    if (invalid.length > 0)
+      throw new OnboardingError(
+        MachineError.VALIDATION,
+        `User ids ${invalid.join(', ')} are invalid`,
+        Category.REQUEST,
+        log
+      );
   }
 
   /**
@@ -153,12 +177,7 @@ export class Context {
   ): Promise<IdNameMapper[]> {
     // @TODO - Implement some form of caching on this
     if (schoolId)
-      return await Program.getIdsByNamesForClass(
-        programs,
-        orgId,
-        schoolId,
-        log
-      );
+      return await Program.getIdsByNamesForClass(programs, schoolId, log);
     const p = this.programs.get(orgId);
     if (!p) {
       const ids = await Program.getIdsByNames(programs, orgId, log);
@@ -189,25 +208,31 @@ export class Context {
   }
 
   /**
-   * @param {string[]} roles - The role names to be validated
    * @param {string} orgId - The client UUID for the organization
-   * @errors if any of the programs are invalid
+   * @errors if any of the roles are invalid
    */
   public async rolesAreValid(
     roles: string[],
     orgId: ExternalUuid,
     log: Logger
   ): Promise<IdNameMapper[]> {
-    const r = this.roles.get(orgId);
-    if (!r) {
-      const ids = await Role.getIdsByNames(roles, orgId, log);
+    if (!this.roles.has(orgId)) {
+      const ids = await Role.getIdsForOrganization(orgId, log);
       const map = new Map();
       for (const { id, name } of ids) {
         map.set(name, id);
       }
       this.roles.set(orgId, map);
-      return ids;
     }
+    const r = this.roles.get(orgId);
+    if (!r)
+      throw ENTITY_NOT_FOUND_FOR(
+        roles.join(', '),
+        Entity.ROLE,
+        orgId,
+        Entity.ORGANIZATION,
+        log
+      );
     const validNames = [];
     const invalidNames = [];
     for (const role of roles) {
@@ -221,7 +246,9 @@ export class Context {
     if (invalidNames.length === 0) return validNames;
     throw new OnboardingError(
       MachineError.VALIDATION,
-      `Roles: ${invalidNames.join(', ')} are invalid`,
+      `Roles: ${invalidNames.join(
+        ', '
+      )} are invalid for organization: ${orgId}`,
       Category.REQUEST,
       log
     );

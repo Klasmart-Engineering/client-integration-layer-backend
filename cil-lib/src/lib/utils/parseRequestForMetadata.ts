@@ -1,5 +1,8 @@
+import { Logger } from 'pino';
+
 import { Entity } from '../..';
-import { Action, LinkEntities, OnboardingRequest } from '../protos';
+import { BAD_REQUEST, BASE_PATH, tryGetMember } from '../errors';
+import { Action, Link, OnboardingRequest } from '../protos';
 
 type Metadata = {
   entity: Entity;
@@ -8,7 +11,8 @@ type Metadata = {
 };
 
 export function parseOnboardingRequestForMetadata(
-  r: OnboardingRequest
+  r: OnboardingRequest,
+  log: Logger
 ): Metadata {
   let entity = Entity.UNKNOWN;
   let identifier: string | undefined = 'UNKNOWN';
@@ -35,30 +39,56 @@ export function parseOnboardingRequestForMetadata(
       break;
     }
     case OnboardingRequest.PayloadCase.LINK_ENTITIES: {
-      const linkEntities = r.getLinkEntities();
-      switch (linkEntities?.getTargetCase()) {
-        case LinkEntities.TargetCase.ORGANIZATION: {
+      const payload = tryGetMember(r.getLinkEntities(), log);
+      switch (payload.getLinkCase()) {
+        case Link.LinkCase.ADD_USERS_TO_ORGANIZATION: {
           entity = Entity.ORGANIZATION;
-          identifier = linkEntities.getOrganization()?.getExternalUuid();
+          identifier = payload
+            .getAddUsersToOrganization()
+            ?.getExternalOrganizationUuid();
           break;
         }
-        case LinkEntities.TargetCase.SCHOOL: {
+        case Link.LinkCase.ADD_ORGANIZATION_ROLES_TO_USER: {
+          entity = Entity.ORGANIZATION;
+          identifier = payload
+            .getAddOrganizationRolesToUser()
+            ?.getExternalOrganizationUuid();
+          break;
+        }
+        case Link.LinkCase.ADD_USERS_TO_SCHOOL: {
           entity = Entity.SCHOOL;
-          identifier = linkEntities.getSchool()?.getExternalUuid();
+          identifier = payload.getAddUsersToSchool()?.getExternalSchoolUuid();
           break;
         }
-        case LinkEntities.TargetCase.CLASS: {
+        case Link.LinkCase.ADD_CLASSES_TO_SCHOOL: {
+          entity = Entity.SCHOOL;
+          identifier = payload.getAddClassesToSchool()?.getExternalSchoolUuid();
+          break;
+        }
+        case Link.LinkCase.ADD_PROGRAMS_TO_SCHOOL: {
+          entity = Entity.SCHOOL;
+          identifier = payload
+            .getAddProgramsToSchool()
+            ?.getExternalSchoolUuid();
+          break;
+        }
+        case Link.LinkCase.ADD_PROGRAMS_TO_CLASS: {
           entity = Entity.CLASS;
-          identifier = linkEntities.getClass()?.getExternalUuid();
+          identifier = payload.getAddProgramsToClass()?.getExternalClassUuid();
           break;
         }
-        case LinkEntities.TargetCase.USER: {
-          entity = Entity.USER;
-          identifier = linkEntities.getUser()?.getExternalUuid();
+        case Link.LinkCase.ADD_USERS_TO_CLASS: {
+          entity = Entity.CLASS;
+          identifier = payload.getAddUsersToClass()?.getExternalClassUuid();
           break;
         }
+        default:
+          throw BAD_REQUEST(
+            `A 'Link' request must provide one of the specified payloads`,
+            [...BASE_PATH, 'linkEntities'],
+            log
+          );
       }
-      break;
     }
   }
   return { entity, identifier: identifier || 'UNKNOWN', action };

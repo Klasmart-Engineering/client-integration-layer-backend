@@ -1,7 +1,7 @@
 import Joi from 'joi';
 import { Logger } from 'pino';
 
-import { Organization } from '../../../entities';
+import { Organization } from '../../../database';
 import {
   Category,
   Errors,
