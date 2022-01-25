@@ -234,7 +234,13 @@ export class Link {
     }
     const result = await Promise.all(promises);
     const orgIds = result.flat();
-    if (orgIds.length === 0) return;
+    if (orgIds.length === 0)
+      throw new OnboardingError(
+        MachineError.VALIDATION,
+        'No ids were provided so we are unable to link any entities',
+        Category.REQUEST,
+        log
+      );
     const targetOrg = orgIds[0];
     if (orgIds.every((id) => id === targetOrg)) return;
     throw new OnboardingError(
