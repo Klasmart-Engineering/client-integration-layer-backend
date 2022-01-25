@@ -87,10 +87,10 @@ async function validateAddUsersToOrganization(
   log: Logger
 ): Promise<void> {
   const orgId = link.getExternalOrganizationUuid();
-  // Check the target organization is valid
-  await Organization.isValid(orgId, log);
-
   const ctx = Context.getInstance();
+  // Check the target organization is valid
+  await ctx.organizationIdIsValid(orgId, log);
+
   // Check the target users are valid
   await ctx.userIdsAreValid(link.getExternalUserUuidsList(), log);
 
