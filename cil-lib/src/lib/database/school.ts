@@ -99,4 +99,66 @@ export class School {
       throw POSTGRES_GET_KIDSLOOP_ID_QUERY(id, this.entity, msg, log);
     }
   }
+
+  public static async getOrgIdForSchool(
+    id: ExternalUuid,
+    log: Logger
+  ): Promise<Uuid> {
+    try {
+      const klUuid = await prisma.school.findUnique({
+        where: {
+          externalUuid: id,
+        },
+        select: {
+          klUuid: true,
+        },
+      });
+      if (klUuid && klUuid.klUuid) return klUuid.klUuid;
+      throw ENTITY_NOT_FOUND(id, this.entity, log);
+    } catch (error) {
+      const msg = returnMessageOrThrowOnboardingError(error);
+      throw POSTGRES_GET_KIDSLOOP_ID_QUERY(id, this.entity, msg, log);
+    }
+  }
+
+  public static async getProgramsForSchool(
+    id: ExternalUuid,
+    log: Logger
+  ): Promise<{ id: Uuid; name: string }[]> {
+    try {
+      const programs = await prisma.programLink.findMany({
+        where: {
+          externalSchoolUuid: id,
+        },
+        select: {
+          klUuid: true,
+          program: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      });
+      if (programs.length === 0)
+        throw new OnboardingError(
+          MachineError.NOT_FOUND,
+          `No programs found for school: ${id}`,
+          Category.POSTGRES,
+          log,
+          [],
+          { id, operation: 'get programs for school' }
+        );
+      return programs.map((p) => ({ id: p.klUuid, name: p.program.name }));
+    } catch (error) {
+      const msg = returnMessageOrThrowOnboardingError(error);
+      throw new OnboardingError(
+        MachineError.READ,
+        msg,
+        Category.POSTGRES,
+        log,
+        [],
+        { id, operation: 'get programs for school' }
+      );
+    }
+  }
 }

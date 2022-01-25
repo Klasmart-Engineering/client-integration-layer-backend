@@ -1,19 +1,13 @@
 import { Logger } from 'pino';
 
 import { Errors, OnboardingError } from '../errors';
-import {
-  Entity,
-  LinkEntities,
-  OnboardingRequest,
-  Error as PbError,
-  Response,
-} from '../protos/api_pb';
-import { Producer } from '../redis';
+import { OnboardingRequest, Response } from '../protos/api_pb';
 import { Message } from '../types';
 import { actionToString } from '../types/action';
+import { entityToProtobuf } from '../types/entity';
 import { ValidationWrapper } from '../validation';
 
-import { ExternalUuid } from '.';
+import { parseOnboardingRequestForMetadata } from './parseRequestForMetadata';
 
 export const processMessage = async (
   data: OnboardingRequest,
@@ -21,9 +15,10 @@ export const processMessage = async (
 ): Promise<Response> => {
   const resp = new Response();
   resp.setRequestId(data.getRequestId());
-  const [e, id] = mapPayloadCase(data);
-  resp.setEntity(e);
-  resp.setEntityId(id);
+  const { entity, identifier } = parseOnboardingRequestForMetadata(data, log);
+  const pbEntity = entityToProtobuf(entity, log);
+  resp.setEntity(pbEntity);
+  resp.setEntityId(identifier);
   resp.setSuccess(false);
   let logger = log;
 
@@ -36,31 +31,24 @@ export const processMessage = async (
       )} ${wrapper.data.getPayloadCase().toString()}`
     );
     // @TODO - Can probably remove these once we're confident that they line up
-    if (e !== wrapper.entity)
+    if (pbEntity !== wrapper.entity)
       logger.warn(
-        `When parsing request expected the initially identified entity ${e} to match the newly parsed entity ${wrapper.entity}`
+        `When parsing request expected the initially identified entity ${entity} to match the newly parsed entity ${wrapper.entity}`
       );
-    if (id !== wrapper.entityId)
+    if (identifier !== wrapper.entityId)
       logger.warn(
-        `When parsing request expected the initially identified entity id ${id} to match the newly parsed entity id ${wrapper.entityId}`
+        `When parsing request expected the initially identified entity id ${identifier} to match the newly parsed entity id ${wrapper.entityId}`
       );
     resp.setEntity(wrapper.entity);
     resp.setEntityId(wrapper.entityId);
-    const msg = Message.fromOnboardingRequest(data, logger);
-    const producer = await Producer.getInstance(logger);
-    await producer.publishMessage(msg, logger);
+    Message.fromOnboardingRequest(data, logger);
+    // @TODO - Call admin service
     resp.setSuccess(true);
     return resp;
   } catch (error) {
     if (error instanceof Errors || error instanceof OnboardingError) {
       const err = error.toProtobufError();
       resp.setErrors(err);
-
-      // Write the error to the failure queue
-      if (err.getErrorTypeCase() === PbError.ErrorTypeCase.VALIDATION) {
-        const producer = await Producer.getInstance(logger);
-        await producer.publishFailure(resp, logger);
-      }
     } else {
       logger.warn(
         `Found an error that wasn't correctly converted to a response - if you're seeing this the code needs an update`
@@ -69,77 +57,4 @@ export const processMessage = async (
 
     return resp;
   }
-};
-
-const mapPayloadCase = (r: OnboardingRequest): [Entity, ExternalUuid] => {
-  let id = 'UNKNOWN';
-  let entity = Entity.ORGANIZATION;
-  switch (r.getPayloadCase()) {
-    case OnboardingRequest.PayloadCase.ORGANIZATION: {
-      entity = Entity.ORGANIZATION;
-      const org = r.getOrganization();
-      if (org) id = org.getExternalUuid();
-      break;
-    }
-    case OnboardingRequest.PayloadCase.SCHOOL: {
-      entity = Entity.SCHOOL;
-      const sch = r.getSchool();
-      if (sch) id = sch.getExternalUuid();
-      break;
-    }
-    case OnboardingRequest.PayloadCase.CLASS: {
-      entity = Entity.CLASS;
-      const cla = r.getClass();
-      if (cla) id = cla.getExternalUuid();
-      break;
-    }
-    case OnboardingRequest.PayloadCase.USER: {
-      entity = Entity.USER;
-      const user = r.getUser();
-      if (user) id = user.getExternalUuid();
-      break;
-    }
-    case OnboardingRequest.PayloadCase.LINK_ENTITIES: {
-      [entity, id] = mapTargetCase(r.getLinkEntities());
-      break;
-    }
-    default:
-      break;
-  }
-  return [entity, id];
-};
-
-const mapTargetCase = (r?: LinkEntities): [Entity, ExternalUuid] => {
-  let entity = Entity.ORGANIZATION;
-  let id = 'UNKNOWN';
-  if (!r) return [entity, id];
-  switch (r.getTargetCase()) {
-    case LinkEntities.TargetCase.ORGANIZATION: {
-      entity = Entity.ORGANIZATION;
-      const org = r.getOrganization();
-      if (org) id = org.getExternalUuid();
-      break;
-    }
-    case LinkEntities.TargetCase.SCHOOL: {
-      entity = Entity.SCHOOL;
-      const sch = r.getSchool();
-      if (sch) id = sch.getExternalUuid();
-      break;
-    }
-    case LinkEntities.TargetCase.CLASS: {
-      entity = Entity.CLASS;
-      const cla = r.getClass();
-      if (cla) id = cla.getExternalUuid();
-      break;
-    }
-    case LinkEntities.TargetCase.USER: {
-      entity = Entity.USER;
-      const user = r.getUser();
-      if (user) id = user.getExternalUuid();
-      break;
-    }
-    default:
-      break;
-  }
-  return [entity, id];
 };

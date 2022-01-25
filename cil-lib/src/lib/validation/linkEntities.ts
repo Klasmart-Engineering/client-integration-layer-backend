@@ -1,6 +1,7 @@
 import { Logger } from 'pino';
 
 import { Entity, ExternalUuid, Uuid } from '../..';
+import { Class, Link, Organization, School } from '../database';
 import {
   BAD_REQUEST,
   BASE_PATH,
@@ -11,12 +12,24 @@ import {
   tryGetMember,
 } from '../errors';
 import {
-  EntitiesToLink,
-  LinkEntities,
+  AddClassesToSchool,
+  AddOrganizationRolesToUser,
+  AddProgramsToClass,
+  AddProgramsToSchool,
+  AddUsersToClass,
+  AddUsersToOrganization,
+  AddUsersToSchool,
   OnboardingRequest,
   Entity as PbEntity,
+  Link as PbLink,
 } from '../protos/api_pb';
+import { actionToString } from '../types/action';
 import { Context } from '../utils/context';
+import {
+  LinkEntityMetadata,
+  linkEntitySwitcher,
+  LinkEntityTask,
+} from '../utils/linkEntitySwitcher';
 
 export type LinkEntitiesRequest = {
   primary: LinkEntity;
@@ -35,182 +48,153 @@ export async function parseLinkEntities(
 ): Promise<[PbEntity, ExternalUuid, Logger]> {
   const path = [...BASE_PATH];
   const payload = req.getPayloadCase();
+  props.action = actionToString(req.getAction());
   if (payload !== OnboardingRequest.PayloadCase.LINK_ENTITIES)
     throw BAD_REQUEST(
-      `If Action is of type 'LINK', payload must be 'LinkEntities'`,
+      `If payload is of type 'link_entities', we expect a 'LINK' to be sent`,
       path,
       log,
       props
     );
+  const logger = log.child(props);
 
   path.push('linkEntities');
-  const body = tryGetMember(req.getLinkEntities(), log, path);
-  const { pbEntity, targetEntity, targetEntityId } = await parseTargetEntity(
-    body,
-    log,
-    path
-  );
+  const body: PbLink = tryGetMember(req.getLinkEntities(), logger, path);
+  const result = await parseAndValidate(body, log, path);
 
-  props['targetEntity'] = targetEntity;
-  props['targetEntityId'] = targetEntityId;
-
-  const childPath = [...path, 'entities'];
-  const { childEntities: childEntities, childIds } = await parseEntitiesToLink(
-    body.getExternalOrganizationUuid(),
-    tryGetMember(body.getEntities(), log, childPath),
-    { entity: targetEntity, targetId: targetEntityId },
-    log,
-    childPath
-  );
-
-  props['entityToLink'] = childEntities;
-  props['entityIdsToLink'] = childIds;
-
-  return [pbEntity, targetEntityId, log.child(props)];
+  return [result.protobufEntity, result.targetEntityId, result.log];
 }
 
-async function parseTargetEntity(
-  body: LinkEntities,
+async function parseAndValidate(
+  body: PbLink,
   log: Logger,
   path: string[]
-): Promise<{
-  pbEntity: PbEntity;
-  targetEntity: Entity;
-  targetEntityId: ExternalUuid;
-}> {
-  let pbEntity: PbEntity;
-  let targetEntity: Entity;
-  let targetEntityId: ExternalUuid;
-  const ctx = Context.getInstance();
-  switch (body.getTargetCase()) {
-    case LinkEntities.TargetCase.ORGANIZATION: {
-      pbEntity = PbEntity.ORGANIZATION;
-      targetEntity = Entity.ORGANIZATION;
-      targetEntityId = tryGetMember(body.getOrganization(), log, [
-        ...path,
-        'organization',
-      ]).getExternalUuid();
-      await ctx.organizationIdIsValid(targetEntityId, log);
-      if (body.getExternalOrganizationUuid() !== targetEntityId)
-        throw new OnboardingError(
-          MachineError.REQUEST,
-          `Found that the Organization ID provided and the entity identifier provided did not match despite the entity being set to 'ORGANIZATION'`,
-          Category.REQUEST,
-          log,
-          path
-        );
-      break;
-    }
-    case LinkEntities.TargetCase.SCHOOL: {
-      pbEntity = PbEntity.SCHOOL;
-      targetEntity = Entity.SCHOOL;
-      targetEntityId = tryGetMember(body.getSchool(), log, [
-        ...path,
-        'school',
-      ]).getExternalUuid();
-      await ctx.schoolIdIsValid(targetEntityId, log);
-      break;
-    }
-    case LinkEntities.TargetCase.CLASS: {
-      pbEntity = PbEntity.CLASS;
-      targetEntity = Entity.CLASS;
-      targetEntityId = tryGetMember(body.getClass(), log, [
-        ...path,
-        'class',
-      ]).getExternalUuid();
-      await ctx.classIdIsValid(targetEntityId, log);
-      break;
-    }
-    case LinkEntities.TargetCase.USER: {
-      pbEntity = PbEntity.USER;
-      targetEntity = Entity.USER;
-      targetEntityId = tryGetMember(body.getUser(), log, [
-        ...path,
-        'user',
-      ]).getExternalUuid();
-      await ctx.userIdIsValid(targetEntityId, log);
-      break;
-    }
-    default:
-      throw BAD_REQUEST(
-        `A request to LinkEntities must include either an 'ORGANIZATION', 'SCHOOL', 'CLASS' or 'USER'`,
-        path,
-        log
-      );
-  }
-  return { pbEntity, targetEntity, targetEntityId };
-}
-
-async function parseEntitiesToLink(
-  orgId: ExternalUuid,
-  body: EntitiesToLink,
-  targets: { entity: Entity; targetId: ExternalUuid },
-  log: Logger,
-  path: string[]
-): Promise<{
-  childEntities: Entity;
-  childIds: ExternalUuid[];
-}> {
-  const { externalEntityIdentifiersList, entity } = body.toObject();
-  const ctx = Context.getInstance();
-  let e: Entity;
-  switch (entity) {
-    case PbEntity.ORGANIZATION: {
-      // @TODO - Create Find Many Queries
-      for (const id of externalEntityIdentifiersList) {
-        await ctx.organizationIdIsValid(id, log);
-      }
-      e = Entity.ORGANIZATION;
-      break;
-    }
-    case PbEntity.SCHOOL: {
-      // @TODO - Create Find Many Queries
-      for (const id of externalEntityIdentifiersList) {
-        await ctx.schoolIdIsValid(id, log);
-      }
-      e = Entity.SCHOOL;
-      break;
-    }
-    case PbEntity.CLASS: {
-      // @TODO - Create Find Many Queries
-      for (const id of externalEntityIdentifiersList) {
-        await ctx.classIdIsValid(id, log);
-      }
-      e = Entity.CLASS;
-      break;
-    }
-    case PbEntity.USER: {
-      // @TODO - Create Find Many Queries
-      for (const id of externalEntityIdentifiersList) {
-        await ctx.userIdIsValid(id, log);
-      }
-      e = Entity.USER;
-      break;
-    }
-    case PbEntity.PROGRAM: {
-      await ctx.programsAreValid(
-        externalEntityIdentifiersList,
-        orgId,
-        log,
-        targets.entity === Entity.SCHOOL ? targets.targetId : undefined
-      );
-      e = Entity.PROGRAM;
-      break;
-    }
-    case PbEntity.ROLE: {
-      await ctx.rolesAreValid(externalEntityIdentifiersList, orgId, log);
-      e = Entity.ROLE;
-      break;
-    }
-    default:
-      throw BAD_REQUEST(
-        `'ENTITY' must be set when trying to link entities`,
-        path,
-        log
-      );
-  }
-  return {
-    childEntities: e,
-    childIds: externalEntityIdentifiersList,
+): Promise<LinkEntityMetadata<void>> {
+  const tasks: LinkEntityTask<void, undefined> = {
+    addUsersToOrganization: validateAddUsersToOrganization,
+    addOrganizationRolesToUser: validateAddOrganizationRolesToUser,
+    addUsersToSchool: validateAddUsersToSchool,
+    addClassesToSchool: validateAddClassesToSchool,
+    addProgramsToSchool: validateAddProgramsToSchool,
+    addProgramsToClass: validateAddProgramsToClass,
+    addUsersToClass: validateAddUsersToClass,
   };
+  return await linkEntitySwitcher(body, tasks, log, path);
+}
+
+async function validateAddUsersToOrganization(
+  link: AddUsersToOrganization,
+  log: Logger
+): Promise<void> {
+  const orgId = link.getExternalOrganizationUuid();
+  const ctx = Context.getInstance();
+  // Check the target organization is valid
+  await ctx.organizationIdIsValid(orgId, log);
+
+  // Check the target users are valid
+  await ctx.userIdsAreValid(link.getExternalUserUuidsList(), log);
+
+  // Check the roles are valid
+  await ctx.rolesAreValid(link.getRoleIdentifiersList(), orgId, log);
+}
+
+async function validateAddOrganizationRolesToUser(
+  link: AddOrganizationRolesToUser,
+  log: Logger
+): Promise<void> {
+  const userId = link.getExternalUserUuid();
+  const orgId = link.getExternalOrganizationUuid();
+  // Check that the user already exists in that organization
+  await Link.userBelongsToOrganization(userId, orgId, log);
+
+  const ctx = Context.getInstance();
+  // Check that the roles are valid for that organization
+  await ctx.rolesAreValid(link.getRoleIdentifiersList(), orgId, log);
+}
+
+async function validateAddUsersToSchool(
+  link: AddUsersToSchool,
+  log: Logger
+): Promise<void> {
+  const schoolId = link.getExternalSchoolUuid();
+
+  const ctx = Context.getInstance();
+  const userIds = link.getExternalUserUuidsList();
+  // check the target users are valid
+  await ctx.userIdsAreValid(userIds, log);
+
+  // Checking that the school ID is valid is covered by this
+  await Link.shareTheSameOrganization(log, [schoolId], undefined, userIds);
+}
+
+async function validateAddClassesToSchool(
+  link: AddClassesToSchool,
+  log: Logger
+): Promise<void> {
+  const schoolId = link.getExternalSchoolUuid();
+  const classIds = link.getExternalClassUuidsList();
+
+  // Checking that both sets of ids are valid are covered by this
+  await Link.shareTheSameOrganization(log, [schoolId], classIds);
+}
+
+async function validateAddProgramsToSchool(
+  link: AddProgramsToSchool,
+  log: Logger
+): Promise<void> {
+  const schoolId = link.getExternalSchoolUuid();
+  const orgId = link.getExternalOrganizationUuid();
+  await Link.schoolBelongsToOrganization(schoolId, orgId, log);
+
+  const ctx = Context.getInstance();
+  await ctx.programsAreValid(link.getProgramNamesList(), orgId, log);
+}
+
+async function validateAddProgramsToClass(
+  link: AddProgramsToClass,
+  log: Logger
+): Promise<void> {
+  const classId = link.getExternalClassUuid();
+  const programs = link.getProgramNamesList();
+  const schoolId = (await Class.findOne(classId, log)).externalSchoolUuid;
+  const schoolPrograms = await School.getProgramsForSchool(schoolId, log);
+  const validPrograms = new Set(schoolPrograms.map((p) => p.name));
+  const invalidPrograms = [];
+  for (const program of programs) {
+    if (validPrograms.has(program)) continue;
+    invalidPrograms.push(program);
+  }
+  if (invalidPrograms.length > 0)
+    throw new OnboardingError(
+      MachineError.VALIDATION,
+      `Programs: ${invalidPrograms.join(
+        ', '
+      )} do not belong to the parent school ${schoolId}. Any programs associated with a class must be present in their parent school`,
+      Category.REQUEST,
+      log
+    );
+}
+
+async function validateAddUsersToClass(
+  link: AddUsersToClass,
+  log: Logger
+): Promise<void> {
+  const classId = link.getExternalClassUuid();
+  const students = link.getExternalStudentUuidList();
+  const teachers = link.getExternalTeacherUuidList();
+  const schoolId = (await Class.findOne(classId, log)).externalSchoolUuid;
+  const { invalid } = await Link.usersBelongToSchool(
+    [...students, ...teachers],
+    schoolId,
+    log
+  );
+  if (invalid.length === 0) return;
+  throw new OnboardingError(
+    MachineError.VALIDATION,
+    `Users: ${invalid.join(
+      ', '
+    )} do not belong to the same parent school as the class ${classId}. When attempting to add users to a class they must share the same parent school`,
+    Category.REQUEST,
+    log
+  );
 }

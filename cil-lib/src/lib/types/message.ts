@@ -26,7 +26,10 @@ export class Message {
         Category.PROTOBUF,
         log
       );
-    const { entity, identifier, action } = parseOnboardingRequestForMetadata(r);
+    const { entity, identifier, action } = parseOnboardingRequestForMetadata(
+      r,
+      log
+    );
     this.action = action;
     this.entity = entity;
     this.identifier = identifier;

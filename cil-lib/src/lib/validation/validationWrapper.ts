@@ -1,8 +1,7 @@
 import { Logger } from 'pino';
 
-import { Props } from '../errors';
-import { Action, Entity, OnboardingRequest } from '../protos/api_pb';
-import { actionToString } from '../types/action';
+import { BAD_REQUEST, BASE_PATH } from '../errors';
+import { Entity, OnboardingRequest } from '../protos/api_pb';
 import { ExternalUuid } from '../utils';
 import { RequestIdTracker } from '../utils/requestId';
 
@@ -22,24 +21,31 @@ export class ValidationWrapper {
     log: Logger
   ): Promise<ValidationWrapper> {
     let logger = log.child({ currentOperation: 'VALIDATION' });
-    const action = data.getAction();
     const requestId = data.getRequestId();
     const tracker = RequestIdTracker.getInstance();
     tracker.addId(requestId, logger);
-    const props: Props = {
-      action: actionToString(action),
-    };
-    logger.info(
-      `Attempting to validate ${props.action} ${data.getPayloadCase()}`,
-      {
-        requestId,
-      }
-    );
+    logger.info(`Attempting to validate ${data.getPayloadCase()}`, {
+      requestId,
+    });
+
+    const props = {};
 
     let entity: Entity;
     let entityId: ExternalUuid;
-    switch (action) {
-      case Action.CREATE: {
+    switch (data.getPayloadCase()) {
+      case OnboardingRequest.PayloadCase.LINK_ENTITIES: {
+        [entity, entityId, logger] = await parseLinkEntities(
+          data,
+          logger,
+          props
+        );
+        break;
+      }
+
+      case OnboardingRequest.PayloadCase.ORGANIZATION:
+      case OnboardingRequest.PayloadCase.SCHOOL:
+      case OnboardingRequest.PayloadCase.CLASS:
+      case OnboardingRequest.PayloadCase.USER: {
         [entity, entityId, logger] = await parseCreateEntity(
           data,
           logger,
@@ -47,13 +53,13 @@ export class ValidationWrapper {
         );
         break;
       }
-      case Action.LINK: {
-        [entity, entityId, logger] = await parseLinkEntities(
-          data,
-          logger,
+      default: {
+        throw BAD_REQUEST(
+          'Expected to find a valid payload type within the request',
+          [...BASE_PATH, 'payload'],
+          log,
           props
         );
-        break;
       }
     }
     const childLogger = logger.child(props);

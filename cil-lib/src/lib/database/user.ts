@@ -79,6 +79,45 @@ export class User {
     }
   }
 
+  /**
+   * Looks up all the users to check whether or not they exist in the database
+   *
+   * NOTE: This does NOT error if any of the user ids are invalid
+   * @throws if the postgres query fails somehow
+   */
+  public static async areValid(
+    ids: ExternalUuid[],
+    log: Logger
+  ): Promise<{
+    valid: { klUuid: Uuid; externalUuid: ExternalUuid }[];
+    invalid: ExternalUuid[];
+  }> {
+    try {
+      const users = await prisma.user.findMany({
+        where: {
+          externalUuid: {
+            in: ids,
+          },
+        },
+        select: {
+          externalUuid: true,
+          klUuid: true,
+        },
+      });
+      const invalidSet = new Set(ids);
+      for (const { externalUuid } of users) {
+        invalidSet.delete(externalUuid);
+      }
+      return {
+        valid: users,
+        invalid: Array.from(invalidSet),
+      };
+    } catch (error) {
+      const msg = returnMessageOrThrowOnboardingError(error);
+      throw new OnboardingError(MachineError.READ, msg, Category.POSTGRES, log);
+    }
+  }
+
   public static async getId(id: ExternalUuid, log: Logger): Promise<Uuid> {
     try {
       const klUuid = await prisma.user.findUnique({

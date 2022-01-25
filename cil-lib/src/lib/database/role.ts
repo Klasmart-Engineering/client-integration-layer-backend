@@ -7,6 +7,7 @@ import {
   MachineError,
   OnboardingError,
   POSTGRES_GET_KIDSLOOP_ID_QUERY,
+  returnMessageOrThrowOnboardingError,
 } from '../errors';
 import { IdNameMapper } from '../services/adminService';
 import { Entity } from '../types';
@@ -118,17 +119,13 @@ export class Role {
     }
   }
 
-  public static async getIdsByNames(
-    names: string[],
+  public static async getIdsForOrganization(
     orgId: ExternalUuid,
     log: Logger
   ): Promise<{ id: Uuid; name: string }[]> {
     try {
       const klUuids = await prisma.role.findMany({
         where: {
-          name: {
-            in: names,
-          },
           organization: {
             externalUuid: orgId,
           },
@@ -140,37 +137,21 @@ export class Role {
       });
       if (!klUuids)
         throw POSTGRES_GET_KIDSLOOP_ID_QUERY(
-          names,
+          orgId,
           this.entity,
-          `${this.entity}: ${names.join(
-            ', '
-          )} not found for organization ${orgId}`,
+          `${this.entity} not found for organization ${orgId}`,
           log
         );
-      const targets = new Set(names);
-      for (const { klUuid } of klUuids) {
-        targets.delete(klUuid);
-      }
-      if (targets.size === 0)
-        return klUuids.map((id) => ({ id: id.klUuid, name: id.name }));
-      throw POSTGRES_GET_KIDSLOOP_ID_QUERY(
-        names,
-        this.entity,
-        `${this.entity}: ${names.join(
-          ', '
-        )} not found for organization ${orgId}`,
-        log
-      );
+      return klUuids.map((id) => ({ id: id.klUuid, name: id.name }));
     } catch (error) {
-      if (error instanceof OnboardingError) throw error;
-      const msg = error instanceof Error ? error.message : `${error}`;
+      const msg = returnMessageOrThrowOnboardingError(error);
       throw new OnboardingError(
         MachineError.WRITE,
         msg,
         Category.POSTGRES,
         log,
         [],
-        { operation: 'FIND MANY' }
+        { operation: 'find roles for organization' }
       );
     }
   }

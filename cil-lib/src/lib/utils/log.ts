@@ -8,7 +8,7 @@ export const log = pino({
   name: process.env.SERVICE_LABEL || 'cil',
   enabled: process.env.LOG_ENABLED === 'false' ? false : true,
   formatters: {
-    level: (label) => ({
+    level: (label: string) => ({
       level: label,
     }),
   },
