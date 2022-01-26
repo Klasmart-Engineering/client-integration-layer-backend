@@ -45,7 +45,7 @@
     "node": ">=10"
   },
   "dependencies": {
-    "@grpc/grpc-js": "1.2.2",
+    "@grpc/grpc-js": "^1.2.2",
     "cil-lib": "file:../cil-lib",
     "dotenv": "^11.0.0",
     "newrelic": "8.4.0",
