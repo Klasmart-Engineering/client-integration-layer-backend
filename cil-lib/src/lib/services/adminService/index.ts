@@ -91,25 +91,34 @@ export class AdminService {
        */
       if (graphQLErrors)
         graphQLErrors.forEach(({ message, path }) =>
-          baseLogger.error(`GraphQL query failed`, {
-            error: message,
-            api: 'admin',
-            path,
-          })
+          baseLogger.error(
+            {
+              error: message,
+              api: 'admin',
+              path,
+            },
+            `GraphQL query failed`
+          )
         );
 
       // 4xx/5xx errors
       if (networkError)
-        baseLogger.error(`Network error while attempting a GraphQL call`, {
-          error: networkError,
-          api: 'admin',
-        });
+        baseLogger.error(
+          {
+            error: networkError,
+            api: 'admin',
+          },
+          `Network error while attempting a GraphQL call`
+        );
 
       if (response)
-        baseLogger.error(`Received response but found an error`, {
-          error: response,
-          api: 'admin',
-        });
+        baseLogger.error(
+          {
+            error: response,
+            api: 'admin',
+          },
+          `Received response but found an error`
+        );
     });
 
     try {

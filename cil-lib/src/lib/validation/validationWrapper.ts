@@ -1,6 +1,6 @@
 import { Logger } from 'pino';
 
-import { BAD_REQUEST, BASE_PATH } from '../errors';
+import { BAD_REQUEST, BASE_PATH, } from '../errors';
 import { Entity, OnboardingRequest } from '../protos/api_pb';
 import { ExternalUuid } from '../utils';
 import { RequestIdTracker } from '../utils/requestId';

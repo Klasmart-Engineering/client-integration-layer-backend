@@ -6,6 +6,7 @@ import {
   EntityAlreadyExistsError,
   EntityDoesNotExistError,
   InternalServerError,
+  InvalidRequestError,
   PathBasedError,
   Error as PbError,
   ValidationError,
@@ -147,6 +148,15 @@ export class OnboardingError {
   public toProtobufError(): PbError {
     const e = new PbError();
     switch (this.error) {
+      case MachineError.REQUEST: {
+        const error = new InvalidRequestError();
+        const pathBased = new PathBasedError();
+        pathBased.setPath(this.path.join(', '));
+        pathBased.setDetailsList(this.details);
+        error.setErrorsList([pathBased]);
+        e.setValidation(error);
+        break;
+      }
       case MachineError.VALIDATION: {
         const error = new ValidationError();
         const pathBased = new PathBasedError();
