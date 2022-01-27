@@ -346,3 +346,14 @@ export const returnMessageOrThrowOnboardingError = (e: unknown): string => {
   if (e instanceof OnboardingError || e instanceof Errors) throw e;
   return e instanceof Error ? e.message : `${e}`;
 };
+
+export function convertErrorToProtobuf(error: unknown, log: Logger): PbError {
+  if (error instanceof Errors || error instanceof OnboardingError) {
+    return error.toProtobufError();
+  }
+  log.warn(
+    { error },
+    `Found an error that wasn't correctly converted to a response - if you're seeing this the code needs an update`
+  );
+  throw new Error('Broken Application Error');
+}

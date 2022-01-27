@@ -238,17 +238,13 @@ export class RequestBatch {
     }
   }
 
-  /**
-   * @returns {[Operation, T[]]} - An array with length 2, the first index is
-   * the operation currently being processed, the second index contains the data
-   * for that operation
-   */
-  public getNextOperation() {
-    if (this.index >= OPERATION_ORDERING.length) return [null, null];
+  public getNextOperation(): Operation | null {
+    if (this.index >= OPERATION_ORDERING.length) return null;
     const op = OPERATION_ORDERING[this.index];
-    const data = this.getOperation(op);
     this.index += 1;
-    return [op, data];
+    const data = this.getOperation(op);
+    if (data.length === 0) return this.getNextOperation();
+    return op;
   }
 }
 
