@@ -1,3 +1,4 @@
+import { Message } from 'google-protobuf';
 import { Logger } from 'pino';
 
 import {
@@ -27,10 +28,10 @@ import { Operation, OPERATION_ORDERING } from '../types/operation';
 
 import { Uuid } from '.';
 
-export type IdTracked<T> = {
+export interface IdTracked<T extends Message> {
   requestId: Uuid;
   inner: T;
-};
+}
 
 export class RequestBatch {
   private index = 0;

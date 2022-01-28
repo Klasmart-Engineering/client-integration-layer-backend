@@ -1,3 +1,4 @@
+import { Message } from 'google-protobuf';
 import { Logger } from 'pino';
 
 import {
@@ -16,7 +17,7 @@ import {
 import { Category, MachineError, OnboardingError } from '../../errors';
 import { BatchOnboarding, Response, Responses } from '../../protos/api_pb';
 import { Operation } from '../../types';
-import { RequestBatch } from '../../utils/parseBatchRequests';
+import { IdTracked, RequestBatch } from '../../utils/parseBatchRequests';
 
 export async function processOnboardingRequest(
   o: BatchOnboarding,
@@ -112,7 +113,11 @@ export type Result<T> = {
 
 // @TODO - Can we keep track of fails for a parent entity and stop
 // processing children in advance?
-export async function compose<T, U>(
+export async function compose<
+  T extends IdTracked<V>,
+  V extends Message,
+  U extends ReturnType<V['toObject']>
+>(
   validate: (data: T[], log: Logger) => Promise<[Result<T>, Logger]>,
   sendRequest: (data: T[], log: Logger) => Promise<[Result<U>, Logger]>,
   store: (data: U[], log: Logger) => Promise<Response[]>,

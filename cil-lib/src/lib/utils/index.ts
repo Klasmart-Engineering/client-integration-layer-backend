@@ -1,6 +1,6 @@
 export { log } from './log';
 export { Context } from './context';
-export * from './validationRules';
+export { VALIDATION_RULES, JOI_VALIDATION_SETTINGS } from './validationRules';
 
 export type ExternalUuid = string;
 export type Uuid = string;

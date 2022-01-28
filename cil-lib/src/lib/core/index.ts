@@ -9,3 +9,5 @@ export { process as processAddProgramsToSchools } from './addProgramsToSchool';
 export { process as processAddUsersToClasses } from './addUsersToClass';
 export { process as processAddUsersToOrganizations } from './addUsersToOrganization';
 export { process as processAddClassesToSchools } from './addClassesToSchool';
+
+export { processOnboardingRequest } from './process';

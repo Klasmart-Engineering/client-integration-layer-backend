@@ -171,5 +171,5 @@ message PathBasedError {
 
 service Onboarding {
   rpc Onboard(BatchOnboarding) returns (Responses) {};
-  rpc OnboardStream(stream BatchOnboarding) returns (stream Response) {};
+  rpc OnboardStream(stream BatchOnboarding) returns (stream Responses) {};
 }
