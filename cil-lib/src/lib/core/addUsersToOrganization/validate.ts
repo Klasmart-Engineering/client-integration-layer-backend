@@ -11,6 +11,7 @@ export async function validateMany(
   data: IncomingData[],
   log: Logger
 ): Promise<[Result<IncomingData>, Logger]> {
+richard.sommerville@kidsloop.live
   const valid = [];
   const invalid = [];
   for (const d of data) {

@@ -28,16 +28,25 @@ import { Operation, OPERATION_ORDERING } from '../types/operation';
 
 import { Uuid } from '.';
 
-export interface IdTracked<T extends Message> {
+export interface IdTracked<
+  T extends Message,
+  U extends ReturnType<T['toObject']>
+> {
   requestId: Uuid;
-  inner: T;
+  inner: T | U;
 }
 
 export class RequestBatch {
   private index = 0;
 
   private constructor(
-    private readonly requests: Map<Operation, IdTracked<OnboardingOperation>[]>
+    private readonly requests: Map<
+      Operation,
+      IdTracked<
+        OnboardingOperation,
+        ReturnType<OnboardingOperation['toObject']>
+      >[]
+    >
   ) {}
 
   public static fromBatch(reqs: BatchOnboarding, log: Logger): RequestBatch {
@@ -140,69 +149,82 @@ export class RequestBatch {
     return new RequestBatch(map);
   }
 
-  get createOrganizations(): IdTracked<Organization>[] {
+  get createOrganizations(): IdTracked<
+    Organization,
+    ReturnType<Organization['toObject']>
+  >[] {
     const entity = this.requests.get(Operation.CREATE_ORGANIZATION);
-    if (entity) return entity as IdTracked<Organization>[];
+    if (entity)
+      return entity as IdTracked<
+        Organization,
+        ReturnType<Organization['toObject']>
+      >[];
     return [];
   }
 
-  get createSchools(): IdTracked<School>[] {
+  get createSchools(): IdTracked<School, ReturnType<School['toObject']>>[] {
     const entity = this.requests.get(Operation.CREATE_SCHOOL);
-    if (entity) return entity as IdTracked<School>[];
+    if (entity)
+      return entity as IdTracked<School, ReturnType<School['toObject']>>[];
     return [];
   }
 
-  get createClasses(): IdTracked<Class>[] {
+  get createClasses(): IdTracked<Class, ReturnType<Class['toObject']>>[] {
     const entity = this.requests.get(Operation.CREATE_CLASS);
-    if (entity) return entity as IdTracked<Class>[];
+    if (entity)
+      return entity as IdTracked<Class, ReturnType<Class['toObject']>>[];
     return [];
   }
 
-  get createUsers(): IdTracked<User>[] {
+  get createUsers(): IdTracked<User, ReturnType<User['toObject']>>[] {
     const entity = this.requests.get(Operation.CREATE_USER);
-    if (entity) return entity as IdTracked<User>[];
+    if (entity)
+      return entity as IdTracked<User, ReturnType<User['toObject']>>[];
     return [];
   }
 
-  get addUsersToOrganization(): IdTracked<AddUsersToOrganization>[] {
+  get addUsersToOrganization(): IdTracked<
+    AddUsersToOrganization,
+    ReturnType<AddUsersToOrganization['toObject']>
+  >[] {
     const entity = this.requests.get(Operation.ADD_USERS_TO_ORGANIZATION);
-    if (entity) return entity as IdTracked<AddUsersToOrganization>[];
+    if (entity) return entity as IdTracked<>[];
     return [];
   }
 
   get addOrganizationRolesToUser(): IdTracked<AddOrganizationRolesToUser>[] {
     const entity = this.requests.get(Operation.ADD_ORGANIZATION_ROLES_TO_USER);
-    if (entity) return entity as IdTracked<AddOrganizationRolesToUser>[];
+    if (entity) return entity as IdTracked<>[];
     return [];
   }
 
   get addUsersToSchool(): IdTracked<AddUsersToSchool>[] {
     const entity = this.requests.get(Operation.ADD_USERS_TO_SCHOOL);
-    if (entity) return entity as IdTracked<AddUsersToSchool>[];
+    if (entity) return entity as IdTracked<>[];
     return [];
   }
 
   get addUsersToClass(): IdTracked<AddUsersToClass>[] {
     const entity = this.requests.get(Operation.ADD_USERS_TO_CLASS);
-    if (entity) return entity as IdTracked<AddUsersToClass>[];
+    if (entity) return entity as IdTracked<>[];
     return [];
   }
 
   get addProgramsToSchool(): IdTracked<AddProgramsToSchool>[] {
     const entity = this.requests.get(Operation.ADD_PROGRAMS_TO_SCHOOL);
-    if (entity) return entity as IdTracked<AddProgramsToSchool>[];
+    if (entity) return entity as IdTracked<>[];
     return [];
   }
 
   get addProgramsToClass(): IdTracked<AddProgramsToClass>[] {
     const entity = this.requests.get(Operation.ADD_PROGRAMS_TO_CLASS);
-    if (entity) return entity as IdTracked<AddProgramsToClass>[];
+    if (entity) return entity as IdTracked<>[];
     return [];
   }
 
   get addClassesToSchool(): IdTracked<AddClassesToSchool>[] {
     const entity = this.requests.get(Operation.ADD_CLASSES_TO_SCHOOL);
-    if (entity) return entity as IdTracked<AddClassesToSchool>[];
+    if (entity) return entity as IdTracked<>[];
     return [];
   }
 
@@ -249,7 +271,7 @@ export class RequestBatch {
   }
 }
 
-type OnboardingOperation =
+export type OnboardingOperation =
   | Organization
   | School
   | Class

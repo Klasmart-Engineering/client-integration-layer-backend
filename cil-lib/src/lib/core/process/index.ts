@@ -114,7 +114,7 @@ export type Result<T> = {
 // @TODO - Can we keep track of fails for a parent entity and stop
 // processing children in advance?
 export async function compose<
-  T extends IdTracked<V>,
+  T extends IdTracked<V, U>,
   V extends Message,
   U extends ReturnType<V['toObject']>
 >(
