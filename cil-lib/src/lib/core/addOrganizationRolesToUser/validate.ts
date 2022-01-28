@@ -22,7 +22,7 @@ export async function validateMany(
         .setSuccess(false)
         .setRequestId(d.requestId)
         .setEntity(PbEntity.USER)
-        .setEntityId(d.inner.getExternalUserUuid())
+        .setEntityId(d.protobuf.getExternalUserUuid())
         .setErrors(e);
       invalid.push(resp);
     }
@@ -31,16 +31,16 @@ export async function validateMany(
 }
 
 async function validate(r: IncomingData, log: Logger): Promise<IncomingData> {
-  const { inner } = r;
+  const { protobuf } = r;
 
-  const userId = inner.getExternalUserUuid();
-  const orgId = inner.getExternalOrganizationUuid();
+  const userId = protobuf.getExternalUserUuid();
+  const orgId = protobuf.getExternalOrganizationUuid();
   // Check that the user already exists in that organization
   await Link.userBelongsToOrganization(userId, orgId, log);
 
   const ctx = Context.getInstance();
   // Check that the roles are valid for that organization
-  await ctx.rolesAreValid(inner.getRoleIdentifiersList(), orgId, log);
+  await ctx.rolesAreValid(protobuf.getRoleIdentifiersList(), orgId, log);
 
   return r;
 }

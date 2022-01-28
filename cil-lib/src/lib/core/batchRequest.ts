@@ -25,32 +25,37 @@ import {
   User,
 } from '../protos';
 import { Operation, OPERATION_ORDERING } from '../types/operation';
+import { Uuid } from '../utils';
 
-import { Uuid } from '.';
+import {
+  IAddClassesToSchool,
+  IAddOrganizationRolesToUsers,
+  IAddProgramsToClasses,
+  IAddProgramsToSchools,
+  IAddUsersToClasses,
+  IAddUsersToOrganizations,
+  IAddUsersToSchools,
+  ICreateClass,
+  ICreateOrganization,
+  ICreateSchool,
+  ICreateUser,
+} from '.';
 
-export interface IdTracked<
-  T extends Message,
-  U extends ReturnType<T['toObject']>
-> {
+export interface IdTracked<T extends Message, U> {
   requestId: Uuid;
-  inner: T | U;
+  protobuf: T;
+  data: Partial<ReturnType<T['toObject']> & U>;
 }
 
 export class RequestBatch {
   private index = 0;
 
   private constructor(
-    private readonly requests: Map<
-      Operation,
-      IdTracked<
-        OnboardingOperation,
-        ReturnType<OnboardingOperation['toObject']>
-      >[]
-    >
+    private readonly requests: Map<Operation, OnboardingData[]>
   ) {}
 
   public static fromBatch(reqs: BatchOnboarding, log: Logger): RequestBatch {
-    const map = new Map();
+    const map = new Map<Operation, OnboardingData[]>();
     for (const req of reqs.getRequestsList()) {
       let key = Operation.UNKNOWN;
       let request: OnboardingOperation | undefined = undefined;
@@ -121,7 +126,7 @@ export class RequestBatch {
             }
             default:
               throw BAD_REQUEST(
-                `Expected to find valid 'Link' request however the inner payload
+                `Expected to find valid 'Link' request however the protobuf payload
               was not found`,
                 [...BASE_PATH, 'linkEntities'],
                 log
@@ -143,88 +148,79 @@ export class RequestBatch {
           log
         );
       const arr = map.get(key) || [];
-      arr.push({ requestId: req.getRequestId(), inner: request });
+      arr.push({
+        requestId: req.getRequestId(),
+        protobuf: request,
+        data: request.toObject(),
+      } as OnboardingData);
       map.set(key, arr);
     }
     return new RequestBatch(map);
   }
 
-  get createOrganizations(): IdTracked<
-    Organization,
-    ReturnType<Organization['toObject']>
-  >[] {
+  get createOrganizations() {
     const entity = this.requests.get(Operation.CREATE_ORGANIZATION);
-    if (entity)
-      return entity as IdTracked<
-        Organization,
-        ReturnType<Organization['toObject']>
-      >[];
+    if (entity) return entity as ICreateOrganization[];
     return [];
   }
 
-  get createSchools(): IdTracked<School, ReturnType<School['toObject']>>[] {
+  get createSchools() {
     const entity = this.requests.get(Operation.CREATE_SCHOOL);
-    if (entity)
-      return entity as IdTracked<School, ReturnType<School['toObject']>>[];
+    if (entity) return entity as ICreateSchool[];
     return [];
   }
 
-  get createClasses(): IdTracked<Class, ReturnType<Class['toObject']>>[] {
+  get createClasses() {
     const entity = this.requests.get(Operation.CREATE_CLASS);
-    if (entity)
-      return entity as IdTracked<Class, ReturnType<Class['toObject']>>[];
+    if (entity) return entity as ICreateClass[];
     return [];
   }
 
-  get createUsers(): IdTracked<User, ReturnType<User['toObject']>>[] {
+  get createUsers() {
     const entity = this.requests.get(Operation.CREATE_USER);
-    if (entity)
-      return entity as IdTracked<User, ReturnType<User['toObject']>>[];
+    if (entity) return entity as ICreateUser[];
     return [];
   }
 
-  get addUsersToOrganization(): IdTracked<
-    AddUsersToOrganization,
-    ReturnType<AddUsersToOrganization['toObject']>
-  >[] {
+  get addUsersToOrganization() {
     const entity = this.requests.get(Operation.ADD_USERS_TO_ORGANIZATION);
-    if (entity) return entity as IdTracked<>[];
+    if (entity) return entity as IAddUsersToOrganizations[];
     return [];
   }
 
-  get addOrganizationRolesToUser(): IdTracked<AddOrganizationRolesToUser>[] {
+  get addOrganizationRolesToUser() {
     const entity = this.requests.get(Operation.ADD_ORGANIZATION_ROLES_TO_USER);
-    if (entity) return entity as IdTracked<>[];
+    if (entity) return entity as IAddOrganizationRolesToUsers[];
     return [];
   }
 
-  get addUsersToSchool(): IdTracked<AddUsersToSchool>[] {
+  get addUsersToSchool() {
     const entity = this.requests.get(Operation.ADD_USERS_TO_SCHOOL);
-    if (entity) return entity as IdTracked<>[];
+    if (entity) return entity as IAddUsersToSchools[];
     return [];
   }
 
-  get addUsersToClass(): IdTracked<AddUsersToClass>[] {
+  get addUsersToClass() {
     const entity = this.requests.get(Operation.ADD_USERS_TO_CLASS);
-    if (entity) return entity as IdTracked<>[];
+    if (entity) return entity as IAddUsersToClasses[];
     return [];
   }
 
-  get addProgramsToSchool(): IdTracked<AddProgramsToSchool>[] {
+  get addProgramsToSchool() {
     const entity = this.requests.get(Operation.ADD_PROGRAMS_TO_SCHOOL);
-    if (entity) return entity as IdTracked<>[];
+    if (entity) return entity as IAddProgramsToSchools[];
     return [];
   }
 
-  get addProgramsToClass(): IdTracked<AddProgramsToClass>[] {
+  get addProgramsToClass() {
     const entity = this.requests.get(Operation.ADD_PROGRAMS_TO_CLASS);
-    if (entity) return entity as IdTracked<>[];
+    if (entity) return entity as IAddProgramsToClasses[];
     return [];
   }
 
-  get addClassesToSchool(): IdTracked<AddClassesToSchool>[] {
+  get addClassesToSchool() {
     const entity = this.requests.get(Operation.ADD_CLASSES_TO_SCHOOL);
-    if (entity) return entity as IdTracked<>[];
+    if (entity) return entity as IAddClassesToSchool[];
     return [];
   }
 
@@ -283,3 +279,16 @@ export type OnboardingOperation =
   | AddProgramsToSchool
   | AddProgramsToClass
   | AddClassesToSchool;
+
+export type OnboardingData =
+  | ICreateOrganization
+  | ICreateSchool
+  | ICreateClass
+  | ICreateUser
+  | IAddUsersToOrganizations
+  | IAddOrganizationRolesToUsers
+  | IAddUsersToSchools
+  | IAddUsersToClasses
+  | IAddProgramsToSchools
+  | IAddProgramsToClasses
+  | IAddClassesToSchool;

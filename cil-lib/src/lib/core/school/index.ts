@@ -1,1 +1,4 @@
-export { process as processCreateSchools } from './create';
+export {
+  process as processCreateSchools,
+  IncomingData as ICreateSchool,
+} from './create';

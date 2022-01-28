@@ -27,7 +27,7 @@ export async function validateMany(
         .setSuccess(false)
         .setRequestId(d.requestId)
         .setEntity(PbEntity.CLASS)
-        .setEntityId(d.inner.getExternalClassUuid())
+        .setEntityId(d.protobuf.getExternalClassUuid())
         .setErrors(e);
       invalid.push(resp);
     }
@@ -36,10 +36,10 @@ export async function validateMany(
 }
 
 async function validate(r: IncomingData, log: Logger): Promise<IncomingData> {
-  const { inner } = r;
+  const { protobuf } = r;
 
-  const classId = inner.getExternalClassUuid();
-  const programs = inner.getProgramNamesList();
+  const classId = protobuf.getExternalClassUuid();
+  const programs = protobuf.getProgramNamesList();
   const schoolId = (await Class.findOne(classId, log)).externalSchoolUuid;
   const schoolPrograms = await School.getProgramsForSchool(schoolId, log);
   const validPrograms = new Set(schoolPrograms.map((p) => p.name));

@@ -22,7 +22,7 @@ export async function validateMany(
         .setSuccess(false)
         .setRequestId(d.requestId)
         .setEntity(PbEntity.SCHOOL)
-        .setEntityId(d.inner.getExternalSchoolUuid())
+        .setEntityId(d.protobuf.getExternalSchoolUuid())
         .setErrors(e);
       invalid.push(resp);
     }
@@ -31,12 +31,12 @@ export async function validateMany(
 }
 
 async function validate(r: IncomingData, log: Logger): Promise<IncomingData> {
-  const { inner } = r;
-  const schoolId = inner.getExternalSchoolUuid();
-  const orgId = inner.getExternalOrganizationUuid();
+  const { protobuf } = r;
+  const schoolId = protobuf.getExternalSchoolUuid();
+  const orgId = protobuf.getExternalOrganizationUuid();
   await Link.schoolBelongsToOrganization(schoolId, orgId, log);
 
   const ctx = Context.getInstance();
-  await ctx.programsAreValid(inner.getProgramNamesList(), orgId, log);
+  await ctx.programsAreValid(protobuf.getProgramNamesList(), orgId, log);
   return r;
 }

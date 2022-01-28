@@ -1,1 +1,4 @@
-export { process as processCreateUsers } from './create';
+export {
+  process as processCreateUsers,
+  IncomingData as ICreateUser,
+} from './create';

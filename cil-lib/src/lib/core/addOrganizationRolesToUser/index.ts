@@ -2,12 +2,27 @@ import { Logger } from 'pino';
 
 import { AddOrganizationRolesToUser, Response } from '../../protos';
 import { Operation } from '../../types';
-import { IdTracked } from '../../utils/parseBatchRequests';
-import { compose, DUMMY_SEND_REQUEST, DUMMY_STORE } from '../process';
+import { Uuid } from '../../utils';
+import { IdTracked } from '../batchRequest';
+import {
+  compose,
+  DUMMY_PREPARE,
+  DUMMY_SEND_REQUEST,
+  DUMMY_STORE,
+} from '../process';
 
 import { validateMany } from './validate';
 
-export type IncomingData = IdTracked<AddOrganizationRolesToUser>;
+export interface PAddOrganizationRolesToUser {
+  kidsloopOrganizationUuid: Uuid;
+  kidsloopUserIds: Uuid;
+  roleIds: { id: Uuid; name: string }[];
+}
+
+export type IncomingData = IdTracked<
+  AddOrganizationRolesToUser,
+  PAddOrganizationRolesToUser
+>;
 
 export function process(
   data: IncomingData[],
@@ -15,6 +30,7 @@ export function process(
 ): Promise<Response[]> {
   return compose(
     validateMany,
+    DUMMY_PREPARE,
     DUMMY_SEND_REQUEST,
     DUMMY_STORE,
     data,

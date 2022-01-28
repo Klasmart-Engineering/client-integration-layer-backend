@@ -35,7 +35,7 @@ export async function validateMany(
         .setSuccess(false)
         .setRequestId(d.requestId)
         .setEntity(PbEntity.USER)
-        .setEntityId(d.inner.getExternalUuid())
+        .setEntityId(d.protobuf.getExternalUuid())
         .setErrors(e);
       invalid.push(resp);
     }
@@ -44,8 +44,8 @@ export async function validateMany(
 }
 
 async function validate(r: IncomingData, log: Logger): Promise<IncomingData> {
-  const { inner } = r;
-  const entity = inner.toObject();
+  const { protobuf } = r;
+  const entity = protobuf.toObject();
   const newLogger = log.child({
     entityId: entity.externalUuid,
     entity: Entity.USER,

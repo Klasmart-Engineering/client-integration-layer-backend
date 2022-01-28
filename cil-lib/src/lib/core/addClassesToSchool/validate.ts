@@ -18,7 +18,7 @@ export async function validateMany(
       valid.push(await validate(d, log));
     } catch (error) {
       const e = convertErrorToProtobuf(error, log);
-      for (const classId of d.inner.getExternalClassUuidsList()) {
+      for (const classId of d.protobuf.getExternalClassUuidsList()) {
         const resp = new Response()
           .setSuccess(false)
           .setRequestId(d.requestId)
@@ -33,9 +33,9 @@ export async function validateMany(
 }
 
 async function validate(r: IncomingData, log: Logger): Promise<IncomingData> {
-  const { inner } = r;
-  const schoolId = inner.getExternalSchoolUuid();
-  const classIds = inner.getExternalClassUuidsList();
+  const { protobuf: protobuf } = r;
+  const schoolId = protobuf.getExternalSchoolUuid();
+  const classIds = protobuf.getExternalClassUuidsList();
 
   // Checking that both sets of ids are valid are covered by this
   await Link.shareTheSameOrganization(log, [schoolId], classIds);

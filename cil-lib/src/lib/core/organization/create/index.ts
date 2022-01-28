@@ -3,18 +3,16 @@ import { Logger } from 'pino';
 import { Uuid } from '../../../..';
 import { Organization, Response } from '../../../protos';
 import { Operation } from '../../../types';
-import { IdTracked } from '../../../utils/parseBatchRequests';
-import { compose, DUMMY_SEND_REQUEST, DUMMY_STORE } from '../../process';
+import { IdTracked } from '../../batchRequest';
+import { compose, DUMMY_SEND_REQUEST, DUMMY_STORE, NOOP } from '../../process';
 
 import { validateMany } from './validate';
 
-type Op = Organization;
-
-export interface KidsLoopOrganization extends ReturnType<Op['toObject']> {
-  kidsloopUuid: Uuid;
+export interface CreateOrganization {
+  kidsloopOrganizationUuid: Uuid;
 }
 
-export type IncomingData = IdTracked<Op, KidsLoopOrganization>;
+export type IncomingData = IdTracked<Organization, CreateOrganization>;
 
 export function process(
   data: IncomingData[],
@@ -22,6 +20,7 @@ export function process(
 ): Promise<Response[]> {
   return compose(
     validateMany,
+    NOOP,
     DUMMY_SEND_REQUEST,
     DUMMY_STORE,
     data,

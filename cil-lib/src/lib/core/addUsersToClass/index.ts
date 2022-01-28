@@ -2,12 +2,24 @@ import { Logger } from 'pino';
 
 import { AddUsersToClass, Response } from '../../protos';
 import { Operation } from '../../types';
-import { IdTracked } from '../../utils/parseBatchRequests';
-import { compose, DUMMY_SEND_REQUEST, DUMMY_STORE } from '../process';
+import { ExternalUuid, Uuid } from '../../utils';
+import { IdTracked } from '../batchRequest';
+import {
+  compose,
+  DUMMY_PREPARE,
+  DUMMY_SEND_REQUEST,
+  DUMMY_STORE,
+} from '../process';
 
 import { validateMany } from './validate';
 
-export type IncomingData = IdTracked<AddUsersToClass>;
+export interface PAddUsersToClass {
+  kidsloopClassUuid: Uuid;
+  teacherUuids: { external: ExternalUuid; kidsloop: Uuid }[];
+  studentUuids: { external: ExternalUuid; kidsloop: Uuid }[];
+}
+
+export type IncomingData = IdTracked<AddUsersToClass, PAddUsersToClass>;
 
 export function process(
   data: IncomingData[],
@@ -15,6 +27,7 @@ export function process(
 ): Promise<Response[]> {
   return compose(
     validateMany,
+    DUMMY_PREPARE,
     DUMMY_SEND_REQUEST,
     DUMMY_STORE,
     data,

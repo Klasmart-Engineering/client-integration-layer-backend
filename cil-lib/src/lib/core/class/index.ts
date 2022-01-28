@@ -1,1 +1,4 @@
-export { process as processCreateClasses } from './create';
+export {
+  process as processCreateClasses,
+  IncomingData as ICreateClass,
+} from './create';

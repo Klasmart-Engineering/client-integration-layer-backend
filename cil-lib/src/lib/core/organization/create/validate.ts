@@ -40,7 +40,7 @@ export async function validateMany(
         .setSuccess(false)
         .setRequestId(d.requestId)
         .setEntity(PbEntity.ORGANIZATION)
-        .setEntityId(d.inner.getExternalUuid())
+        .setEntityId(d.protobuf.getExternalUuid())
         .setErrors(e);
       invalid.push(resp);
     }
@@ -49,9 +49,9 @@ export async function validateMany(
 }
 
 async function validate(r: IncomingData, log: Logger): Promise<IncomingData> {
-  const { inner } = r;
+  const { protobuf: protobuf } = r;
 
-  const entity = inner.toObject();
+  const entity = protobuf.toObject();
   const newLogger = log.child({
     entityId: entity.externalUuid,
     name: entity.name,

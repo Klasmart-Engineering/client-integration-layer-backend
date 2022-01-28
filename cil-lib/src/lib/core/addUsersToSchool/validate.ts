@@ -18,7 +18,7 @@ export async function validateMany(
       valid.push(await validate(d, log));
     } catch (error) {
       const e = convertErrorToProtobuf(error, log);
-      for (const userId of d.inner.getExternalUserUuidsList()) {
+      for (const userId of d.protobuf.getExternalUserUuidsList()) {
         const resp = new Response()
           .setSuccess(false)
           .setRequestId(d.requestId)
@@ -33,11 +33,11 @@ export async function validateMany(
 }
 
 async function validate(r: IncomingData, log: Logger): Promise<IncomingData> {
-  const { inner } = r;
-  const schoolId = inner.getExternalSchoolUuid();
+  const { protobuf } = r;
+  const schoolId = protobuf.getExternalSchoolUuid();
 
   const ctx = Context.getInstance();
-  const userIds = inner.getExternalUserUuidsList();
+  const userIds = protobuf.getExternalUserUuidsList();
   // check the target users are valid
   await ctx.userIdsAreValid(userIds, log);
 

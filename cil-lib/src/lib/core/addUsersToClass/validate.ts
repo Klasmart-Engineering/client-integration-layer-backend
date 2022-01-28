@@ -24,8 +24,8 @@ export async function validateMany(
     } catch (error) {
       const e = convertErrorToProtobuf(error, log);
       for (const userId of [
-        ...d.inner.getExternalStudentUuidList(),
-        ...d.inner.getExternalTeacherUuidList(),
+        ...d.protobuf.getExternalStudentUuidList(),
+        ...d.protobuf.getExternalTeacherUuidList(),
       ]) {
         const resp = new Response()
           .setSuccess(false)
@@ -41,10 +41,10 @@ export async function validateMany(
 }
 
 async function validate(r: IncomingData, log: Logger): Promise<IncomingData> {
-  const { inner } = r;
-  const classId = inner.getExternalClassUuid();
-  const students = inner.getExternalStudentUuidList();
-  const teachers = inner.getExternalTeacherUuidList();
+  const { protobuf } = r;
+  const classId = protobuf.getExternalClassUuid();
+  const students = protobuf.getExternalStudentUuidList();
+  const teachers = protobuf.getExternalTeacherUuidList();
   const schoolId = (await Class.findOne(classId, log)).externalSchoolUuid;
   const { invalid } = await Link.usersBelongToSchool(
     [...students, ...teachers],

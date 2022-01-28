@@ -17,7 +17,7 @@ import {
 import { Category, MachineError, OnboardingError } from '../../errors';
 import { BatchOnboarding, Response, Responses } from '../../protos/api_pb';
 import { Operation } from '../../types';
-import { IdTracked, RequestBatch } from '../../utils/parseBatchRequests';
+import { IdTracked, RequestBatch } from '../batchRequest';
 
 export async function processOnboardingRequest(
   o: BatchOnboarding,
@@ -113,14 +113,11 @@ export type Result<T> = {
 
 // @TODO - Can we keep track of fails for a parent entity and stop
 // processing children in advance?
-export async function compose<
-  T extends IdTracked<V, U>,
-  V extends Message,
-  U extends ReturnType<V['toObject']>
->(
+export async function compose<T extends IdTracked<V, U>, V extends Message, U>(
   validate: (data: T[], log: Logger) => Promise<[Result<T>, Logger]>,
-  sendRequest: (data: T[], log: Logger) => Promise<[Result<U>, Logger]>,
-  store: (data: U[], log: Logger) => Promise<Response[]>,
+  prepare: (data: T[], log: Logger) => Promise<[Result<T>, Logger]>,
+  sendRequest: (data: T[], log: Logger) => Promise<[Result<T>, Logger]>,
+  store: (data: T[], log: Logger) => Promise<Response[]>,
   data: T[],
   op: Operation,
   log: Logger
@@ -129,7 +126,7 @@ export async function compose<
   let responses: Response[] = [];
   let logger = log.child({ operation: op });
   try {
-    let result: Result<T> | Result<U>;
+    let result: Result<T>;
 
     logger = logger.child({ step: '1. VALIDATE' });
     logger.debug('attempting to validate operation');
@@ -137,13 +134,19 @@ export async function compose<
     responses = responses.concat(result.invalid);
     if (result.valid.length === 0) return responses;
 
-    logger = logger.child({ step: '2. SEND REQUEST TO ADMIN SERVICE' });
+    logger = logger.child({ step: '2. PREPARE DATA FOR ADMIN SERVICE' });
+    log.debug('attempting to prepare data for storage in database');
+    [result, logger] = await prepare(result.valid, logger);
+    responses = responses.concat(result.invalid);
+    if (result.valid.length === 0) return responses;
+
+    logger = logger.child({ step: '3. SEND REQUEST TO ADMIN SERVICE' });
     log.debug('attempting to write operation to admin service');
     [result, logger] = await sendRequest(result.valid, logger);
     responses = responses.concat(result.invalid);
     if (result.valid.length === 0) return responses;
 
-    logger = logger.child({ step: '3. WRITE TO DATABASE' });
+    logger = logger.child({ step: '4. WRITE TO DATABASE' });
     log.debug('attempting to write operation to database');
     const databaseResult = await store(result.valid, logger);
     responses = responses.concat(databaseResult);
@@ -156,11 +159,23 @@ export async function compose<
   return responses;
 }
 
-export const DUMMY_SEND_REQUEST = async <T, U>(
+export const NOOP = async <T>(
+  data: T[],
+  log: Logger
+): Promise<[Result<T>, Logger]> => [{ valid: data, invalid: [] }, log];
+
+export const DUMMY_SEND_REQUEST = async <T>(
   _: T[],
   _log: Logger
-): Promise<[Result<U>, Logger]> => {
+): Promise<[Result<T>, Logger]> => {
   throw new Error('Send Request has not been implemented');
+};
+
+export const DUMMY_PREPARE = async <T>(
+  _: T[],
+  _log: Logger
+): Promise<[Result<T>, Logger]> => {
+  throw new Error('Prepare has not been implemented');
 };
 
 export const DUMMY_STORE = async <T>(

@@ -2,12 +2,22 @@ import { Logger } from 'pino';
 
 import { Response, User } from '../../../protos';
 import { Operation } from '../../../types';
-import { IdTracked } from '../../../utils/parseBatchRequests';
-import { compose, DUMMY_SEND_REQUEST, DUMMY_STORE } from '../../process';
+import { Uuid } from '../../../utils';
+import { IdTracked } from '../../batchRequest';
+import {
+  compose,
+  DUMMY_PREPARE,
+  DUMMY_SEND_REQUEST,
+  DUMMY_STORE,
+} from '../../process';
 
 import { validateMany } from './validate';
 
-export type IncomingData = IdTracked<User>;
+export interface CreateUser {
+  kidsloopUserUuid: Uuid;
+}
+
+export type IncomingData = IdTracked<User, CreateUser>;
 
 export function process(
   data: IncomingData[],
@@ -15,6 +25,7 @@ export function process(
 ): Promise<Response[]> {
   return compose(
     validateMany,
+    DUMMY_PREPARE,
     DUMMY_SEND_REQUEST,
     DUMMY_STORE,
     data,
