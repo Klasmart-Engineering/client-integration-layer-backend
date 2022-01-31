@@ -567,10 +567,10 @@ export class Error extends jspb.Message {
     getInternalServer(): InternalServerError | undefined;
     setInternalServer(value?: InternalServerError): Error;
 
-    hasEntityExists(): boolean;
-    clearEntityExists(): void;
-    getEntityExists(): EntityAlreadyExistsError | undefined;
-    setEntityExists(value?: EntityAlreadyExistsError): Error;
+    hasEntityAlreadyExists(): boolean;
+    clearEntityAlreadyExists(): void;
+    getEntityAlreadyExists(): EntityAlreadyExistsError | undefined;
+    setEntityAlreadyExists(value?: EntityAlreadyExistsError): Error;
 
     hasEntityDoesNotExist(): boolean;
     clearEntityDoesNotExist(): void;
@@ -594,7 +594,7 @@ export namespace Error {
         validation?: ValidationError.AsObject,
         request?: InvalidRequestError.AsObject,
         internalServer?: InternalServerError.AsObject,
-        entityExists?: EntityAlreadyExistsError.AsObject,
+        entityAlreadyExists?: EntityAlreadyExistsError.AsObject,
         entityDoesNotExist?: EntityDoesNotExistError.AsObject,
     }
 
@@ -603,7 +603,7 @@ export namespace Error {
         VALIDATION = 1,
         REQUEST = 2,
         INTERNAL_SERVER = 3,
-        ENTITY_EXISTS = 4,
+        ENTITY_ALREADY_EXISTS = 4,
         ENTITY_DOES_NOT_EXIST = 5,
     }
 

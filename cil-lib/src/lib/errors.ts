@@ -89,7 +89,7 @@ export class Errors {
       err.setErrorsList(validationErrors);
       e.setValidation(err);
     } else if (entityAlreadyExists) {
-      e.setEntityExists(entityAlreadyExists);
+      e.setEntityAlreadyExists(entityAlreadyExists);
     } else if (entityDoesntExists) {
       e.setEntityDoesNotExist(entityDoesntExists);
     } else if (other) {
@@ -169,7 +169,7 @@ export class OnboardingError {
       case MachineError.ENTITY_ALREADY_EXISTS: {
         const error = new EntityAlreadyExistsError();
         error.setDetailsList(this.details);
-        e.setEntityExists(error);
+        e.setEntityAlreadyExists(error);
         break;
       }
       case MachineError.ENTITY_DOES_NOT_EXIST: {

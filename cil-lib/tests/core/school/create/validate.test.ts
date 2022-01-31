@@ -4,14 +4,14 @@ import { v4 as uuidv4 } from 'uuid';
 
 import {
   Category,
-  Errors,
   MachineError,
   OnboardingError,
-  ValidationWrapper,
-} from '../../../src';
-import { School } from '../../../src/lib/protos';
-import { Context } from '../../../src/lib/utils';
-import { LOG_STUB, wrapRequest } from '../util';
+  processOnboardingRequest,
+} from '../../../../src';
+import * as ProcessFns from '../../../../src/lib/core/process';
+import { Entity, Response, School } from '../../../../src/lib/protos';
+import { Context } from '../../../../src/lib/utils';
+import { LOG_STUB, wrapRequest } from '../../../util';
 
 export type SchoolTestCase = {
   scenario: string;
@@ -133,6 +133,11 @@ export const INVALID_SCHOOLS: SchoolTestCase[] = [
 describe('school validation', () => {
   let orgIsValidStub: SinonStub;
   let schoolIsValidStub: SinonStub;
+  let _composeFunctions: {
+    prepare: SinonStub;
+    sendRequest: SinonStub;
+    store: SinonStub;
+  };
   const ctx = Context.getInstance();
 
   beforeEach(async () => {
@@ -142,22 +147,36 @@ describe('school validation', () => {
     schoolIsValidStub = sinon
       .stub(ctx, 'schoolIdIsValid')
       .rejects(new Error('Does not exist'));
+    const resp = [new Response().setSuccess(true)];
+    _composeFunctions = {
+      prepare: sinon
+        .stub(ProcessFns, 'DUMMY_PREPARE')
+        .callsFake(async (data) => {
+          return [{ valid: data, invalid: [] }, LOG_STUB];
+        }),
+      sendRequest: sinon
+        .stub(ProcessFns, 'DUMMY_SEND_REQUEST')
+        .callsFake(async (data) => {
+          return [{ valid: data, invalid: [] }, LOG_STUB];
+        }),
+      store: sinon.stub(ProcessFns, 'DUMMY_STORE').resolves(resp),
+    };
   });
 
   afterEach(() => {
     orgIsValidStub.restore();
     schoolIsValidStub.restore();
+    sinon.restore();
   });
 
   VALID_SCHOOLS.forEach(({ scenario, school }) => {
     it(`should pass when a school is ${scenario}`, async () => {
       const req = wrapRequest(school);
-      try {
-        const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
-        expect(resp).not.to.be.undefined;
-      } catch (error) {
-        expect(error).to.be.undefined;
-      }
+      const resp = await processOnboardingRequest(req, LOG_STUB);
+      const responses = resp.getResponsesList();
+      expect(responses).to.have.length(1);
+      expect(responses[0]).not.to.be.undefined;
+      expect(responses[0].getSuccess()).to.be.true;
     });
   });
 
@@ -165,20 +184,20 @@ describe('school validation', () => {
     INVALID_SCHOOLS.forEach(({ scenario, school }) => {
       it(scenario, async () => {
         const req = wrapRequest(school);
-        try {
-          const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
-          expect(resp).to.be.undefined;
-        } catch (error) {
-          expect(error).not.to.be.undefined;
-          const isOnboardingError = error instanceof OnboardingError;
-          const errors = isOnboardingError ? new Errors([error]) : error;
-          expect(errors instanceof Errors).to.be.true;
-          for (const e of (errors as Errors).errors) {
-            expect(e.details).to.have.length.greaterThanOrEqual(1);
-            expect(e.path).to.have.length.greaterThanOrEqual(1);
-            expect(e.error).to.equal(MachineError.VALIDATION);
-          }
-        }
+        const resp = await processOnboardingRequest(req, LOG_STUB);
+        expect(resp).not.to.be.undefined;
+        const responses = resp.toObject().responsesList;
+        expect(responses).to.have.lengthOf(1);
+        const response = responses[0];
+        expect(response.success).to.be.false;
+        expect(response.requestId).to.equal(
+          req.getRequestsList()[0].getRequestId()
+        );
+        expect(response.entityId).to.equal(
+          req.getRequestsList()[0].getSchool()?.getExternalUuid()
+        );
+        expect(response.entity).to.equal(Entity.SCHOOL);
+        expect(response.errors?.validation).not.to.be.undefined;
       });
     });
   });
@@ -189,34 +208,43 @@ describe('school validation', () => {
       new OnboardingError(
         MachineError.VALIDATION,
         'Invalid Organization',
-        Category.REQUEST
+        Category.REQUEST,
+        LOG_STUB
       )
     );
-    try {
-      const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
-      expect(resp).not.to.be.undefined;
-    } catch (error) {
-      const isOnboardingError = error instanceof OnboardingError;
-      expect(isOnboardingError).to.be.true;
-      const e = error as OnboardingError;
-      expect(e.msg).to.equal('Invalid Organization');
-      expect(e.error).to.equal(MachineError.VALIDATION);
-    }
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+    expect(resp).not.to.be.undefined;
+    const responses = resp.toObject().responsesList;
+    expect(responses).to.have.lengthOf(1);
+    const response = responses[0];
+    expect(response.success).to.be.false;
+    expect(response.requestId).to.equal(
+      req.getRequestsList()[0].getRequestId()
+    );
+    expect(response.entityId).to.equal(
+      req.getRequestsList()[0].getSchool()?.getExternalUuid()
+    );
+    expect(response.entity).to.equal(Entity.SCHOOL);
+    expect(response.errors?.validation).not.to.be.undefined;
+    expect(response.errors?.validation?.errorsList[0]).not.to.be.undefined;
   });
 
   it('should fail if the school ID already exists', async () => {
     const req = wrapRequest(VALID_SCHOOLS[0].school);
     schoolIsValidStub.resolves();
-    try {
-      const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
-      expect(resp).not.to.be.undefined;
-    } catch (error) {
-      const isOnboardingError = error instanceof OnboardingError;
-      expect(isOnboardingError).to.be.true;
-      const e = error as OnboardingError;
-      expect(e.msg).to.include('already exists');
-      expect(e.error).to.equal(MachineError.ENTITY_ALREADY_EXISTS);
-    }
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+    const responses = resp.toObject().responsesList;
+    expect(responses).to.have.lengthOf(1);
+    const response = responses[0];
+    expect(response.success).to.be.false;
+    expect(response.requestId).to.equal(
+      req.getRequestsList()[0].getRequestId()
+    );
+    expect(response.entityId).to.equal(
+      req.getRequestsList()[0].getSchool()?.getExternalUuid()
+    );
+    expect(response.entity).to.equal(Entity.SCHOOL);
+    expect(response.errors?.entityAlreadyExists).not.to.be.undefined;
   });
 });
 

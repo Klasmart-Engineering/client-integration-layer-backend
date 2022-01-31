@@ -4,15 +4,15 @@ import { v4 as uuidv4 } from 'uuid';
 
 import {
   Category,
-  Context,
-  Errors,
   MachineError,
   OnboardingError,
-  Organization as OrgRepo,
-  ValidationWrapper,
-} from '../../../src';
-import { Organization } from '../../../src/lib/protos';
-import { LOG_STUB, wrapRequest } from '../util';
+  processOnboardingRequest,
+} from '../../../../src';
+import * as ProcessFns from '../../../../src/lib/core/process';
+import { Organization as OrgRepo } from '../../../../src/lib/database';
+import { Entity, Organization, Response } from '../../../../src/lib/protos';
+import { Context } from '../../../../src/lib/utils';
+import { LOG_STUB, wrapRequest } from '../../../util';
 
 export type OrgTestCase = {
   scenario: string;
@@ -67,6 +67,11 @@ describe('organization validation', () => {
   let contextStub: SinonStub;
   let orgStub: SinonStub;
   const ctx = Context.getInstance();
+  let _composeFunctions: {
+    prepare: SinonStub;
+    sendRequest: SinonStub;
+    store: SinonStub;
+  };
 
   before(() => {
     process.env.ADMIN_SERVICE_JWT = 'abcdefg';
@@ -75,22 +80,36 @@ describe('organization validation', () => {
   beforeEach(async () => {
     contextStub = sinon.stub(ctx, 'organizationIdIsValid').resolves(uuidv4());
     orgStub = sinon.stub(OrgRepo, 'initializeOrganization').resolves();
+    const resp = [new Response().setSuccess(true)];
+    _composeFunctions = {
+      prepare: sinon
+        .stub(ProcessFns, 'DUMMY_PREPARE')
+        .callsFake(async (data) => {
+          return [{ valid: data, invalid: [] }, LOG_STUB];
+        }),
+      sendRequest: sinon
+        .stub(ProcessFns, 'DUMMY_SEND_REQUEST')
+        .callsFake(async (data) => {
+          return [{ valid: data, invalid: [] }, LOG_STUB];
+        }),
+      store: sinon.stub(ProcessFns, 'DUMMY_STORE').resolves(resp),
+    };
   });
 
   afterEach(() => {
     contextStub.restore();
     orgStub.restore();
+    sinon.restore();
   });
 
   VALID_ORGANIZATIONS.forEach(({ scenario, org }) => {
     it(`should pass when an organization is ${scenario}`, async () => {
       const req = wrapRequest(org);
-      try {
-        const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
-        expect(resp).not.to.be.undefined;
-      } catch (error) {
-        expect(error).to.be.undefined;
-      }
+      const resp = await processOnboardingRequest(req, LOG_STUB);
+      const responses = resp.getResponsesList();
+      expect(responses).to.have.length(1);
+      expect(responses[0]).not.to.be.undefined;
+      expect(responses[0].getSuccess()).to.be.true;
     });
   });
 
@@ -98,20 +117,20 @@ describe('organization validation', () => {
     INVALID_ORGANIZATIONS.forEach(({ scenario, org }) => {
       it(scenario, async () => {
         const req = wrapRequest(org);
-        try {
-          const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
-          expect(resp).to.be.undefined;
-        } catch (error) {
-          expect(error).not.to.be.undefined;
-          const isOnboardingError = error instanceof OnboardingError;
-          const errors = isOnboardingError ? new Errors([error]) : error;
-          expect(errors instanceof Errors).to.be.true;
-          for (const e of (errors as Errors).errors) {
-            expect(e.details).to.have.length.greaterThanOrEqual(1);
-            expect(e.path).to.have.length.greaterThanOrEqual(1);
-            expect(e.error).to.equal(MachineError.VALIDATION);
-          }
-        }
+        const resp = await processOnboardingRequest(req, LOG_STUB);
+        expect(resp).not.to.be.undefined;
+        const responses = resp.toObject().responsesList;
+        expect(responses).to.have.lengthOf(1);
+        const response = responses[0];
+        expect(response.success).to.be.false;
+        expect(response.requestId).to.equal(
+          req.getRequestsList()[0].getRequestId()
+        );
+        expect(response.entityId).to.equal(
+          req.getRequestsList()[0].getOrganization()?.getExternalUuid()
+        );
+        expect(response.entity).to.equal(Entity.ORGANIZATION);
+        expect(response.errors?.validation).not.to.be.undefined;
       });
     });
   });
@@ -122,19 +141,24 @@ describe('organization validation', () => {
       new OnboardingError(
         MachineError.VALIDATION,
         'Invalid Organization',
-        Category.REQUEST
+        Category.REQUEST,
+        LOG_STUB
       )
     );
-    try {
-      const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
-      expect(resp).not.to.be.undefined;
-    } catch (error) {
-      const isOnboardingError = error instanceof OnboardingError;
-      expect(isOnboardingError).to.be.true;
-      const e = error as OnboardingError;
-      expect(e.msg).to.equal('Invalid Organization');
-      expect(e.error).to.equal(MachineError.VALIDATION);
-    }
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+    expect(resp).not.to.be.undefined;
+    const responses = resp.toObject().responsesList;
+    expect(responses).to.have.lengthOf(1);
+    const response = responses[0];
+    expect(response.success).to.be.false;
+    expect(response.requestId).to.equal(
+      req.getRequestsList()[0].getRequestId()
+    );
+    expect(response.entityId).to.equal(
+      req.getRequestsList()[0].getOrganization()?.getExternalUuid()
+    );
+    expect(response.entity).to.equal(Entity.ORGANIZATION);
+    expect(response.errors?.validation).not.to.be.undefined;
   });
 }).timeout(5000);
 

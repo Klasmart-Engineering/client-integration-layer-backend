@@ -20,7 +20,7 @@ export const VALIDATION_RULES = {
 
   USER_GIVEN_FAMILY_NAME_MIN_LENGTH: 2,
   // This will be truncated
-  USER_GIVEN_FAMILY_NAME_MAX_LENGTH: 35,
+  USER_GIVEN_FAMILY_NAME_MAX_LENGTH: 100,
 
   USERNAME_MIN_LENGTH: 2,
   // This might need to be truncated to 35

@@ -4,14 +4,14 @@ import { v4 as uuidv4 } from 'uuid';
 
 import {
   Category,
-  Errors,
   MachineError,
   OnboardingError,
-  ValidationWrapper,
-} from '../../../src';
-import { Gender, User } from '../../../src/lib/protos';
-import { Context } from '../../../src/lib/utils';
-import { LOG_STUB, wrapRequest } from '../util';
+  processOnboardingRequest,
+} from '../../../../src';
+import * as ProcessFns from '../../../../src/lib/core/process';
+import { Entity, Gender, Response, User } from '../../../../src/lib/protos';
+import { Context } from '../../../../src/lib/utils';
+import { LOG_STUB, wrapRequest } from '../../../util';
 
 const USER = Object.freeze({
   externalUuid: true,
@@ -24,7 +24,7 @@ const USER = Object.freeze({
   gender: true,
   dateOfBirth: true,
   shortCode: true,
-  roleIdentifiers: true
+  roleIdentifiers: true,
 });
 
 export type UserTestCase = {
@@ -206,27 +206,49 @@ describe('user validation', () => {
   let schoolStub: SinonStub;
   let userStub: SinonStub;
   let roleStub: SinonStub;
+  let _composeFunctions: {
+    prepare: SinonStub;
+    sendRequest: SinonStub;
+    store: SinonStub;
+  };
   const ctx = Context.getInstance();
 
   beforeEach(() => {
     orgStub = sinon.stub(ctx, 'organizationIdIsValid').resolves(uuidv4());
     schoolStub = sinon.stub(ctx, 'schoolIdIsValid').resolves();
-    roleStub = sinon.stub(ctx, 'rolesAreValid').resolves([{ id: uuidv4(), name: "Role" }]);
+    roleStub = sinon
+      .stub(ctx, 'rolesAreValid')
+      .resolves([{ id: uuidv4(), name: 'Role' }]);
     userStub = sinon.stub(ctx, 'userDoesNotExist');
+    const resp = [new Response().setSuccess(true)];
+    _composeFunctions = {
+      prepare: sinon
+        .stub(ProcessFns, 'DUMMY_PREPARE')
+        .callsFake(async (data) => {
+          return [{ valid: data, invalid: [] }, LOG_STUB];
+        }),
+      sendRequest: sinon
+        .stub(ProcessFns, 'DUMMY_SEND_REQUEST')
+        .callsFake(async (data) => {
+          return [{ valid: data, invalid: [] }, LOG_STUB];
+        }),
+      store: sinon.stub(ProcessFns, 'DUMMY_STORE').resolves(resp),
+    };
   });
 
   afterEach(() => {
-    orgStub.restore();
     schoolStub.restore();
-    userStub.restore();
-    roleStub.restore();
+    sinon.restore();
   });
 
   VALID_USERS.forEach(({ scenario, user }) => {
     it(`should pass when a user ${scenario}`, async () => {
       const req = wrapRequest(user);
-        const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
-        expect(resp).not.to.be.undefined;
+      const resp = await processOnboardingRequest(req, LOG_STUB);
+      const responses = resp.getResponsesList();
+      expect(responses).to.have.length(1);
+      expect(responses[0]).not.to.be.undefined;
+      expect(responses[0].getSuccess()).to.be.true;
     });
   });
 
@@ -235,18 +257,22 @@ describe('user validation', () => {
       it(scenario, async () => {
         const req = wrapRequest(user);
         try {
-          const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
-          expect(resp).to.be.undefined;
+          const resp = await processOnboardingRequest(req, LOG_STUB);
+          expect(resp).not.to.be.undefined;
+          const responses = resp.toObject().responsesList;
+          expect(responses).to.have.lengthOf(1);
+          const response = responses[0];
+          expect(response.success).to.be.false;
+          expect(response.requestId).to.equal(
+            req.getRequestsList()[0].getRequestId()
+          );
+          expect(response.entityId).to.equal(
+            req.getRequestsList()[0].getUser()?.getExternalUuid()
+          );
+          expect(response.entity).to.equal(Entity.USER);
+          expect(response.errors?.validation).not.to.be.undefined;
         } catch (error) {
-          expect(error).not.to.be.undefined;
-          const isOnboardingError = error instanceof OnboardingError;
-          const errors = isOnboardingError ? new Errors([error]) : error;
-          expect(errors instanceof Errors).to.be.true;
-          for (const e of (errors as Errors).errors) {
-            expect(e.details).to.have.length.greaterThanOrEqual(1);
-            expect(e.path).to.have.length.greaterThanOrEqual(1);
-            expect(e.error).to.equal(MachineError.VALIDATION);
-          }
+          expect(error).to.be.undefined;
         }
       });
     });
@@ -258,57 +284,89 @@ describe('user validation', () => {
       new OnboardingError(
         MachineError.VALIDATION,
         'Invalid Organization',
-        Category.REQUEST
+        Category.REQUEST,
+        LOG_STUB
       )
     );
     try {
-      const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
-      expect(resp).to.be.undefined;
+      const resp = await processOnboardingRequest(req, LOG_STUB);
+      expect(resp).not.to.be.undefined;
+      const responses = resp.toObject().responsesList;
+      expect(responses).to.have.lengthOf(1);
+      const response = responses[0];
+      expect(response.success).to.be.false;
+      expect(response.requestId).to.equal(
+        req.getRequestsList()[0].getRequestId()
+      );
+      expect(response.entityId).to.equal(
+        req.getRequestsList()[0].getUser()?.getExternalUuid()
+      );
+      expect(response.entity).to.equal(Entity.USER);
+      expect(response.errors?.validation).not.to.be.undefined;
+      expect(response.errors?.validation?.errorsList[0]).not.to.be.undefined;
     } catch (error) {
-      const isOnboardingError = error instanceof OnboardingError;
-      expect(isOnboardingError).to.be.true;
-      const e = error as OnboardingError;
-      expect(e.msg).to.equal(`Invalid Organization`);
-      expect(e.error).to.equal(MachineError.VALIDATION);
+      expect(error).to.be.undefined;
     }
   });
 
   it('should fail if the user ID already exists', async () => {
     const req = wrapRequest(VALID_USERS[0].user);
-    userStub.rejects(new OnboardingError(
-      MachineError.ENTITY_ALREADY_EXISTS,
-      'User already exists',
-      Category.REQUEST
-    ));
+    userStub.rejects(
+      new OnboardingError(
+        MachineError.ENTITY_ALREADY_EXISTS,
+        'User already exists',
+        Category.REQUEST,
+        LOG_STUB
+      )
+    );
     try {
-      const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
-      expect(resp).to.be.undefined;
+      const resp = await processOnboardingRequest(req, LOG_STUB);
+      expect(resp).not.to.be.undefined;
+      const responses = resp.toObject().responsesList;
+      expect(responses).to.have.lengthOf(1);
+      const response = responses[0];
+      expect(response.success).to.be.false;
+      expect(response.requestId).to.equal(
+        req.getRequestsList()[0].getRequestId()
+      );
+      expect(response.entityId).to.equal(
+        req.getRequestsList()[0].getUser()?.getExternalUuid()
+      );
+      expect(response.entity).to.equal(Entity.USER);
+      expect(response.errors?.entityAlreadyExists).not.to.be.undefined;
     } catch (error) {
-      const isOnboardingError = error instanceof OnboardingError;
-      expect(isOnboardingError).to.be.true;
-      const e = error as OnboardingError;
-      expect(e.msg).to.include('User already exists');
-      expect(e.error).to.equal(MachineError.ENTITY_ALREADY_EXISTS);
+      expect(error).to.be.undefined;
     }
   });
 
   it('should fail if role names does not exist', async () => {
     const req = wrapRequest(VALID_USERS[0].user);
-    roleStub.rejects(new OnboardingError(
-      MachineError.VALIDATION,
-      `Roles a,b,c are invalid`,
-      Category.REQUEST,
-      LOG_STUB,
-    ));
+    roleStub.rejects(
+      new OnboardingError(
+        MachineError.VALIDATION,
+        `Roles a,b,c are invalid`,
+        Category.REQUEST,
+        LOG_STUB
+      )
+    );
     try {
-      const resp = await ValidationWrapper.parseRequest(req, LOG_STUB);
-      expect(resp).to.be.undefined;
+      const resp = await processOnboardingRequest(req, LOG_STUB);
+      expect(resp).not.to.be.undefined;
+      const responses = resp.toObject().responsesList;
+      expect(responses).to.have.lengthOf(1);
+      const response = responses[0];
+      expect(response.success).to.be.false;
+      expect(response.requestId).to.equal(
+        req.getRequestsList()[0].getRequestId()
+      );
+      expect(response.entityId).to.equal(
+        req.getRequestsList()[0].getUser()?.getExternalUuid()
+      );
+      expect(response.entity).to.equal(Entity.USER);
+      expect(response.errors?.validation).not.to.be.undefined;
+      expect(response.errors?.validation?.errorsList[0]).not.to.be.undefined;
     } catch (error) {
-      const isOnboardingError = error instanceof OnboardingError;
-      expect(isOnboardingError).to.be.true;
-      const e = error as OnboardingError;
-      expect(e.msg).to.include('Roles a,b,c are invalid');
-      expect(e.error).to.equal(MachineError.VALIDATION);
+      expect(error).to.be.undefined;
     }
   });
 });
@@ -325,7 +383,7 @@ function setUpUser(user = USER): User {
     gender,
     dateOfBirth,
     shortCode,
-    roleIdentifiers
+    roleIdentifiers,
   } = user;
   const u = new User();
   if (externalUuid) u.setExternalUuid(uuidv4());
@@ -337,7 +395,7 @@ function setUpUser(user = USER): User {
   if (familyName) u.setFamilyName('Name');
   if (gender) u.setGender(Gender.MALE);
   if (dateOfBirth) u.setDateOfBirth('09-01-2017');
-  if (shortCode) u.setShortCode("abcdef");
-  if (roleIdentifiers) u.addRoleIdentifiers("Role");
+  if (shortCode) u.setShortCode('abcdef');
+  if (roleIdentifiers) u.addRoleIdentifiers('Role');
   return u;
 }
