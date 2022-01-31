@@ -70,7 +70,24 @@ export class Context {
   public async organizationIdIsValid(
     id: ExternalUuid,
     log: Logger
-  ): Promise<Uuid> {
+  ): Promise<void> {
+    {
+      const cachedKlId = this.organizations.get(id);
+      if (cachedKlId) return;
+    }
+
+    // Will error
+    const klId = await Organization.getId(id, log);
+    this.organizations.set(id, klId);
+    return;
+  }
+
+  /**
+   * @param {ExternalUuid} id - The external uuid of the organization
+   * @returns {Uuid} the KidsLoop uuid for the organization
+   * @errors if the id does not correspond to an organization in our system
+   */
+  public async getOrganizationId(id: ExternalUuid, log: Logger): Promise<Uuid> {
     {
       const cachedKlId = this.organizations.get(id);
       if (cachedKlId) return cachedKlId;

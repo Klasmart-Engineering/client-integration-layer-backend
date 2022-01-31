@@ -4,13 +4,10 @@ import { Response, School } from '../../../protos';
 import { Operation } from '../../../types';
 import { Uuid } from '../../../utils';
 import { IdTracked } from '../../batchRequest';
-import {
-  compose,
-  DUMMY_PREPARE,
-  DUMMY_SEND_REQUEST,
-  DUMMY_STORE,
-} from '../../process';
+import { compose, DUMMY_STORE } from '../../process';
 
+import { sendRequest } from './adminService';
+import { prepare } from './prepare';
 import { validateMany } from './validate';
 
 export interface CreateSchool {
@@ -26,8 +23,8 @@ export function process(
 ): Promise<Response[]> {
   return compose(
     validateMany,
-    DUMMY_PREPARE,
-    DUMMY_SEND_REQUEST,
+    prepare,
+    sendRequest,
     DUMMY_STORE,
     data,
     Operation.CREATE_SCHOOL,

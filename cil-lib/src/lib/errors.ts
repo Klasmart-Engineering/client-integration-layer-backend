@@ -357,3 +357,7 @@ export function convertErrorToProtobuf(error: unknown, log: Logger): PbError {
   );
   throw new Error('Broken Application Error');
 }
+
+export const INTERNAL_SERVER_ERROR_PROTOBUF = new PbError().setInternalServer(
+  new InternalServerError().setDetailsList(['Unexpected error occurred'])
+);
