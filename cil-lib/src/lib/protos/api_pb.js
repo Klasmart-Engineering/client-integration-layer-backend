@@ -4615,7 +4615,7 @@ proto.cil_onboarding.api.Error.ErrorTypeCase = {
   VALIDATION: 1,
   REQUEST: 2,
   INTERNAL_SERVER: 3,
-  ENTITY_EXISTS: 4,
+  ENTITY_ALREADY_EXISTS: 4,
   ENTITY_DOES_NOT_EXIST: 5
 };
 
@@ -4660,7 +4660,7 @@ proto.cil_onboarding.api.Error.toObject = function(includeInstance, msg) {
     validation: (f = msg.getValidation()) && proto.cil_onboarding.api.ValidationError.toObject(includeInstance, f),
     request: (f = msg.getRequest()) && proto.cil_onboarding.api.InvalidRequestError.toObject(includeInstance, f),
     internalServer: (f = msg.getInternalServer()) && proto.cil_onboarding.api.InternalServerError.toObject(includeInstance, f),
-    entityExists: (f = msg.getEntityExists()) && proto.cil_onboarding.api.EntityAlreadyExistsError.toObject(includeInstance, f),
+    entityAlreadyExists: (f = msg.getEntityAlreadyExists()) && proto.cil_onboarding.api.EntityAlreadyExistsError.toObject(includeInstance, f),
     entityDoesNotExist: (f = msg.getEntityDoesNotExist()) && proto.cil_onboarding.api.EntityDoesNotExistError.toObject(includeInstance, f)
   };
 
@@ -4716,7 +4716,7 @@ proto.cil_onboarding.api.Error.deserializeBinaryFromReader = function(msg, reade
     case 4:
       var value = new proto.cil_onboarding.api.EntityAlreadyExistsError;
       reader.readMessage(value,proto.cil_onboarding.api.EntityAlreadyExistsError.deserializeBinaryFromReader);
-      msg.setEntityExists(value);
+      msg.setEntityAlreadyExists(value);
       break;
     case 5:
       var value = new proto.cil_onboarding.api.EntityDoesNotExistError;
@@ -4776,7 +4776,7 @@ proto.cil_onboarding.api.Error.serializeBinaryToWriter = function(message, write
       proto.cil_onboarding.api.InternalServerError.serializeBinaryToWriter
     );
   }
-  f = message.getEntityExists();
+  f = message.getEntityAlreadyExists();
   if (f != null) {
     writer.writeMessage(
       4,
@@ -4907,10 +4907,10 @@ proto.cil_onboarding.api.Error.prototype.hasInternalServer = function() {
 
 
 /**
- * optional EntityAlreadyExistsError entity_exists = 4;
+ * optional EntityAlreadyExistsError entity_already_exists = 4;
  * @return {?proto.cil_onboarding.api.EntityAlreadyExistsError}
  */
-proto.cil_onboarding.api.Error.prototype.getEntityExists = function() {
+proto.cil_onboarding.api.Error.prototype.getEntityAlreadyExists = function() {
   return /** @type{?proto.cil_onboarding.api.EntityAlreadyExistsError} */ (
     jspb.Message.getWrapperField(this, proto.cil_onboarding.api.EntityAlreadyExistsError, 4));
 };
@@ -4920,7 +4920,7 @@ proto.cil_onboarding.api.Error.prototype.getEntityExists = function() {
  * @param {?proto.cil_onboarding.api.EntityAlreadyExistsError|undefined} value
  * @return {!proto.cil_onboarding.api.Error} returns this
 */
-proto.cil_onboarding.api.Error.prototype.setEntityExists = function(value) {
+proto.cil_onboarding.api.Error.prototype.setEntityAlreadyExists = function(value) {
   return jspb.Message.setOneofWrapperField(this, 4, proto.cil_onboarding.api.Error.oneofGroups_[0], value);
 };
 
@@ -4929,8 +4929,8 @@ proto.cil_onboarding.api.Error.prototype.setEntityExists = function(value) {
  * Clears the message field making it undefined.
  * @return {!proto.cil_onboarding.api.Error} returns this
  */
-proto.cil_onboarding.api.Error.prototype.clearEntityExists = function() {
-  return this.setEntityExists(undefined);
+proto.cil_onboarding.api.Error.prototype.clearEntityAlreadyExists = function() {
+  return this.setEntityAlreadyExists(undefined);
 };
 
 
@@ -4938,7 +4938,7 @@ proto.cil_onboarding.api.Error.prototype.clearEntityExists = function() {
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.cil_onboarding.api.Error.prototype.hasEntityExists = function() {
+proto.cil_onboarding.api.Error.prototype.hasEntityAlreadyExists = function() {
   return jspb.Message.getField(this, 4) != null;
 };
 

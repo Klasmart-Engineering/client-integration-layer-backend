@@ -6,6 +6,7 @@ import {
   EntityAlreadyExistsError,
   EntityDoesNotExistError,
   InternalServerError,
+  InvalidRequestError,
   PathBasedError,
   Error as PbError,
   ValidationError,
@@ -88,7 +89,7 @@ export class Errors {
       err.setErrorsList(validationErrors);
       e.setValidation(err);
     } else if (entityAlreadyExists) {
-      e.setEntityExists(entityAlreadyExists);
+      e.setEntityAlreadyExists(entityAlreadyExists);
     } else if (entityDoesntExists) {
       e.setEntityDoesNotExist(entityDoesntExists);
     } else if (other) {
@@ -147,6 +148,15 @@ export class OnboardingError {
   public toProtobufError(): PbError {
     const e = new PbError();
     switch (this.error) {
+      case MachineError.REQUEST: {
+        const error = new InvalidRequestError();
+        const pathBased = new PathBasedError();
+        pathBased.setPath(this.path.join(', '));
+        pathBased.setDetailsList(this.details);
+        error.setErrorsList([pathBased]);
+        e.setValidation(error);
+        break;
+      }
       case MachineError.VALIDATION: {
         const error = new ValidationError();
         const pathBased = new PathBasedError();
@@ -159,7 +169,7 @@ export class OnboardingError {
       case MachineError.ENTITY_ALREADY_EXISTS: {
         const error = new EntityAlreadyExistsError();
         error.setDetailsList(this.details);
-        e.setEntityExists(error);
+        e.setEntityAlreadyExists(error);
         break;
       }
       case MachineError.ENTITY_DOES_NOT_EXIST: {
@@ -336,3 +346,14 @@ export const returnMessageOrThrowOnboardingError = (e: unknown): string => {
   if (e instanceof OnboardingError || e instanceof Errors) throw e;
   return e instanceof Error ? e.message : `${e}`;
 };
+
+export function convertErrorToProtobuf(error: unknown, log: Logger): PbError {
+  if (error instanceof Errors || error instanceof OnboardingError) {
+    return error.toProtobufError();
+  }
+  log.warn(
+    { error },
+    `Found an error that wasn't correctly converted to a response - if you're seeing this the code needs an update`
+  );
+  throw new Error('Broken Application Error');
+}

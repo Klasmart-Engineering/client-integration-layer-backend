@@ -137,7 +137,7 @@ message Error {
     ValidationError validation = 1;
     InvalidRequestError request = 2;
     InternalServerError internal_server = 3;
-    EntityAlreadyExistsError entity_exists = 4;
+    EntityAlreadyExistsError entity_already_exists = 4;
     EntityDoesNotExistError entity_does_not_exist = 5;
   }
 }
@@ -171,5 +171,5 @@ message PathBasedError {
 
 service Onboarding {
   rpc Onboard(BatchOnboarding) returns (Responses) {};
-  rpc OnboardStream(stream BatchOnboarding) returns (stream Response) {};
+  rpc OnboardStream(stream BatchOnboarding) returns (stream Responses) {};
 }

@@ -8,7 +8,7 @@ import {
   StatusObject,
 } from '@grpc/grpc-js';
 import { Status } from '@grpc/grpc-js/build/src/constants';
-import { log, processMessage, proto } from 'cil-lib';
+import { log, processOnboardingRequest, proto } from 'cil-lib';
 
 const logger = log.child({ api: 'cil-api' });
 
@@ -27,25 +27,12 @@ export class OnboardingServer implements proto.IOnboardingServer {
       callback(error.build());
     }
 
-    const resp = new proto.Responses();
-    const results = [];
-    for (const req of call.request.getRequestsList()) {
-      try {
-        const resp = await processMessage(req, logger);
-        results.push(resp);
-      } catch (e) {
-        const error = new StatusBuilder();
-        error.withCode(Status.INTERNAL);
-        error.withDetails('Internal Server Error');
-        callback(error.build());
-      }
-    }
-    resp.setResponsesList(results);
+    const resp = await processOnboardingRequest(call.request, log);
     callback(null, resp);
   }
 
   public async onboardStream(
-    call: ServerDuplexStream<proto.BatchOnboarding, proto.Response>
+    call: ServerDuplexStream<proto.BatchOnboarding, proto.Responses>
   ): Promise<void> {
     const apiKey = call.metadata.get('x-api-key');
     if (apiKey.length !== 1 || apiKey[0] !== process.env.API_KEY) {
@@ -59,10 +46,8 @@ export class OnboardingServer implements proto.IOnboardingServer {
     }
 
     call.on('data', async (req: proto.BatchOnboarding) => {
-      for (const data of req.getRequestsList()) {
-        const resp = await processMessage(data, logger);
-        call.write(resp);
-      }
+      const resp = await processOnboardingRequest(req, log);
+      call.write(resp);
     });
     call.on('error', (_) => {
       const error = new StatusBuilder();
