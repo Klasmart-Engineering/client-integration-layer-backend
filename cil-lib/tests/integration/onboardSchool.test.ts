@@ -1,5 +1,5 @@
 import * as grpc from '@grpc/grpc-js';
-import { Metadata } from '@grpc/grpc-js';
+import { Metadata, MetadataValue } from '@grpc/grpc-js';
 import { expect } from 'chai';
 import { v4 as uuidv4 } from 'uuid';
 import { PrismaClient, proto } from '../..';
@@ -76,7 +76,7 @@ export const INVALID_SCHOOLS_VALIDATION_ERROR: SchoolTestCase[] = [
 
 export const ADD_MULTIPLE_SCHOOLS: SchoolTestCase[] = [
     {
-        scenario: 'does not exist in Validation DB, but in the Admin Service',
+        scenario: '',
         school: (() => {
             const s = setUpSchool();
             s.setExternalUuid(uuidv4())
@@ -230,7 +230,7 @@ const onboard = async (reqs: proto.OnboardingRequest[]) => {
     return new Promise((resolve, reject) => {
         const req = new BatchOnboarding().setRequestsList(reqs);
         const metadata = new Metadata();
-        metadata.set('x-api-key', "abcxyz");
+        metadata.set('x-api-key', 'abcxyz'); // change it to process.env.API_KEY 
         client.onboard(req, metadata, (error, response) => {
             if (error !== null) {
                 console.error('Received Error\n', error);
