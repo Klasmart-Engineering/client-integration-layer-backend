@@ -9,6 +9,7 @@ import {
 } from '../../../errors';
 import { Entity, Response } from '../../../protos';
 import { AdminService } from '../../../services';
+import { requestIdToProtobuf } from '../../batchRequest';
 import { Result } from '../../process';
 
 import { IncomingData } from '.';
@@ -58,7 +59,7 @@ export async function sendRequest(
     for (const c of classes) {
       const r = new Response()
         .setEntity(Entity.CLASS)
-        .setRequestId(c.requestId)
+        .setRequestId(requestIdToProtobuf(c.requestId))
         .setSuccess(false);
       if (error instanceof Errors || error instanceof OnboardingError) {
         r.setErrors(error.toProtobufError());

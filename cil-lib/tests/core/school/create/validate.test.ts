@@ -9,7 +9,12 @@ import {
   processOnboardingRequest,
 } from '../../../../src';
 import { School as SchoolDB } from '../../../../src/lib/database';
-import { Entity, School } from '../../../../src/lib/protos';
+import {
+  BatchOnboarding,
+  Entity,
+  Responses,
+  School,
+} from '../../../../src/lib/protos';
 import { AdminService } from '../../../../src/lib/services';
 import { Context } from '../../../../src/lib/utils';
 import { LOG_STUB, wrapRequest } from '../../../util';
@@ -171,20 +176,10 @@ describe('school validation', () => {
     INVALID_SCHOOLS.forEach(({ scenario, school }) => {
       it(scenario, async () => {
         const req = wrapRequest(school);
-        const resp = await processOnboardingRequest(req, LOG_STUB);
-        expect(resp).not.to.be.undefined;
-        const responses = resp.toObject().responsesList;
-        expect(responses).to.have.lengthOf(1);
-        const response = responses[0];
-        expect(response.success).to.be.false;
-        expect(response.requestId).to.equal(
-          req.getRequestsList()[0].getRequestId()
-        );
-        expect(response.entityId).to.equal(
-          req.getRequestsList()[0].getSchool()?.getExternalUuid()
-        );
-        expect(response.entity).to.equal(Entity.SCHOOL);
+        const resp = await makeCommonAssertions(req);
+        const response = resp?.toObject().responsesList[0];
         expect(response.errors?.validation).not.to.be.undefined;
+        expect(response.errors?.validation?.errorsList[0]).not.to.be.undefined;
       });
     });
   });
@@ -199,19 +194,8 @@ describe('school validation', () => {
         LOG_STUB
       )
     );
-    const resp = await processOnboardingRequest(req, LOG_STUB);
-    expect(resp).not.to.be.undefined;
-    const responses = resp.toObject().responsesList;
-    expect(responses).to.have.lengthOf(1);
-    const response = responses[0];
-    expect(response.success).to.be.false;
-    expect(response.requestId).to.equal(
-      req.getRequestsList()[0].getRequestId()
-    );
-    expect(response.entityId).to.equal(
-      req.getRequestsList()[0].getSchool()?.getExternalUuid()
-    );
-    expect(response.entity).to.equal(Entity.SCHOOL);
+    const resp = await makeCommonAssertions(req);
+    const response = resp?.toObject().responsesList[0];
     expect(response.errors?.validation).not.to.be.undefined;
     expect(response.errors?.validation?.errorsList[0]).not.to.be.undefined;
   });
@@ -219,18 +203,8 @@ describe('school validation', () => {
   it('should fail if the school ID already exists', async () => {
     const req = wrapRequest(VALID_SCHOOLS[0].school);
     schoolIsValidStub.resolves();
-    const resp = await processOnboardingRequest(req, LOG_STUB);
-    const responses = resp.toObject().responsesList;
-    expect(responses).to.have.lengthOf(1);
-    const response = responses[0];
-    expect(response.success).to.be.false;
-    expect(response.requestId).to.equal(
-      req.getRequestsList()[0].getRequestId()
-    );
-    expect(response.entityId).to.equal(
-      req.getRequestsList()[0].getSchool()?.getExternalUuid()
-    );
-    expect(response.entity).to.equal(Entity.SCHOOL);
+    const resp = await makeCommonAssertions(req);
+    const response = resp?.toObject().responsesList[0];
     expect(response.errors?.entityAlreadyExists).not.to.be.undefined;
   });
 });
@@ -247,4 +221,25 @@ function setUpSchool(
   if (orgId) s.setExternalOrganizationUuid(uuidv4());
   if (shortcode) s.setShortCode('SCHOOL');
   return s;
+}
+
+async function makeCommonAssertions(req: BatchOnboarding): Promise<Responses> {
+  try {
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+    const responses = resp.toObject().responsesList;
+    expect(responses).to.have.lengthOf(1);
+    const response = responses[0];
+    expect(response.success).to.be.false;
+    expect(response.requestId).to.eql(
+      req.getRequestsList()[0].getRequestId()?.toObject()
+    );
+    expect(response.entityId).to.equal(
+      req.getRequestsList()[0].getSchool()?.getExternalUuid()
+    );
+    expect(response.entity).to.equal(Entity.SCHOOL);
+    return resp;
+  } catch (error) {
+    expect(error, 'this api should not error').to.be.undefined;
+  }
+  throw new Error('Unexpected reached the end of the test');
 }

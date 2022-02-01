@@ -105,7 +105,7 @@ message Link {
 }
 
 message OnboardingRequest {
-  string request_id = 1;
+  RequestMetadata request_id = 1;
   Action action = 2;
   oneof payload {
     Link link_entities = 16;
@@ -124,8 +124,13 @@ message Responses {
   repeated Response responses = 1;
 }
 
+message RequestMetadata {
+  string id = 1;
+  uint32 number = 2;
+}
+
 message Response {
-  string request_id = 1;
+  RequestMetadata request_id = 1;
   Entity entity = 2;
   string entity_id = 3;
   bool success = 4;

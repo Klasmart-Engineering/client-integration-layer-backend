@@ -9,7 +9,12 @@ import {
   processOnboardingRequest,
 } from '../../../../src';
 import { Class as ClassDB } from '../../../../src/lib/database';
-import { Class, Entity } from '../../../../src/lib/protos';
+import {
+  BatchOnboarding,
+  Class,
+  Entity,
+  Responses,
+} from '../../../../src/lib/protos';
 import { AdminService } from '../../../../src/lib/services';
 import { Context } from '../../../../src/lib/utils';
 import { LOG_STUB, wrapRequest } from '../../../util';
@@ -144,7 +149,7 @@ describe('class validation', () => {
       .stub(admin, 'createClasses')
       .resolves([{ id: uuidv4(), name: 'Test Class' }]);
     orgStub = sinon.stub(ctx, 'organizationIdIsValid');
-    
+
     schoolStub = sinon.stub(ctx, 'getSchoolId').resolves();
     classStub = sinon
       .stub(ctx, 'getClassId')
@@ -175,19 +180,8 @@ describe('class validation', () => {
     INVALID_CLASSES.forEach(({ scenario, c }) => {
       it(scenario, async () => {
         const req = wrapRequest(c);
-        const resp = await processOnboardingRequest(req, LOG_STUB);
-        expect(resp).not.to.be.undefined;
-        const responses = resp.toObject().responsesList;
-        expect(responses).to.have.lengthOf(1);
-        const response = responses[0];
-        expect(response.success).to.be.false;
-        expect(response.requestId).to.equal(
-          req.getRequestsList()[0].getRequestId()
-        );
-        expect(response.entityId).to.equal(
-          req.getRequestsList()[0].getClass()?.getExternalUuid()
-        );
-        expect(response.entity).to.equal(Entity.CLASS);
+        const resp = await makeCommonAssertions(req);
+        const response = resp.toObject().responsesList[0];
         expect(response.errors?.validation).not.to.be.undefined;
       });
     });
@@ -203,19 +197,8 @@ describe('class validation', () => {
         LOG_STUB
       )
     );
-    const resp = await processOnboardingRequest(req, LOG_STUB);
-    expect(resp).not.to.be.undefined;
-    const responses = resp.toObject().responsesList;
-    expect(responses).to.have.lengthOf(1);
-    const response = responses[0];
-    expect(response.success).to.be.false;
-    expect(response.requestId).to.equal(
-      req.getRequestsList()[0].getRequestId()
-    );
-    expect(response.entityId).to.equal(
-      req.getRequestsList()[0].getClass()?.getExternalUuid()
-    );
-    expect(response.entity).to.equal(Entity.CLASS);
+    const resp = await makeCommonAssertions(req);
+    const response = resp.toObject().responsesList[0];
     expect(response.errors?.validation).not.to.be.undefined;
   });
 
@@ -229,38 +212,16 @@ describe('class validation', () => {
         LOG_STUB
       )
     );
-    const resp = await processOnboardingRequest(req, LOG_STUB);
-    expect(resp).not.to.be.undefined;
-    const responses = resp.toObject().responsesList;
-    expect(responses).to.have.lengthOf(1);
-    const response = responses[0];
-    expect(response.success).to.be.false;
-    expect(response.requestId).to.equal(
-      req.getRequestsList()[0].getRequestId()
-    );
-    expect(response.entityId).to.equal(
-      req.getRequestsList()[0].getClass()?.getExternalUuid()
-    );
-    expect(response.entity).to.equal(Entity.CLASS);
+    const resp = await makeCommonAssertions(req);
+    const response = resp.toObject().responsesList[0];
     expect(response.errors?.validation).not.to.be.undefined;
   });
 
   it('should fail if the class ID already exists', async () => {
     const req = wrapRequest(VALID_CLASSES[0].c);
     classStub.resolves();
-    const resp = await processOnboardingRequest(req, LOG_STUB);
-    expect(resp).not.to.be.undefined;
-    const responses = resp.toObject().responsesList;
-    expect(responses).to.have.lengthOf(1);
-    const response = responses[0];
-    expect(response.success).to.be.false;
-    expect(response.requestId).to.equal(
-      req.getRequestsList()[0].getRequestId()
-    );
-    expect(response.entityId).to.equal(
-      req.getRequestsList()[0].getClass()?.getExternalUuid()
-    );
-    expect(response.entity).to.equal(Entity.CLASS);
+    const resp = await makeCommonAssertions(req);
+    const response = resp.toObject().responsesList[0];
     expect(response.errors?.entityAlreadyExists).not.to.be.undefined;
   });
 });
@@ -277,4 +238,26 @@ function setUpClass(
   if (orgId) s.setExternalOrganizationUuid(uuidv4());
   if (schoolId) s.setExternalSchoolUuid(uuidv4());
   return s;
+}
+
+async function makeCommonAssertions(req: BatchOnboarding): Promise<Responses> {
+  try {
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+    expect(resp).not.to.be.undefined;
+    const responses = resp.toObject().responsesList;
+    expect(responses).to.have.lengthOf(1);
+    const response = responses[0];
+    expect(response.success).to.be.false;
+    expect(response.requestId).to.eql(
+      req.getRequestsList()[0].getRequestId()?.toObject()
+    );
+    expect(response.entityId).to.equal(
+      req.getRequestsList()[0].getClass()?.getExternalUuid()
+    );
+    expect(response.entity).to.equal(Entity.CLASS);
+    return resp;
+  } catch (error) {
+    expect(error, 'this api should not error').to.be.undefined;
+  }
+  throw new Error('Unexpected reached the end of the test');
 }

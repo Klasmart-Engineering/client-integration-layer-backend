@@ -16,6 +16,7 @@ import {
 } from '../../../errors';
 import { Entity as PbEntity, User as PbUser, Response } from '../../../protos';
 import { Entity } from '../../../types';
+import { requestIdToProtobuf } from '../../batchRequest';
 import { Result } from '../../process';
 
 import { IncomingData } from '.';
@@ -33,7 +34,7 @@ export async function validateMany(
       const e = convertErrorToProtobuf(error, log);
       const resp = new Response()
         .setSuccess(false)
-        .setRequestId(d.requestId)
+        .setRequestId(requestIdToProtobuf(d.requestId))
         .setEntity(PbEntity.USER)
         .setEntityId(d.protobuf.getExternalUuid())
         .setErrors(e);

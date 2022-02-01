@@ -11,6 +11,7 @@ import { Entity, Response } from '../../../protos';
 import { Result } from '../../process';
 
 import { IncomingData } from '.';
+import { requestIdToProtobuf } from '../../batchRequest';
 
 export async function prepare(
   schools: IncomingData[],
@@ -30,7 +31,7 @@ export async function prepare(
     } catch (error) {
       const r = new Response()
         .setEntity(Entity.SCHOOL)
-        .setRequestId(school.requestId)
+        .setRequestId(requestIdToProtobuf(school.requestId))
         .setSuccess(false);
       if (error instanceof Errors || error instanceof OnboardingError) {
         r.setErrors(error.toProtobufError());

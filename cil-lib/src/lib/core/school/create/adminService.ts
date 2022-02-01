@@ -12,6 +12,7 @@ import { AdminService } from '../../../services';
 import { Result } from '../../process';
 
 import { IncomingData } from '.';
+import { requestIdToProtobuf } from '../../batchRequest';
 
 export async function sendRequest(
   schools: IncomingData[],
@@ -58,7 +59,7 @@ export async function sendRequest(
     for (const s of schools) {
       const r = new Response()
         .setEntity(Entity.SCHOOL)
-        .setRequestId(s.requestId)
+        .setRequestId(requestIdToProtobuf(s.requestId))
         .setSuccess(false);
       if (error instanceof Errors || error instanceof OnboardingError) {
         r.setErrors(error.toProtobufError());

@@ -21,6 +21,7 @@ import {
   Link,
   OnboardingRequest,
   Organization,
+  RequestMetadata,
   School,
   User,
 } from '../protos';
@@ -42,10 +43,15 @@ import {
 } from '.';
 
 export interface IdTracked<T extends Message, U> {
-  requestId: Uuid;
+  requestId: RequestId;
   protobuf: T;
   data: Partial<ReturnType<T['toObject']> & U>;
 }
+
+export type RequestId = {
+  id: Uuid;
+  n: number;
+};
 
 export class RequestBatch {
   private index = 0;
@@ -148,8 +154,21 @@ export class RequestBatch {
           log
         );
       const arr = map.get(key) || [];
+      const tempId = req.getRequestId();
+      let reqId;
+      if (tempId) {
+        reqId = {
+          id: tempId.getId(),
+          n: tempId.getNumber(),
+        };
+      } else {
+        reqId = {
+          id: 'NOT PROVIDED',
+          n: -1,
+        };
+      }
       arr.push({
-        requestId: req.getRequestId(),
+        requestId: reqId,
         protobuf: request,
         data: request.toObject(),
       } as OnboardingData);
@@ -265,6 +284,10 @@ export class RequestBatch {
     if (data.length === 0) return this.getNextOperation();
     return op;
   }
+}
+
+export function requestIdToProtobuf(id: RequestId): RequestMetadata {
+  return new RequestMetadata().setId(id.id).setNumber(id.n);
 }
 
 export type OnboardingOperation =

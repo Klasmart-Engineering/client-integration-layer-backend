@@ -9,6 +9,7 @@ import {
 import { Entity, Response } from '../../../protos';
 
 import { IncomingData } from '.';
+import { requestIdToProtobuf } from '../../batchRequest';
 
 export async function persist(
   schools: IncomingData[],
@@ -19,10 +20,9 @@ export async function persist(
     const school = incomingData.data;
     const requestId = incomingData.requestId;
 
-    const response = new Response();
-    response.setEntity(Entity.SCHOOL);
-    response.setEntityId(school.externalUuid!);
-    response.setRequestId(requestId);
+    const response = new Response().setEntity(Entity.SCHOOL)
+    .setEntityId(school.externalUuid!)
+    .setRequestId(requestIdToProtobuf(requestId));
 
     const schoolInput = {
       externalUuid: school.externalUuid!,

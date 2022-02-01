@@ -9,7 +9,14 @@ import {
   processOnboardingRequest,
 } from '../../../../src';
 import * as ProcessFns from '../../../../src/lib/core/process';
-import { Entity, Gender, Response, User } from '../../../../src/lib/protos';
+import {
+  BatchOnboarding,
+  Entity,
+  Gender,
+  Response,
+  Responses,
+  User,
+} from '../../../../src/lib/protos';
 import { Context } from '../../../../src/lib/utils';
 import { LOG_STUB, wrapRequest } from '../../../util';
 
@@ -256,24 +263,9 @@ describe('user validation', () => {
     INVALID_USERS.forEach(({ scenario, user }) => {
       it(scenario, async () => {
         const req = wrapRequest(user);
-        try {
-          const resp = await processOnboardingRequest(req, LOG_STUB);
-          expect(resp).not.to.be.undefined;
-          const responses = resp.toObject().responsesList;
-          expect(responses).to.have.lengthOf(1);
-          const response = responses[0];
-          expect(response.success).to.be.false;
-          expect(response.requestId).to.equal(
-            req.getRequestsList()[0].getRequestId()
-          );
-          expect(response.entityId).to.equal(
-            req.getRequestsList()[0].getUser()?.getExternalUuid()
-          );
-          expect(response.entity).to.equal(Entity.USER);
-          expect(response.errors?.validation).not.to.be.undefined;
-        } catch (error) {
-          expect(error).to.be.undefined;
-        }
+        const resp = await makeCommonAssertions(req);
+        expect(resp?.toObject().responsesList[0].errors?.validation).not.to.be
+          .undefined;
       });
     });
   });
@@ -288,25 +280,10 @@ describe('user validation', () => {
         LOG_STUB
       )
     );
-    try {
-      const resp = await processOnboardingRequest(req, LOG_STUB);
-      expect(resp).not.to.be.undefined;
-      const responses = resp.toObject().responsesList;
-      expect(responses).to.have.lengthOf(1);
-      const response = responses[0];
-      expect(response.success).to.be.false;
-      expect(response.requestId).to.equal(
-        req.getRequestsList()[0].getRequestId()
-      );
-      expect(response.entityId).to.equal(
-        req.getRequestsList()[0].getUser()?.getExternalUuid()
-      );
-      expect(response.entity).to.equal(Entity.USER);
-      expect(response.errors?.validation).not.to.be.undefined;
-      expect(response.errors?.validation?.errorsList[0]).not.to.be.undefined;
-    } catch (error) {
-      expect(error).to.be.undefined;
-    }
+    const resp = await makeCommonAssertions(req);
+    const response = resp?.toObject().responsesList[0];
+    expect(response.errors?.validation).not.to.be.undefined;
+    expect(response.errors?.validation?.errorsList[0]).not.to.be.undefined;
   });
 
   it('should fail if the user ID already exists', async () => {
@@ -319,24 +296,9 @@ describe('user validation', () => {
         LOG_STUB
       )
     );
-    try {
-      const resp = await processOnboardingRequest(req, LOG_STUB);
-      expect(resp).not.to.be.undefined;
-      const responses = resp.toObject().responsesList;
-      expect(responses).to.have.lengthOf(1);
-      const response = responses[0];
-      expect(response.success).to.be.false;
-      expect(response.requestId).to.equal(
-        req.getRequestsList()[0].getRequestId()
-      );
-      expect(response.entityId).to.equal(
-        req.getRequestsList()[0].getUser()?.getExternalUuid()
-      );
-      expect(response.entity).to.equal(Entity.USER);
-      expect(response.errors?.entityAlreadyExists).not.to.be.undefined;
-    } catch (error) {
-      expect(error).to.be.undefined;
-    }
+    const resp = await makeCommonAssertions(req);
+    const response = resp?.toObject().responsesList[0];
+    expect(response.errors?.entityAlreadyExists).not.to.be.undefined;
   });
 
   it('should fail if role names does not exist', async () => {
@@ -349,25 +311,10 @@ describe('user validation', () => {
         LOG_STUB
       )
     );
-    try {
-      const resp = await processOnboardingRequest(req, LOG_STUB);
-      expect(resp).not.to.be.undefined;
-      const responses = resp.toObject().responsesList;
-      expect(responses).to.have.lengthOf(1);
-      const response = responses[0];
-      expect(response.success).to.be.false;
-      expect(response.requestId).to.equal(
-        req.getRequestsList()[0].getRequestId()
-      );
-      expect(response.entityId).to.equal(
-        req.getRequestsList()[0].getUser()?.getExternalUuid()
-      );
-      expect(response.entity).to.equal(Entity.USER);
-      expect(response.errors?.validation).not.to.be.undefined;
-      expect(response.errors?.validation?.errorsList[0]).not.to.be.undefined;
-    } catch (error) {
-      expect(error).to.be.undefined;
-    }
+    const resp = await makeCommonAssertions(req);
+    const response = resp?.toObject().responsesList[0];
+    expect(response.errors?.validation).not.to.be.undefined;
+    expect(response.errors?.validation?.errorsList[0]).not.to.be.undefined;
   });
 });
 
@@ -398,4 +345,26 @@ function setUpUser(user = USER): User {
   if (shortCode) u.setShortCode('abcdef');
   if (roleIdentifiers) u.addRoleIdentifiers('Role');
   return u;
+}
+
+async function makeCommonAssertions(req: BatchOnboarding): Promise<Responses> {
+  try {
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+    expect(resp).not.to.be.undefined;
+    const responses = resp.toObject().responsesList;
+    expect(responses).to.have.lengthOf(1);
+    const response = responses[0];
+    expect(response.success).to.be.false;
+    expect(response.requestId).to.eql(
+      req.getRequestsList()[0].getRequestId()?.toObject()
+    );
+    expect(response.entityId).to.equal(
+      req.getRequestsList()[0].getUser()?.getExternalUuid()
+    );
+    expect(response.entity).to.equal(Entity.USER);
+    return resp;
+  } catch (error) {
+    expect(error, 'this api should not error').to.be.undefined;
+  }
+  throw new Error('Unexpected reached the end of the test');
 }

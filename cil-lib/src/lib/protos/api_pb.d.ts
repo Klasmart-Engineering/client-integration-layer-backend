@@ -407,8 +407,11 @@ export namespace Link {
 }
 
 export class OnboardingRequest extends jspb.Message { 
-    getRequestId(): string;
-    setRequestId(value: string): OnboardingRequest;
+
+    hasRequestId(): boolean;
+    clearRequestId(): void;
+    getRequestId(): RequestMetadata | undefined;
+    setRequestId(value?: RequestMetadata): OnboardingRequest;
     getAction(): Action;
     setAction(value: Action): OnboardingRequest;
 
@@ -451,7 +454,7 @@ export class OnboardingRequest extends jspb.Message {
 
 export namespace OnboardingRequest {
     export type AsObject = {
-        requestId: string,
+        requestId?: RequestMetadata.AsObject,
         action: Action,
         linkEntities?: Link.AsObject,
         organization?: Organization.AsObject,
@@ -515,9 +518,35 @@ export namespace Responses {
     }
 }
 
+export class RequestMetadata extends jspb.Message { 
+    getId(): string;
+    setId(value: string): RequestMetadata;
+    getNumber(): number;
+    setNumber(value: number): RequestMetadata;
+
+    serializeBinary(): Uint8Array;
+    toObject(includeInstance?: boolean): RequestMetadata.AsObject;
+    static toObject(includeInstance: boolean, msg: RequestMetadata): RequestMetadata.AsObject;
+    static extensions: {[key: number]: jspb.ExtensionFieldInfo<jspb.Message>};
+    static extensionsBinary: {[key: number]: jspb.ExtensionFieldBinaryInfo<jspb.Message>};
+    static serializeBinaryToWriter(message: RequestMetadata, writer: jspb.BinaryWriter): void;
+    static deserializeBinary(bytes: Uint8Array): RequestMetadata;
+    static deserializeBinaryFromReader(message: RequestMetadata, reader: jspb.BinaryReader): RequestMetadata;
+}
+
+export namespace RequestMetadata {
+    export type AsObject = {
+        id: string,
+        number: number,
+    }
+}
+
 export class Response extends jspb.Message { 
-    getRequestId(): string;
-    setRequestId(value: string): Response;
+
+    hasRequestId(): boolean;
+    clearRequestId(): void;
+    getRequestId(): RequestMetadata | undefined;
+    setRequestId(value?: RequestMetadata): Response;
     getEntity(): Entity;
     setEntity(value: Entity): Response;
     getEntityId(): string;
@@ -542,7 +571,7 @@ export class Response extends jspb.Message {
 
 export namespace Response {
     export type AsObject = {
-        requestId: string,
+        requestId?: RequestMetadata.AsObject,
         entity: Entity,
         entityId: string,
         success: boolean,

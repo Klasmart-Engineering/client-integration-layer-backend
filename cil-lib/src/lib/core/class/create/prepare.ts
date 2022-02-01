@@ -8,6 +8,7 @@ import {
   tryGetMember,
 } from '../../../errors';
 import { Entity, Response } from '../../../protos';
+import { requestIdToProtobuf } from '../../batchRequest';
 import { Result } from '../../process';
 
 import { IncomingData } from '.';
@@ -30,7 +31,7 @@ export async function prepare(
     } catch (error) {
       const r = new Response()
         .setEntity(Entity.CLASS)
-        .setRequestId(clazz.requestId)
+        .setRequestId(requestIdToProtobuf(clazz.requestId))
         .setSuccess(false);
       if (error instanceof Errors || error instanceof OnboardingError) {
         r.setErrors(error.toProtobufError());

@@ -7,6 +7,7 @@ import {
   OnboardingError,
 } from '../../../errors';
 import { Entity, Response } from '../../../protos';
+import { requestIdToProtobuf } from '../../batchRequest';
 
 import { IncomingData } from '.';
 
@@ -19,10 +20,10 @@ export async function persist(
     const clazz = incomingData.data;
     const requestId = incomingData.requestId;
 
-    const response = new Response();
-    response.setEntity(Entity.CLASS);
-    response.setEntityId(clazz.externalUuid!);
-    response.setRequestId(requestId);
+    const response = new Response()
+      .setEntity(Entity.CLASS)
+      .setEntityId(clazz.externalUuid!)
+      .setRequestId(requestIdToProtobuf(requestId));
 
     const classInput = {
       externalUuid: clazz.externalUuid!,

@@ -12,6 +12,7 @@ import { ExternalUuid } from '../../utils';
 import { Result } from '../process';
 
 import { IncomingData } from '.';
+import { requestIdToProtobuf } from '../batchRequest';
 
 export async function validateMany(
   data: IncomingData[],
@@ -26,7 +27,7 @@ export async function validateMany(
       for (const i of result.invalid) {
         const resp = new Response()
           .setSuccess(false)
-          .setRequestId(d.requestId)
+          .setRequestId(requestIdToProtobuf(d.requestId))
           .setEntity(PbEntity.USER)
           .setEntityId(i)
           .setErrors(
@@ -43,7 +44,7 @@ export async function validateMany(
       for (const userId of d.protobuf.getExternalUserUuidsList()) {
         const resp = new Response()
           .setSuccess(false)
-          .setRequestId(d.requestId)
+          .setRequestId(requestIdToProtobuf(d.requestId))
           .setEntity(PbEntity.USER)
           .setEntityId(userId)
           .setErrors(e);
