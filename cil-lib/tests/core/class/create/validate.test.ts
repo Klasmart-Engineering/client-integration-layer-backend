@@ -8,8 +8,9 @@ import {
   OnboardingError,
   processOnboardingRequest,
 } from '../../../../src';
-import * as ProcessFns from '../../../../src/lib/core/process';
-import { Class, Entity, Response } from '../../../../src/lib/protos';
+import { Class as ClassDB } from '../../../../src/lib/database';
+import { Class, Entity } from '../../../../src/lib/protos';
+import { AdminService } from '../../../../src/lib/services';
 import { Context } from '../../../../src/lib/utils';
 import { LOG_STUB, wrapRequest } from '../../../util';
 
@@ -134,33 +135,22 @@ describe('class validation', () => {
   let orgStub: SinonStub;
   let schoolStub: SinonStub;
   let classStub: SinonStub;
-  let _composeFunctions: {
-    prepare: SinonStub;
-    sendRequest: SinonStub;
-    store: SinonStub;
-  };
   const ctx = Context.getInstance();
 
   beforeEach(async () => {
+    process.env.ADMIN_SERVICE_API_KEY = uuidv4();
+    const admin = await AdminService.getInstance();
+    sinon
+      .stub(admin, 'createClasses')
+      .resolves([{ id: uuidv4(), name: 'Test Class' }]);
     orgStub = sinon.stub(ctx, 'organizationIdIsValid');
+    
     schoolStub = sinon.stub(ctx, 'getSchoolId').resolves();
     classStub = sinon
       .stub(ctx, 'getClassId')
       .rejects(new Error('Does not exist'));
-    const resp = [new Response().setSuccess(true)];
-    _composeFunctions = {
-      prepare: sinon
-        .stub(ProcessFns, 'DUMMY_PREPARE')
-        .callsFake(async (data) => {
-          return [{ valid: data, invalid: [] }, LOG_STUB];
-        }),
-      sendRequest: sinon
-        .stub(ProcessFns, 'DUMMY_SEND_REQUEST')
-        .callsFake(async (data) => {
-          return [{ valid: data, invalid: [] }, LOG_STUB];
-        }),
-      store: sinon.stub(ProcessFns, 'DUMMY_STORE').resolves(resp),
-    };
+    sinon.stub(ctx, 'getOrganizationId').resolves(uuidv4());
+    sinon.stub(ClassDB, 'insertOne').resolves();
   });
 
   afterEach(() => {
