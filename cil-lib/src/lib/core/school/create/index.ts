@@ -4,7 +4,7 @@ import { Response, School } from '../../../protos';
 import { Operation } from '../../../types';
 import { Uuid } from '../../../utils';
 import { IdTracked } from '../../batchRequest';
-import { compose, DUMMY_STORE } from '../../process';
+import { compose } from '../../process';
 
 import { sendRequest } from './adminService';
 import { persist } from './database';

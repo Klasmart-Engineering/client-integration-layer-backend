@@ -143,9 +143,9 @@ describe('class validation', () => {
 
   beforeEach(async () => {
     orgStub = sinon.stub(ctx, 'organizationIdIsValid');
-    schoolStub = sinon.stub(ctx, 'schoolIdIsValid').resolves();
+    schoolStub = sinon.stub(ctx, 'getSchoolId').resolves();
     classStub = sinon
-      .stub(ctx, 'classIdIsValid')
+      .stub(ctx, 'getClassId')
       .rejects(new Error('Does not exist'));
     const resp = [new Response().setSuccess(true)];
     _composeFunctions = {

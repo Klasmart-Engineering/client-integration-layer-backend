@@ -64,27 +64,12 @@ export class School {
     }
   }
 
-  public static async isValid(id: ExternalUuid, log: Logger): Promise<boolean> {
+  public static async getKidsloopId(
+    id: ExternalUuid,
+    log: Logger
+  ): Promise<Uuid> {
     try {
       const school = await prisma.school.findUnique({
-        where: {
-          externalUuid: id,
-        },
-        select: {
-          externalUuid: true,
-        },
-      });
-      if (school) return true;
-      throw ENTITY_NOT_FOUND(id, this.entity, log);
-    } catch (error) {
-      const msg = returnMessageOrThrowOnboardingError(error);
-      throw POSTGRES_IS_VALID_QUERY(id, this.entity, msg, log);
-    }
-  }
-
-  public static async getId(id: ExternalUuid, log: Logger): Promise<Uuid> {
-    try {
-      const klUuid = await prisma.school.findUnique({
         where: {
           externalUuid: id,
         },
@@ -92,11 +77,11 @@ export class School {
           klUuid: true,
         },
       });
-      if (klUuid && klUuid.klUuid) return klUuid.klUuid;
+      if (school) return school.klUuid;
       throw ENTITY_NOT_FOUND(id, this.entity, log);
     } catch (error) {
       const msg = returnMessageOrThrowOnboardingError(error);
-      throw POSTGRES_GET_KIDSLOOP_ID_QUERY(id, this.entity, msg, log);
+      throw POSTGRES_IS_VALID_QUERY(id, this.entity, msg, log);
     }
   }
 

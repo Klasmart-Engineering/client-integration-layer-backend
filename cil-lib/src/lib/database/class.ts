@@ -78,7 +78,10 @@ export class Class {
     }
   }
 
-  public static async getId(id: ExternalUuid, log: Logger): Promise<Uuid> {
+  public static async getKidsloopId(
+    id: ExternalUuid,
+    log: Logger
+  ): Promise<Uuid> {
     try {
       const klUuid = await prisma.organization.findUnique({
         where: {

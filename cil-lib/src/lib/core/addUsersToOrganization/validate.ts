@@ -2,7 +2,13 @@ import { Logger } from 'pino';
 
 import { Context } from '../../..';
 import { convertErrorToProtobuf } from '../../errors';
-import { Entity as PbEntity, Response } from '../../protos';
+import {
+  EntityDoesNotExistError,
+  Entity as PbEntity,
+  Error as PbError,
+  Response,
+} from '../../protos';
+import { ExternalUuid } from '../../utils';
 import { Result } from '../process';
 
 import { IncomingData } from '.';
@@ -15,7 +21,23 @@ export async function validateMany(
   const invalid = [];
   for (const d of data) {
     try {
-      valid.push(await validate(d, log));
+      const result = await validate(d, log);
+      valid.push(result.valid);
+      for (const i of result.invalid) {
+        const resp = new Response()
+          .setSuccess(false)
+          .setRequestId(d.requestId)
+          .setEntity(PbEntity.USER)
+          .setEntityId(i)
+          .setErrors(
+            new PbError().setEntityDoesNotExist(
+              new EntityDoesNotExistError().setDetailsList([
+                `Unable to find user with id ${i}`,
+              ])
+            )
+          );
+        invalid.push(resp);
+      }
     } catch (error) {
       const e = convertErrorToProtobuf(error, log);
       for (const userId of d.protobuf.getExternalUserUuidsList()) {
@@ -32,7 +54,10 @@ export async function validateMany(
   return [{ valid, invalid }, log];
 }
 
-async function validate(r: IncomingData, log: Logger): Promise<IncomingData> {
+async function validate(
+  r: IncomingData,
+  log: Logger
+): Promise<{ valid: IncomingData; invalid: ExternalUuid[] }> {
   const { protobuf } = r;
   const orgId = protobuf.getExternalOrganizationUuid();
   const ctx = Context.getInstance();
@@ -42,9 +67,16 @@ async function validate(r: IncomingData, log: Logger): Promise<IncomingData> {
   // Check the target users are valid
   // This is an all or nothing
   // @TODO - do we want to make this more lienient
-  await ctx.userIdsAreValid(protobuf.getExternalUserUuidsList(), log);
+  const { valid, invalid } = await ctx.userIdsAreValid(
+    protobuf.getExternalUserUuidsList(),
+    log
+  );
+
+  // Re-make the initial request with only the valid users
+  protobuf.setExternalUserUuidsList(Array.from(valid.keys()));
+  r.data.externalUserUuidsList = Array.from(valid.keys());
 
   // Check the roles are valid
   await ctx.rolesAreValid(protobuf.getRoleIdentifiersList(), orgId, log);
-  return r;
+  return { valid: r, invalid };
 }

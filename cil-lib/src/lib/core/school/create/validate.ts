@@ -91,7 +91,7 @@ async function entityValidation(
   const ctx = Context.getInstance();
   let alreadyExists = false;
   try {
-    await ctx.schoolIdIsValid(e.externalUuid, log);
+    await ctx.getSchoolId(e.externalUuid, log);
     alreadyExists = true;
   } catch (_) {
     /* if the school id is NOT valid, then we want to add it */

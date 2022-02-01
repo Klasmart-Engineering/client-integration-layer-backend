@@ -143,7 +143,7 @@ describe('school validation', () => {
     orgIsValidStub = sinon.stub(ctx, 'organizationIdIsValid').resolves();
     sinon.stub(ctx, 'getOrganizationId').resolves(uuidv4());
     schoolIsValidStub = sinon
-      .stub(ctx, 'schoolIdIsValid')
+      .stub(ctx, 'getSchoolId')
       .rejects(new Error('Does not exist'));
     sinon
       .stub(admin, 'createSchools')
