@@ -120,7 +120,8 @@ export class User {
 
   public static async getKidsloopId(
     id: ExternalUuid,
-    log: Logger
+    log: Logger,
+    shouldLogNotFoundError = true
   ): Promise<Uuid> {
     try {
       const klUuid = await prisma.user.findUnique({
@@ -132,7 +133,7 @@ export class User {
         },
       });
       if (klUuid && klUuid.klUuid) return klUuid.klUuid;
-      throw ENTITY_NOT_FOUND(id, this.entity, log);
+      throw ENTITY_NOT_FOUND(id, this.entity, log, {}, shouldLogNotFoundError);
     } catch (error) {
       const msg = returnMessageOrThrowOnboardingError(error);
       throw POSTGRES_GET_KIDSLOOP_ID_QUERY(id, this.entity, msg, log);

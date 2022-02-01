@@ -91,7 +91,7 @@ async function entityValidation(
   const ctx = Context.getInstance();
   let alreadyExists = false;
   try {
-    await ctx.getClassId(e.externalUuid, log);
+    await ctx.getClassId(e.externalUuid, log, false);
     // If the class already exists, then we want to error and not add it
     alreadyExists = true;
   } catch (_) {

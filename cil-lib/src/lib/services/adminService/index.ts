@@ -31,7 +31,18 @@ type SupportedConnections =
   | 'rolesConnection'
   | 'organizationConnection';
 
-type MutationAccessor = 'createSchools';
+type MutationAccessor =
+  | 'createSchools'
+  | 'createClasses'
+  | 'createUsers'
+  | 'addStudentsToClasses'
+  | 'addTeachersToClasses'
+  | 'addUsersToOrganizations'
+  | 'addOrganizationRolesToUsers'
+  | 'addClassesToSchools'
+  | 'addProgramsToClasses'
+  | 'addProgramsToSchools'
+  | 'addUsersToSchools';
 
 export type IdNameMapper = {
   id: Uuid;
@@ -49,17 +60,17 @@ export class AdminService {
 
   private constructor(
     private _client: ApolloClient<NormalizedCacheObject>,
-    jwt: string
+    apiKey: string
   ) {
-    this.context = { headers: { authorization: jwt } };
+    this.context = { headers: { authorization: `Bearer ${apiKey}` } };
   }
 
   public static async getInstance() {
     if (this._instance) return this._instance;
 
-    const jwt = process.env.ADMIN_SERVICE_JWT;
-    if (!jwt || jwt.length === 0) {
-      throw ENVIRONMENT_VARIABLE_ERROR('ADMIN_SERVICE_JWT');
+    const apiKey = process.env.ADMIN_SERVICE_API_KEY;
+    if (!apiKey || apiKey.length === 0) {
+      throw ENVIRONMENT_VARIABLE_ERROR('ADMIN_SERVICE_API_KEY');
     }
 
     const httpLink = new HttpLink({
@@ -130,7 +141,7 @@ export class AdminService {
         cache: new InMemoryCache(),
       });
 
-      this._instance = new AdminService(client, jwt);
+      this._instance = new AdminService(client, apiKey);
       baseLogger.info('Connected to KidsLoop admin service');
       return this._instance;
     } catch (error) {
@@ -219,7 +230,7 @@ export class AdminService {
     }) => responses.schools;
     const sch = await this.sendMutation(
       CREATE_SCHOOLS,
-      schools,
+      { schools },
       transformer,
       'createSchools',
       log
@@ -303,7 +314,8 @@ export class AdminService {
     return result;
   }
 
-  private async sendMutation<T, U, V>(
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  private async sendMutation<T, U, V extends Record<string, any>>(
     query: DocumentNode | TypedDocumentNode,
     variables: V,
     transformer: (responseData: U) => T[],

@@ -66,7 +66,8 @@ export class School {
 
   public static async getKidsloopId(
     id: ExternalUuid,
-    log: Logger
+    log: Logger,
+    shouldLogNotFoundError = true
   ): Promise<Uuid> {
     try {
       const school = await prisma.school.findUnique({
@@ -78,7 +79,7 @@ export class School {
         },
       });
       if (school) return school.klUuid;
-      throw ENTITY_NOT_FOUND(id, this.entity, log);
+      throw ENTITY_NOT_FOUND(id, this.entity, log, {}, shouldLogNotFoundError);
     } catch (error) {
       const msg = returnMessageOrThrowOnboardingError(error);
       throw POSTGRES_IS_VALID_QUERY(id, this.entity, msg, log);

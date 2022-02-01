@@ -224,7 +224,8 @@ export const ENTITY_NOT_FOUND = (
   id: ExternalUuid,
   entity: Entity,
   log: Logger,
-  props: Props = {}
+  props: Props = {},
+  shouldLogError = true
 ) =>
   new OnboardingError(
     MachineError.ENTITY_DOES_NOT_EXIST,
@@ -232,7 +233,10 @@ export const ENTITY_NOT_FOUND = (
     Category.POSTGRES,
     log,
     [],
-    props
+    props,
+    [],
+    'error',
+    shouldLogError
   );
 
 export const ENTITY_NOT_FOUND_FOR = (

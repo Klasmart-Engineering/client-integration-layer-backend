@@ -87,14 +87,22 @@ export class Context {
    * @returns {Uuid} the KidsLoop uuid for the organization
    * @errors if the id does not correspond to an organization in our system
    */
-  public async getOrganizationId(id: ExternalUuid, log: Logger): Promise<Uuid> {
+  public async getOrganizationId(
+    id: ExternalUuid,
+    log: Logger,
+    shouldLogNotFoundError = true
+  ): Promise<Uuid> {
     {
       const cachedKlId = this.organizations.get(id);
       if (cachedKlId) return cachedKlId;
     }
 
     // Will error
-    const klId = await Organization.getKidsloopId(id, log);
+    const klId = await Organization.getKidsloopId(
+      id,
+      log,
+      shouldLogNotFoundError
+    );
     this.organizations.set(id, klId);
     return klId;
   }
@@ -103,14 +111,18 @@ export class Context {
    * @param {ExternalUuid} id - The external uuid of the school
    * @errors if the id does not correspond to a school in our system
    */
-  public async getSchoolId(id: ExternalUuid, log: Logger): Promise<Uuid> {
+  public async getSchoolId(
+    id: ExternalUuid,
+    log: Logger,
+    shouldLogNotFoundError = true
+  ): Promise<Uuid> {
     {
       const klId = this.schools.get(id);
       if (klId) return klId;
     }
 
     // Will error
-    const klUuid = await School.getKidsloopId(id, log);
+    const klUuid = await School.getKidsloopId(id, log, shouldLogNotFoundError);
     this.schools.set(id, klUuid);
     return klUuid;
   }
@@ -119,14 +131,18 @@ export class Context {
    * @param {ExternalUuid} id - The external uuid of the class
    * @errors if the id does not correspond to a class in our system
    */
-  public async getClassId(id: ExternalUuid, log: Logger): Promise<Uuid> {
+  public async getClassId(
+    id: ExternalUuid,
+    log: Logger,
+    shouldLogNotFoundError = true
+  ): Promise<Uuid> {
     {
       const klId = this.classes.get(id);
       if (klId) return klId;
     }
 
     // Will error
-    const klUuid = await Class.getKidsloopId(id, log);
+    const klUuid = await Class.getKidsloopId(id, log, shouldLogNotFoundError);
     this.classes.set(id, klUuid);
     return klUuid;
   }

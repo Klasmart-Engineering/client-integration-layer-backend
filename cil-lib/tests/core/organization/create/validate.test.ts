@@ -74,7 +74,7 @@ describe('organization validation', () => {
   };
 
   before(() => {
-    process.env.ADMIN_SERVICE_JWT = 'abcdefg';
+    process.env.ADMIN_SERVICE_API_KEY = 'abcdefg';
   });
 
   beforeEach(async () => {

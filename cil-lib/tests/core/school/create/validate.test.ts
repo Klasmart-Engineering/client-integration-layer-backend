@@ -138,7 +138,7 @@ describe('school validation', () => {
   const ctx = Context.getInstance();
 
   beforeEach(async () => {
-    process.env.ADMIN_SERVICE_JWT = uuidv4();
+    process.env.ADMIN_SERVICE_API_KEY = uuidv4();
     const admin = await AdminService.getInstance();
     orgIsValidStub = sinon.stub(ctx, 'organizationIdIsValid').resolves();
     sinon.stub(ctx, 'getOrganizationId').resolves(uuidv4());
