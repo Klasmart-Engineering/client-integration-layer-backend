@@ -152,7 +152,7 @@ export async function compose<T extends IdTracked<V, U>, V extends Message, U>(
     responses = responses.concat(databaseResult);
   } catch (error) {
     log.warn(
-      { error },
+      { error: error instanceof Error ? error.message : `${error}` },
       'If you are seeing this message, it means that errors that should have already been caught have made their way through in to the compose function'
     );
   }
