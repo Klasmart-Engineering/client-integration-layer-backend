@@ -142,7 +142,7 @@ describe('class validation', () => {
   const ctx = Context.getInstance();
 
   beforeEach(async () => {
-    orgStub = sinon.stub(ctx, 'organizationIdIsValid').resolves(uuidv4());
+    orgStub = sinon.stub(ctx, 'organizationIdIsValid');
     schoolStub = sinon.stub(ctx, 'schoolIdIsValid').resolves();
     classStub = sinon
       .stub(ctx, 'classIdIsValid')

@@ -7,6 +7,7 @@ import { IdTracked } from '../../batchRequest';
 import { compose, DUMMY_STORE } from '../../process';
 
 import { sendRequest } from './adminService';
+import { persist } from './database';
 import { prepare } from './prepare';
 import { validateMany } from './validate';
 
@@ -25,7 +26,7 @@ export function process(
     validateMany,
     prepare,
     sendRequest,
-    DUMMY_STORE,
+    persist,
     data,
     Operation.CREATE_SCHOOL,
     log

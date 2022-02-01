@@ -8,10 +8,11 @@ import {
   OnboardingError,
   processOnboardingRequest,
 } from '../../../../src';
-import * as ProcessFns from '../../../../src/lib/core/process';
 import { Entity, Response, School } from '../../../../src/lib/protos';
 import { Context } from '../../../../src/lib/utils';
+import { AdminService } from '../../../../src/lib/services';
 import { LOG_STUB, wrapRequest } from '../../../util';
+import { School as SchoolDB } from '../../../../src/lib/database';
 
 export type SchoolTestCase = {
   scenario: string;
@@ -132,40 +133,35 @@ export const INVALID_SCHOOLS: SchoolTestCase[] = [
 
 describe('school validation', () => {
   let orgIsValidStub: SinonStub;
+  let getOrgIdStub: SinonStub;
   let schoolIsValidStub: SinonStub;
-  let _composeFunctions: {
-    prepare: SinonStub;
-    sendRequest: SinonStub;
-    store: SinonStub;
-  };
+  let adminCreateSchoolsStub: SinonStub;
+  let schoolDbStub: SinonStub;
+  
   const ctx = Context.getInstance();
 
   beforeEach(async () => {
+    const admin = await AdminService.getInstance();
     orgIsValidStub = sinon
-      .stub(ctx, 'organizationIdIsValid')
-      .resolves(uuidv4());
+      .stub(ctx, 'organizationIdIsValid').resolves();
+    getOrgIdStub = sinon
+      .stub(ctx, 'getOrganizationId').resolves(uuidv4());
     schoolIsValidStub = sinon
       .stub(ctx, 'schoolIdIsValid')
       .rejects(new Error('Does not exist'));
+      adminCreateSchoolsStub = sinon
+      .stub(admin, 'createSchools').resolves([{id: uuidv4(), name: 'Test School'}]);
     const resp = [new Response().setSuccess(true)];
-    _composeFunctions = {
-      prepare: sinon
-        .stub(ProcessFns, 'DUMMY_PREPARE')
-        .callsFake(async (data) => {
-          return [{ valid: data, invalid: [] }, LOG_STUB];
-        }),
-      sendRequest: sinon
-        .stub(ProcessFns, 'DUMMY_SEND_REQUEST')
-        .callsFake(async (data) => {
-          return [{ valid: data, invalid: [] }, LOG_STUB];
-        }),
-      store: sinon.stub(ProcessFns, 'DUMMY_STORE').resolves(resp),
-    };
+    schoolDbStub = sinon
+      .stub(SchoolDB, 'insertOne').resolves();
   });
 
   afterEach(() => {
     orgIsValidStub.restore();
     schoolIsValidStub.restore();
+    adminCreateSchoolsStub.restore();
+    schoolDbStub.restore();
+    getOrgIdStub.restore();
     sinon.restore();
   });
 
@@ -173,9 +169,10 @@ describe('school validation', () => {
     it(`should pass when a school is ${scenario}`, async () => {
       const req = wrapRequest(school);
       const resp = await processOnboardingRequest(req, LOG_STUB);
+      
       const responses = resp.getResponsesList();
       expect(responses).to.have.length(1);
-      expect(responses[0]).not.to.be.undefined;
+      expect(responses[0]).not.to.be.undefined;      
       expect(responses[0].getSuccess()).to.be.true;
     });
   });
