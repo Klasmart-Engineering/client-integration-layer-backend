@@ -22,13 +22,13 @@ export class Context {
     updateAgeOnGet: true,
   });
 
-  private schools = new LRU<ExternalUuid, null>({
+  private schools = new LRU<ExternalUuid, Uuid>({
     max: 50,
     maxAge: 60 * 1000,
     updateAgeOnGet: true,
   });
 
-  private classes = new LRU<ExternalUuid, null>({
+  private classes = new LRU<ExternalUuid, Uuid>({
     max: 75,
     maxAge: 60 * 1000,
     updateAgeOnGet: true,
@@ -70,14 +70,31 @@ export class Context {
   public async organizationIdIsValid(
     id: ExternalUuid,
     log: Logger
-  ): Promise<Uuid> {
+  ): Promise<void> {
+    {
+      const cachedKlId = this.organizations.get(id);
+      if (cachedKlId) return;
+    }
+
+    // Will error
+    const klId = await Organization.getKidsloopId(id, log);
+    this.organizations.set(id, klId);
+    return;
+  }
+
+  /**
+   * @param {ExternalUuid} id - The external uuid of the organization
+   * @returns {Uuid} the KidsLoop uuid for the organization
+   * @errors if the id does not correspond to an organization in our system
+   */
+  public async getOrganizationId(id: ExternalUuid, log: Logger): Promise<Uuid> {
     {
       const cachedKlId = this.organizations.get(id);
       if (cachedKlId) return cachedKlId;
     }
 
     // Will error
-    const klId = await Organization.getId(id, log);
+    const klId = await Organization.getKidsloopId(id, log);
     this.organizations.set(id, klId);
     return klId;
   }
@@ -86,30 +103,32 @@ export class Context {
    * @param {ExternalUuid} id - The external uuid of the school
    * @errors if the id does not correspond to a school in our system
    */
-  public async schoolIdIsValid(id: ExternalUuid, log: Logger): Promise<void> {
+  public async getSchoolId(id: ExternalUuid, log: Logger): Promise<Uuid> {
     {
       const klId = this.schools.get(id);
       if (klId) return klId;
     }
 
     // Will error
-    await School.isValid(id, log);
-    this.schools.set(id, null);
+    const klUuid = await School.getKidsloopId(id, log);
+    this.schools.set(id, klUuid);
+    return klUuid;
   }
 
   /**
    * @param {ExternalUuid} id - The external uuid of the class
    * @errors if the id does not correspond to a class in our system
    */
-  public async classIdIsValid(id: ExternalUuid, log: Logger): Promise<void> {
+  public async getClassId(id: ExternalUuid, log: Logger): Promise<Uuid> {
     {
       const klId = this.classes.get(id);
       if (klId) return klId;
     }
 
     // Will error
-    await Class.isValid(id, log);
-    this.classes.set(id, null);
+    const klUuid = await Class.getKidsloopId(id, log);
+    this.classes.set(id, klUuid);
+    return klUuid;
   }
 
   /**
@@ -122,7 +141,7 @@ export class Context {
       if (cachedKlId) throw ENTITY_ALREADY_EXISTS(id, AppEntity.USER, log);
     }
     try {
-      const klId = await User.getId(id, log);
+      const klId = await User.getKidsloopId(id, log);
 
       if (klId) {
         this.users.set(id, klId);
@@ -142,24 +161,24 @@ export class Context {
   public async userIdsAreValid(
     ids: ExternalUuid[],
     log: Logger
-  ): Promise<void> {
+  ): Promise<{ valid: Map<ExternalUuid, Uuid>; invalid: ExternalUuid[] }> {
     const targets = new Set(ids);
+    const validResult = new Map();
     // Check the cache
     for (const id of ids) {
-      if (this.users.has(id)) targets.delete(id);
+      const kidsloopUuid = this.users.get(id);
+      if (kidsloopUuid) {
+        targets.delete(id);
+        validResult.set(id, kidsloopUuid);
+      }
     }
     const { valid, invalid } = await User.areValid(Array.from(targets), log);
     // Any valid entries we can add to the cache
     for (const { externalUuid, klUuid } of valid) {
       this.users.set(externalUuid, klUuid);
+      validResult.set(externalUuid, klUuid);
     }
-    if (invalid.length > 0)
-      throw new OnboardingError(
-        MachineError.VALIDATION,
-        `User ids ${invalid.join(', ')} are invalid`,
-        Category.REQUEST,
-        log
-      );
+    return { valid: validResult, invalid };
   }
 
   /**

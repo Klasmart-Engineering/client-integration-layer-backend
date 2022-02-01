@@ -214,8 +214,8 @@ describe('user validation', () => {
   const ctx = Context.getInstance();
 
   beforeEach(() => {
-    orgStub = sinon.stub(ctx, 'organizationIdIsValid').resolves(uuidv4());
-    schoolStub = sinon.stub(ctx, 'schoolIdIsValid').resolves();
+    orgStub = sinon.stub(ctx, 'organizationIdIsValid');
+    schoolStub = sinon.stub(ctx, 'getSchoolId').resolves();
     roleStub = sinon
       .stub(ctx, 'rolesAreValid')
       .resolves([{ id: uuidv4(), name: 'Role' }]);

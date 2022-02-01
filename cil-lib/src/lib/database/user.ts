@@ -118,7 +118,10 @@ export class User {
     }
   }
 
-  public static async getId(id: ExternalUuid, log: Logger): Promise<Uuid> {
+  public static async getKidsloopId(
+    id: ExternalUuid,
+    log: Logger
+  ): Promise<Uuid> {
     try {
       const klUuid = await prisma.user.findUnique({
         where: {
@@ -128,7 +131,6 @@ export class User {
           klUuid: true,
         },
       });
-      if (!klUuid) throw new Error(`${this.entity}: ${id} is not valid`);
       if (klUuid && klUuid.klUuid) return klUuid.klUuid;
       throw ENTITY_NOT_FOUND(id, this.entity, log);
     } catch (error) {

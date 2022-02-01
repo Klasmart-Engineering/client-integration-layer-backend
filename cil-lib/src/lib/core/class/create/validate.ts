@@ -91,7 +91,7 @@ async function entityValidation(
   const ctx = Context.getInstance();
   let alreadyExists = false;
   try {
-    await ctx.classIdIsValid(e.externalUuid, log);
+    await ctx.getClassId(e.externalUuid, log);
     // If the class already exists, then we want to error and not add it
     alreadyExists = true;
   } catch (_) {
@@ -100,7 +100,7 @@ async function entityValidation(
   if (alreadyExists)
     throw ENTITY_ALREADY_EXISTS(e.externalUuid, AppEntity.CLASS, log);
   await ctx.organizationIdIsValid(e.externalOrganizationUuid, log);
-  await ctx.schoolIdIsValid(e.externalSchoolUuid, log);
+  await ctx.getSchoolId(e.externalSchoolUuid, log);
 }
 
 export const classSchema = Joi.object({

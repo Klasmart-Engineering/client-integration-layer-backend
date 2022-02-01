@@ -24,11 +24,14 @@ import { log as baseLogger, Uuid } from '../../utils';
 import { GET_ORGANIZATION } from './organization';
 import { GET_PROGRAMS_BY_ORGANIZATION, GET_SYSTEM_PROGRAMS } from './programs';
 import { GET_ORGANIZATION_ROLES, GET_SYSTEM_ROLES } from './roles';
+import { CREATE_SCHOOLS, CreateSchoolInput } from './school';
 
 type SupportedConnections =
   | 'programsConnection'
   | 'rolesConnection'
   | 'organizationConnection';
+
+type MutationAccessor = 'createSchools';
 
 export type IdNameMapper = {
   id: Uuid;
@@ -207,6 +210,23 @@ export class AdminService {
     return org[0];
   }
 
+  public async createSchools(
+    schools: CreateSchoolInput[],
+    log: Logger
+  ): Promise<IdNameMapper[]> {
+    const transformer = (responses: {
+      schools: { id: string; name: string }[];
+    }) => responses.schools;
+    const sch = await this.sendMutation(
+      CREATE_SCHOOLS,
+      schools,
+      transformer,
+      'createSchools',
+      log
+    );
+    return sch;
+  }
+
   /**
    * A helper function to send a request to a paginated API and walk the
    * full length of the cursor, collating all the responses before returning
@@ -280,6 +300,43 @@ export class AdminService {
         result.push(transformer(node));
       }
     }
+    return result;
+  }
+
+  private async sendMutation<T, U, V>(
+    query: DocumentNode | TypedDocumentNode,
+    variables: V,
+    transformer: (responseData: U) => T[],
+    mutationAccessor: MutationAccessor,
+    logger: Logger
+  ): Promise<T[]> {
+    const { data } = await this.client.mutate({
+      mutation: query,
+      variables: {
+        ...variables,
+      },
+      context: this.context,
+    });
+
+    if (!data)
+      throw new OnboardingError(
+        MachineError.NETWORK,
+        `Expected to recieve data when sending a graphql mutation, however found
+      nothing`,
+        Category.ADMIN_SERVICE,
+        logger
+      );
+
+    const responseData = data[mutationAccessor];
+    if (responseData === null || responseData === undefined)
+      throw new OnboardingError(
+        MachineError.APP_CONFIG,
+        `Failed to access data from mutation with accessor ${mutationAccessor}`,
+        Category.ADMIN_SERVICE,
+        logger
+      );
+
+    const result = transformer(responseData as U);
     return result;
   }
 }

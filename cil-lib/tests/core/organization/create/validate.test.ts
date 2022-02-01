@@ -78,7 +78,7 @@ describe('organization validation', () => {
   });
 
   beforeEach(async () => {
-    contextStub = sinon.stub(ctx, 'organizationIdIsValid').resolves(uuidv4());
+    contextStub = sinon.stub(ctx, 'organizationIdIsValid');
     orgStub = sinon.stub(OrgRepo, 'initializeOrganization').resolves();
     const resp = [new Response().setSuccess(true)];
     _composeFunctions = {
