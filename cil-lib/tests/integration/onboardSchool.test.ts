@@ -52,7 +52,7 @@ export const INVALID_SCHOOLS_ENTITY_ALREADY_EXISTS: SchoolTestCase[] = [
     },
 ];
 
-export const INVALID_SCHOOLS_ORG_NOT_EXIST: SchoolTestCase[] = [
+export const INVALID_SCHOOLS_ENTITY_NOT_EXIST: SchoolTestCase[] = [
     {
         scenario: 'the org does not exist',
         school: (() => {
@@ -82,26 +82,26 @@ export const INVALID_SCHOOLS_VALIDATION_ERROR: SchoolTestCase[] = [
     },
 ];
 
-export const ADD_MULTIPLE_SCHOOLS: SchoolTestCaseMultipleSchools[] = [
+export const VALID_SCHOOLS_ADD_MULTIPLE: SchoolTestCaseMultipleSchools[] = [
     {
         scenario: 'multiple schools are added',
         schools: (() => {
-            let multipleSchools: proto.School[] = [];
+            const multipleSchools: proto.School[] = [];
 
             const schoolLaniteio = setUpSchool();
-            schoolLaniteio.setName('Test School 26');
+            schoolLaniteio.setName('Test School 59');
             schoolLaniteio.setExternalUuid(uuidv4());
-            schoolLaniteio.setShortCode('SCHOOL26');
+            schoolLaniteio.setShortCode('SCHOOL59');
 
             const schoolTheklio = setUpSchool();
-            schoolTheklio.setName('Test School 27');
+            schoolTheklio.setName('Test School 60');
             schoolTheklio.setExternalUuid(uuidv4());
-            schoolTheklio.setShortCode('SCHOOL27');
+            schoolTheklio.setShortCode('SCHOOL60');
 
             const schoolAgFyla = new School();
-            schoolAgFyla.setName('Test School 28');
+            schoolAgFyla.setName('Test School 61');
             schoolAgFyla.setExternalUuid(uuidv4());
-            schoolAgFyla.setShortCode('SCHOOL28');
+            schoolAgFyla.setShortCode('SCHOOL61');
 
             multipleSchools.push(schoolLaniteio);
             multipleSchools.push(schoolTheklio);
@@ -111,7 +111,6 @@ export const ADD_MULTIPLE_SCHOOLS: SchoolTestCaseMultipleSchools[] = [
         })(),
     }
 ];
-
 
 function createRequest(school: proto.School, action: proto.Action): OnboardingRequest {
 
@@ -138,7 +137,22 @@ const onboard = async (reqs: proto.OnboardingRequest[]) => {
     });
 };
 
-describe.only('School Onboard Validation', () => {
+function setUpSchool(
+    name = true,
+    uuid = true,
+    orgId = true,
+    shortcode = true
+): proto.School {
+    const s = new School();
+    if (name) s.setName('St Stephens School 3');
+    if (uuid) s.setExternalUuid(uuidv4());
+    // Assume that the organization exists
+    if (orgId) s.setExternalOrganizationUuid('90da8a47-989c-4e80-a669-dfa4912596b3');
+    if (shortcode) s.setShortCode('StS3');
+    return s;
+}
+
+describe('School Onboard Validation', () => {
 
     VALID_SCHOOLS.forEach(({ scenario, school }) => {
         it(`should pass when a school ${scenario}`, async () => {
@@ -174,7 +188,7 @@ describe.only('School Onboard Validation', () => {
         });
     });
 
-    INVALID_SCHOOLS_ORG_NOT_EXIST.forEach(({ scenario, school }) => {
+    INVALID_SCHOOLS_ENTITY_NOT_EXIST.forEach(({ scenario, school }) => {
         it(`should fail when a school ${scenario}`, async () => {
 
             const req = createRequest(school, Action.CREATE);
@@ -208,15 +222,18 @@ describe.only('School Onboard Validation', () => {
         });
     });
 
-    ADD_MULTIPLE_SCHOOLS.forEach(({ scenario, schools }) => {
+    VALID_SCHOOLS_ADD_MULTIPLE.forEach(({ scenario, schools }) => {
         it(`should pass when ${scenario}`, async () => {
+
             // Create Requests
-            const req = createRequest(schools[0], Action.CREATE);
-            const req1 = createRequest(schools[1], Action.CREATE);
-            const req2 = createRequest(schools[2], Action.CREATE);
+            const requests: OnboardingRequest[] = [];
+            for (const school of schools) {
+                const req = createRequest(school, Action.CREATE);
+                requests.push(req);
+            }
 
             // Get Response
-            const response = await onboard([req, req1, req2]);
+            const response = await onboard(requests);
 
             if (response instanceof proto.Responses) {
                 expect(response.getResponsesList()).to.be.length(3)
@@ -229,18 +246,3 @@ describe.only('School Onboard Validation', () => {
         });
     });
 });
-
-function setUpSchool(
-    name = true,
-    uuid = true,
-    orgId = true,
-    shortcode = true
-): proto.School {
-    const s = new School();
-    if (name) s.setName('St Stephens School');
-    if (uuid) s.setExternalUuid(uuidv4());
-    // Assume that the organization exists
-    if (orgId) s.setExternalOrganizationUuid('90da8a47-989c-4e80-a669-dfa4912596b3');
-    if (shortcode) s.setShortCode('StS');
-    return s;
-}
