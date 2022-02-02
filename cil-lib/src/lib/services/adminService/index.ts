@@ -21,7 +21,12 @@ import {
 import { Entity } from '../../types';
 import { log as baseLogger, Uuid } from '../../utils';
 
-import { CREATE_CLASSES, CreateClassInput } from './class';
+import {
+  ADD_PROGRAMS_TO_CLASSES,
+  AddProgramsToClassInput,
+  CREATE_CLASSES,
+  CreateClassInput,
+} from './class';
 import { GET_ORGANIZATION } from './organization';
 import { GET_PROGRAMS_BY_ORGANIZATION, GET_SYSTEM_PROGRAMS } from './programs';
 import { GET_ORGANIZATION_ROLES, GET_SYSTEM_ROLES } from './roles';
@@ -251,6 +256,23 @@ export class AdminService {
       { classes },
       transformer,
       'createClasses',
+      log
+    );
+    return cl;
+  }
+
+  public async addProgramsToClass(
+    classes: AddProgramsToClassInput[],
+    log: Logger
+  ): Promise<IdNameMapper[]> {
+    const transformer = (responses: {
+      classes: { id: string; name: string }[];
+    }) => responses.classes;
+    const cl = await this.sendMutation(
+      ADD_PROGRAMS_TO_CLASSES,
+      { classes },
+      transformer,
+      'addProgramsToClasses',
       log
     );
     return cl;
