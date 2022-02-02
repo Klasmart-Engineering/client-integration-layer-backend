@@ -164,12 +164,10 @@ describe('School Onboard Validation', () => {
     });
 
     INVALID_SCHOOLS_ENTITY_ALREADY_EXISTS.forEach(({ scenario, school }) => {
-        it.only(`should fail when a school ${scenario}`, async () => {
+        it(`should fail when a school ${scenario}`, async () => {
 
             const requests: proto.OnboardingRequest[] = [];
-
             const req = createRequest(school, Action.CREATE);
-
 
             await onboard([req]);
             const response = await onboard([req]);
