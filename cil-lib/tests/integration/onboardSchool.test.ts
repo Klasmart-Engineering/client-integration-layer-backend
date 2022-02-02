@@ -91,16 +91,19 @@ export const VALID_SCHOOLS_ADD_MULTIPLE: SchoolTestCaseMultipleSchools[] = [
             const schoolLaniteio = setUpSchool();
             schoolLaniteio.setName('Test School 59');
             schoolLaniteio.setExternalUuid(uuidv4());
+            schoolLaniteio.setExternalOrganizationUuid('90da8a47-989c-4e80-a669-dfa4912596b3');
             schoolLaniteio.setShortCode('SCHOOL59');
 
             const schoolTheklio = setUpSchool();
             schoolTheklio.setName('Test School 60');
             schoolTheklio.setExternalUuid(uuidv4());
+            schoolTheklio.setExternalOrganizationUuid('90da8a47-989c-4e80-a669-dfa4912596b3');
             schoolTheklio.setShortCode('SCHOOL60');
 
             const schoolAgFyla = new School();
             schoolAgFyla.setName('Test School 61');
             schoolAgFyla.setExternalUuid(uuidv4());
+            schoolAgFyla.setExternalOrganizationUuid('90da8a47-989c-4e80-a669-dfa4912596b3');
             schoolAgFyla.setShortCode('SCHOOL61');
 
             multipleSchools.push(schoolLaniteio);
