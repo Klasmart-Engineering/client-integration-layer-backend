@@ -229,7 +229,7 @@ describe('School Onboard Validation', () => {
         it(`should pass when ${scenario}`, async () => {
 
             // Create Requests
-            const requests: OnboardingRequest[] = [];
+            const requests: proto.OnboardingRequest[] = [];
             for (const school of schools) {
                 const req = createRequest(school, Action.CREATE);
                 requests.push(req);
