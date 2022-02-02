@@ -1,9 +1,10 @@
 import * as grpc from '@grpc/grpc-js';
-import { Metadata } from '@grpc/grpc-js';
+import { Metadata, MetadataValue } from '@grpc/grpc-js';
 import { expect } from 'chai';
 import { v4 as uuidv4 } from 'uuid';
-import { PrismaClient, proto } from '../..';
-import { PrismaClient as Con } from "@prisma/client";
+import { proto } from '../..';
+import { OnboardingRequest } from '../../dist/main/lib/protos';
+import { RequestMetadata } from '../../src/lib/protos';
 
 
 const {
@@ -30,7 +31,7 @@ const USER = Object.freeze({
 
 
 const client = new OnboardingClient(
-    '0.0.0.0:4200',
+    `${process.env.GENERIC_BACKEND_URL}`,
     grpc.ChannelCredentials.createInsecure()
 );
 
@@ -91,104 +92,27 @@ export const INVALID_USER_ENTITY_DOES_NOT_EXISTS: UserTestCase[] = [
     }
 ];
 
-export const INVALID_USER_REQUEST_ALREADY_EXISTS: UserTestCase[] = [
-    {
-        scenario: 'when a request has been already processed',
-        user: (() => {
-            const s = setUpUser({ ...USER });
-            return s;
-        })(),
-    }
-];
+function createRequest(user: proto.User, action: proto.Action): OnboardingRequest {
 
-describe('User Onboard Validation', () => {
+    const requestMetadata = new RequestMetadata()
+    requestMetadata.setId(uuidv4());
+    requestMetadata.setN("1");
 
-    INVALID_USERS.forEach(({ scenario, user }) => {
-        it(`should fail when ${scenario}`, async () => {
-            const req = new OnboardingRequest()
-                .setRequestId(uuidv4())
-                .setAction(Action.CREATE)
-                .setUser(user);
-
-            const response = await onboard([req]);
-            if (response instanceof proto.Responses) {
-                expect(response.getResponsesList()).to.be.length(1)
-                const resp = response.getResponsesList()[0];
-                expect(resp.getSuccess()).to.be.false;
-                expect(resp.getEntityId()).to.be.equal(user.getExternalUuid());
-                expect(resp.getErrors()?.hasValidation()).to.be.true;
-            }
-        });
-    });
-
-    INVALID_USER_EXISTS.forEach(({ scenario, user }) => {
-        it(`should fail when a user ${scenario}`, async () => {
-            const req = new OnboardingRequest()
-                .setRequestId(uuidv4())
-                .setAction(Action.CREATE)
-                .setUser(user);
-
-            const response = await onboard([req]);
-            if (response instanceof proto.Responses) {
-                expect(response.getResponsesList()).to.be.length(1)
-                const resp = response.getResponsesList()[0];
-                expect(resp.getSuccess()).to.be.false;
-                expect(resp.getEntityId()).to.be.equal(user.getExternalUuid());
-                expect(resp.getErrors()?.hasEntityAlreadyExists()).to.be.true;
-            }
-        });
-    });
-
-    INVALID_USER_ENTITY_DOES_NOT_EXISTS.forEach(({ scenario, user }) => {
-        it(`should fail when a user ${scenario}`, async () => {
-            const req = new OnboardingRequest()
-                .setRequestId(uuidv4())
-                .setAction(Action.CREATE)
-                .setUser(user);
-
-            const response = await onboard([req]);
-            if (response instanceof proto.Responses) {
-                expect(response.getResponsesList()).to.be.length(1)
-                const resp = response.getResponsesList()[0];
-                expect(resp.getSuccess()).to.be.false;
-                expect(resp.getEntityId()).to.be.equal(user.getExternalUuid());
-                expect(resp.getErrors()?.hasEntityDoesNotExist()).to.be.true;
-            }
-        });
-    });
-
-    VALID_USERS.forEach(({ scenario, user }) => {
-        it(`should pass when a user ${scenario}`, async () => {
-            const req = new OnboardingRequest()
-                .setRequestId(uuidv4())
-                .setAction(Action.CREATE)
-                .setUser(user);
-
-            const response = await onboard([req]);
-            console.log("Response:", response);
-
-            if (response instanceof proto.Responses) {
-                console.log("Response:", response.getResponsesList()[0]);
-                expect(response.getResponsesList()).to.be.length(1)
-                const resp = response.getResponsesList()[0];
-                expect(resp.getSuccess()).to.be.true;
-                expect(resp.getEntityId()).to.equal(
-                    user.getExternalUuid()
-                );
-                expect(resp.hasErrors()).to.be.false;
-            }
-        });
-    });
-});
+    return new OnboardingRequest().setRequestId(requestMetadata)
+        .setAction(action)
+        .setUser(user);
+}
 
 const onboard = async (reqs: proto.OnboardingRequest[]) => {
     return new Promise((resolve, reject) => {
+
         const req = new BatchOnboarding().setRequestsList(reqs);
         const metadata = new Metadata();
-        metadata.set('x-api-key', "abcxyz");
+        const apiKey = process.env.API_KEY;
+        metadata.set('x-api-key', `${apiKey}`);
+
         client.onboard(req, metadata, (error, response) => {
             if (error !== null) {
-                console.error('Received Error\n', error);
                 reject(error);
                 return;
             }
@@ -196,7 +120,6 @@ const onboard = async (reqs: proto.OnboardingRequest[]) => {
         });
     });
 };
-
 
 function setUpUser(user = USER): proto.User {
     const {
@@ -226,3 +149,70 @@ function setUpUser(user = USER): proto.User {
     if (roleIdentifiers) u.addRoleIdentifiers("Student");
     return u;
 }
+
+describe('User Onboard Validation', () => {
+
+    INVALID_USERS.forEach(({ scenario, user }) => {
+        it(`should fail when ${scenario}`, async () => {
+            const req = createRequest(user, Action.CREATE);
+            const response = await onboard([req]);
+
+            if (response instanceof proto.Responses) {
+                expect(response.getResponsesList()).to.be.length(1)
+                const resp = response.getResponsesList()[0];
+                expect(resp.getSuccess()).to.be.false;
+                expect(resp.getEntityId()).to.be.equal(user.getExternalUuid());
+                expect(resp.getErrors()?.hasValidation()).to.be.true;
+            }
+        });
+    });
+
+    INVALID_USER_EXISTS.forEach(({ scenario, user }) => {
+        it(`should fail when a user ${scenario}`, async () => {
+            const req = createRequest(user, Action.CREATE);
+            const response = await onboard([req]);
+
+            if (response instanceof proto.Responses) {
+                expect(response.getResponsesList()).to.be.length(1)
+                const resp = response.getResponsesList()[0];
+                expect(resp.getSuccess()).to.be.false;
+                expect(resp.getEntityId()).to.be.equal(user.getExternalUuid());
+                expect(resp.getErrors()?.hasEntityAlreadyExists()).to.be.true;
+            }
+        });
+    });
+
+    INVALID_USER_ENTITY_DOES_NOT_EXISTS.forEach(({ scenario, user }) => {
+        it(`should fail when a user ${scenario}`, async () => {
+
+            const req = createRequest(user, Action.CREATE);
+            const response = await onboard([req]);
+
+            if (response instanceof proto.Responses) {
+                expect(response.getResponsesList()).to.be.length(1)
+                const resp = response.getResponsesList()[0];
+                expect(resp.getSuccess()).to.be.false;
+                expect(resp.getEntityId()).to.be.equal(user.getExternalUuid());
+                expect(resp.getErrors()?.hasEntityDoesNotExist()).to.be.true;
+            }
+        });
+    });
+
+    VALID_USERS.forEach(({ scenario, user }) => {
+        it(`should pass when a user ${scenario}`, async () => {
+
+            const req = createRequest(user, Action.CREATE);
+            const response = await onboard([req]);
+
+            if (response instanceof proto.Responses) {
+                expect(response.getResponsesList()).to.be.length(1)
+                const resp = response.getResponsesList()[0];
+                expect(resp.getSuccess()).to.be.true;
+                expect(resp.getEntityId()).to.equal(
+                    user.getExternalUuid()
+                );
+                expect(resp.hasErrors()).to.be.false;
+            }
+        });
+    });
+});
