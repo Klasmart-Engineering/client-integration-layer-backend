@@ -9,10 +9,10 @@ import {
 } from '../../../errors';
 import { Entity, Response } from '../../../protos';
 import { AdminService } from '../../../services';
+import { requestIdToProtobuf } from '../../batchRequest';
 import { Result } from '../../process';
 
 import { IncomingData } from '.';
-import { requestIdToProtobuf } from '../../batchRequest';
 
 export async function sendRequest(
   schools: IncomingData[],

@@ -25,6 +25,7 @@ export class OnboardingServer implements proto.IOnboardingServer {
       error.withCode(Status.UNAUTHENTICATED);
       error.withDetails('Unauthorized');
       callback(error.build());
+      return;
     }
 
     const resp = await processOnboardingRequest(call.request, log);

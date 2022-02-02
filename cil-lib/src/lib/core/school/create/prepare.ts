@@ -8,10 +8,10 @@ import {
   tryGetMember,
 } from '../../../errors';
 import { Entity, Response } from '../../../protos';
+import { requestIdToProtobuf } from '../../batchRequest';
 import { Result } from '../../process';
 
 import { IncomingData } from '.';
-import { requestIdToProtobuf } from '../../batchRequest';
 
 export async function prepare(
   schools: IncomingData[],

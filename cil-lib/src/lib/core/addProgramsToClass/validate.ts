@@ -8,10 +8,10 @@ import {
   OnboardingError,
 } from '../../errors';
 import { Entity as PbEntity, Response } from '../../protos';
+import { requestIdToProtobuf } from '../batchRequest';
 import { Result } from '../process';
 
 import { IncomingData } from '.';
-import { requestIdToProtobuf } from '../batchRequest';
 
 export async function validateMany(
   data: IncomingData[],

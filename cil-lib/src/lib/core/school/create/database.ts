@@ -7,9 +7,9 @@ import {
   OnboardingError,
 } from '../../../errors';
 import { Entity, Response } from '../../../protos';
+import { requestIdToProtobuf } from '../../batchRequest';
 
 import { IncomingData } from '.';
-import { requestIdToProtobuf } from '../../batchRequest';
 
 export async function persist(
   schools: IncomingData[],
@@ -20,9 +20,10 @@ export async function persist(
     const school = incomingData.data;
     const requestId = incomingData.requestId;
 
-    const response = new Response().setEntity(Entity.SCHOOL)
-    .setEntityId(school.externalUuid!)
-    .setRequestId(requestIdToProtobuf(requestId));
+    const response = new Response()
+      .setEntity(Entity.SCHOOL)
+      .setEntityId(school.externalUuid!)
+      .setRequestId(requestIdToProtobuf(requestId));
 
     const schoolInput = {
       externalUuid: school.externalUuid!,
