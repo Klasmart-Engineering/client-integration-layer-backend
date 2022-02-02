@@ -4401,7 +4401,7 @@ proto.cil_onboarding.api.RequestMetadata.prototype.toObject = function(opt_inclu
 proto.cil_onboarding.api.RequestMetadata.toObject = function(includeInstance, msg) {
   var f, obj = {
     id: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    number: jspb.Message.getFieldWithDefault(msg, 2, 0)
+    n: jspb.Message.getFieldWithDefault(msg, 2, "")
   };
 
   if (includeInstance) {
@@ -4443,8 +4443,8 @@ proto.cil_onboarding.api.RequestMetadata.deserializeBinaryFromReader = function(
       msg.setId(value);
       break;
     case 2:
-      var value = /** @type {number} */ (reader.readUint32());
-      msg.setNumber(value);
+      var value = /** @type {string} */ (reader.readString());
+      msg.setN(value);
       break;
     default:
       reader.skipField();
@@ -4482,9 +4482,9 @@ proto.cil_onboarding.api.RequestMetadata.serializeBinaryToWriter = function(mess
       f
     );
   }
-  f = message.getNumber();
-  if (f !== 0) {
-    writer.writeUint32(
+  f = message.getN();
+  if (f.length > 0) {
+    writer.writeString(
       2,
       f
     );
@@ -4511,20 +4511,20 @@ proto.cil_onboarding.api.RequestMetadata.prototype.setId = function(value) {
 
 
 /**
- * optional uint32 number = 2;
- * @return {number}
+ * optional string n = 2;
+ * @return {string}
  */
-proto.cil_onboarding.api.RequestMetadata.prototype.getNumber = function() {
-  return /** @type {number} */ (jspb.Message.getFieldWithDefault(this, 2, 0));
+proto.cil_onboarding.api.RequestMetadata.prototype.getN = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
 };
 
 
 /**
- * @param {number} value
+ * @param {string} value
  * @return {!proto.cil_onboarding.api.RequestMetadata} returns this
  */
-proto.cil_onboarding.api.RequestMetadata.prototype.setNumber = function(value) {
-  return jspb.Message.setProto3IntField(this, 2, value);
+proto.cil_onboarding.api.RequestMetadata.prototype.setN = function(value) {
+  return jspb.Message.setProto3StringField(this, 2, value);
 };
 
 

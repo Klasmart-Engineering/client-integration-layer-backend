@@ -521,8 +521,8 @@ export namespace Responses {
 export class RequestMetadata extends jspb.Message { 
     getId(): string;
     setId(value: string): RequestMetadata;
-    getNumber(): number;
-    setNumber(value: number): RequestMetadata;
+    getN(): string;
+    setN(value: string): RequestMetadata;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): RequestMetadata.AsObject;
@@ -537,7 +537,7 @@ export class RequestMetadata extends jspb.Message {
 export namespace RequestMetadata {
     export type AsObject = {
         id: string,
-        number: number,
+        n: string,
     }
 }
 

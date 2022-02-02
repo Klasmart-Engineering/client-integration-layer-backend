@@ -14,9 +14,7 @@ import {
 
 export function wrapRequest<T>(data: T): BatchOnboarding {
   const req = new OnboardingRequest();
-  req.setRequestId(
-    new RequestMetadata().setId(
-    uuidv4()).setNumber(0))
+  req.setRequestId(new RequestMetadata().setId(uuidv4()).setN(uuidv4()));
   if (data instanceof Organization) req.setOrganization(data);
   if (data instanceof School) req.setSchool(data);
   if (data instanceof Class) req.setClass(data);

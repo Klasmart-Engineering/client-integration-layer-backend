@@ -50,7 +50,7 @@ export interface IdTracked<T extends Message, U> {
 
 export type RequestId = {
   id: Uuid;
-  n: number;
+  n: string;
 };
 
 export class RequestBatch {
@@ -159,7 +159,7 @@ export class RequestBatch {
       if (tempId) {
         reqId = {
           id: tempId.getId(),
-          n: tempId.getNumber(),
+          n: tempId.getN(),
         };
       } else {
         reqId = {
@@ -287,7 +287,7 @@ export class RequestBatch {
 }
 
 export function requestIdToProtobuf(id: RequestId): RequestMetadata {
-  return new RequestMetadata().setId(id.id).setNumber(id.n);
+  return new RequestMetadata().setId(id.id).setN(id.n);
 }
 
 export type OnboardingOperation =

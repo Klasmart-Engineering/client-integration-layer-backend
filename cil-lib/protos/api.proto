@@ -126,7 +126,7 @@ message Responses {
 
 message RequestMetadata {
   string id = 1;
-  uint32 number = 2;
+  string n = 2;
 }
 
 message Response {
