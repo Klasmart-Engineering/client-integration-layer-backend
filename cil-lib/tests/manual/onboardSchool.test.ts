@@ -42,19 +42,10 @@ export const VALID_SCHOOLS: SchoolTestCase[] = [
     },
 ];
 
-export const INVALID_SCHOOLS_ENTITY_ALREADY_EXISTS: SchoolTestCaseMultipleSchools[] = [
+export const INVALID_SCHOOLS_ENTITY_ALREADY_EXISTS: SchoolTestCase[] = [
     {
         scenario: 'is already validated',
-        schools: (() => {
-
-            const sameSchools: proto.School[] = [];
-
-            const school = setUpSchool();
-            sameSchools.push(school);
-            sameSchools.push(school);
-
-            return sameSchools;
-        })(),
+        school: setUpSchool(),
     },
 ];
 
@@ -172,17 +163,16 @@ describe('School Onboard Validation', () => {
         });
     });
 
-    INVALID_SCHOOLS_ENTITY_ALREADY_EXISTS.forEach(({ scenario, schools }) => {
-        it(`should fail when a school ${scenario}`, async () => {
+    INVALID_SCHOOLS_ENTITY_ALREADY_EXISTS.forEach(({ scenario, school }) => {
+        it.only(`should fail when a school ${scenario}`, async () => {
 
             const requests: proto.OnboardingRequest[] = [];
-            for (const school of schools) {
-                const req = createRequest(school, Action.CREATE);
-                requests.push(req);
-            }
 
-            await onboard([requests[0]]);
-            const response = await onboard([requests[1]]);
+            const req = createRequest(school, Action.CREATE);
+
+
+            await onboard([req]);
+            const response = await onboard([req]);
 
             if (response instanceof proto.Responses) {
                 expect(response.getResponsesList()[0].getSuccess()).to.be.false;
