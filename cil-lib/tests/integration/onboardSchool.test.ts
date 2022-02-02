@@ -2,12 +2,11 @@ import * as grpc from '@grpc/grpc-js';
 import { Metadata, MetadataValue } from '@grpc/grpc-js';
 import { expect } from 'chai';
 import { v4 as uuidv4 } from 'uuid';
-import { PrismaClient, proto } from '../..';
-import { prisma, PrismaClient as Con } from "@prisma/client";
+import { proto } from '../..';
+import { OnboardingRequest } from '../../dist/main/lib/protos';
 
 const {
     School,
-    OnboardingRequest,
     Action,
     BatchOnboarding,
     OnboardingClient
@@ -18,6 +17,11 @@ export type SchoolTestCase = {
     school: proto.School;
 };
 
+export type SchoolTestCaseMultipleSchools = {
+    scenario: string;
+    schools: proto.School[]
+};
+
 const SCHOOL = Object.freeze({
     name: true,
     externalUuid: true,
@@ -25,6 +29,10 @@ const SCHOOL = Object.freeze({
     shortcode: true
 });
 
+const client = new OnboardingClient(
+    '0.0.0.0:4200',
+    grpc.ChannelCredentials.createInsecure()
+);
 
 export const VALID_SCHOOLS: SchoolTestCase[] = [
     {
@@ -35,7 +43,7 @@ export const VALID_SCHOOLS: SchoolTestCase[] = [
 
 export const INVALID_SCHOOLS_ENTITY_ALREADY_EXISTS: SchoolTestCase[] = [
     {
-        scenario: 'already exists in Validation DB',
+        scenario: 'is already validated',
         school: (() => {
             const s = setUpSchool();
             s.setExternalUuid('3a254084-a24d-4493-a9a4-bbdeb22264b8');
@@ -74,144 +82,140 @@ export const INVALID_SCHOOLS_VALIDATION_ERROR: SchoolTestCase[] = [
     },
 ];
 
-export const ADD_MULTIPLE_SCHOOLS: SchoolTestCase[] = [
+export const ADD_MULTIPLE_SCHOOLS: SchoolTestCaseMultipleSchools[] = [
     {
-        scenario: '',
-        school: (() => {
-            const s = setUpSchool();
-            s.setExternalUuid(uuidv4())
-            s.setName('Test School 11')
-            return s;
+        scenario: 'multiple schools are added',
+        schools: (() => {
+            let multipleSchools: proto.School[] = [];
+
+            const schoolLaniteio = setUpSchool();
+            schoolLaniteio.setName('Test School 26');
+            schoolLaniteio.setExternalUuid(uuidv4());
+            schoolLaniteio.setShortCode('SCHOOL26');
+
+            const schoolTheklio = setUpSchool();
+            schoolTheklio.setName('Test School 27');
+            schoolTheklio.setExternalUuid(uuidv4());
+            schoolTheklio.setShortCode('SCHOOL27');
+
+            const schoolAgFyla = new School();
+            schoolAgFyla.setName('Test School 28');
+            schoolAgFyla.setExternalUuid(uuidv4());
+            schoolAgFyla.setShortCode('SCHOOL28');
+
+            multipleSchools.push(schoolLaniteio);
+            multipleSchools.push(schoolTheklio);
+            multipleSchools.push(schoolAgFyla);
+
+            return multipleSchools;
         })(),
     }
 ];
 
-const client = new OnboardingClient(
-    '0.0.0.0:4200',
-    grpc.ChannelCredentials.createInsecure()
-);
+
+function createRequest(school: proto.School, action: proto.Action): OnboardingRequest {
+
+    return new OnboardingRequest().setRequestId(uuidv4())
+        .setAction(action)
+        .setSchool(school);
+}
+
+const onboard = async (reqs: proto.OnboardingRequest[]) => {
+    return new Promise((resolve, reject) => {
+
+        const req = new BatchOnboarding().setRequestsList(reqs);
+        const metadata = new Metadata();
+
+        metadata.set('x-api-key', 'abcxyz'); // change it to process.env.API_KEY 
+        client.onboard(req, metadata, (error, response) => {
+            if (error !== null) {
+                console.error('Received Error\n', error);
+                reject(error);
+                return;
+            }
+            resolve(response);
+        });
+    });
+};
 
 describe.only('School Onboard Validation', () => {
 
     VALID_SCHOOLS.forEach(({ scenario, school }) => {
         it(`should pass when a school ${scenario}`, async () => {
-            const req = new OnboardingRequest()
-                .setRequestId(uuidv4())
-                .setAction(Action.CREATE)
-                .setSchool(school);
 
+            const req = createRequest(school, Action.CREATE);
             const response = await onboard([req]);
 
             if (response instanceof proto.Responses) {
                 expect(response.getResponsesList()).to.be.length(1)
-                const resp = response.getResponsesList()[0];
-                expect(resp.getSuccess()).to.be.true;
-                expect(resp.getEntityId()).to.equal(
+                expect(response.getResponsesList()[0].getSuccess()).to.be.true;
+                expect(response.getResponsesList()[0].getEntityId()).to.equal(
                     school.getExternalUuid()
                 );
-                expect(resp.hasErrors()).to.be.false;
+                expect(response.getResponsesList()[0].hasErrors()).to.be.false;
             }
         });
     });
 
     INVALID_SCHOOLS_ENTITY_ALREADY_EXISTS.forEach(({ scenario, school }) => {
         it(`should fail when a school ${scenario}`, async () => {
-            const req = new OnboardingRequest()
-                .setRequestId(uuidv4())
-                .setAction(Action.CREATE)
-                .setSchool(school);
 
+            const req = createRequest(school, Action.CREATE);
             const response = await onboard([req]);
 
             if (response instanceof proto.Responses) {
                 expect(response.getResponsesList()).to.be.length(1)
-                const resp = response.getResponsesList()[0];
-                expect(resp.getSuccess()).to.be.false;
-                expect(resp.getEntityId()).to.equal(
+                expect(response.getResponsesList()[0].getSuccess()).to.be.false;
+                expect(response.getResponsesList()[0].getEntityId()).to.equal(
                     school.getExternalUuid()
                 );
-                expect(resp.getErrors()?.hasEntityAlreadyExists()).to.be.true;
+                expect(response.getResponsesList()[0].getErrors()?.hasEntityAlreadyExists()).to.be.true;
             }
         });
     });
 
     INVALID_SCHOOLS_ORG_NOT_EXIST.forEach(({ scenario, school }) => {
         it(`should fail when a school ${scenario}`, async () => {
-            const req = new OnboardingRequest()
-                .setRequestId(uuidv4())
-                .setAction(Action.CREATE)
-                .setSchool(school);
 
+            const req = createRequest(school, Action.CREATE);
             const response = await onboard([req]);
 
             if (response instanceof proto.Responses) {
                 expect(response.getResponsesList()).to.be.length(1)
-                const resp = response.getResponsesList()[0];
-                expect(resp.getSuccess()).to.be.false;
-                expect(resp.getEntityId()).to.equal(
+                expect(response.getResponsesList()[0].getSuccess()).to.be.false;
+                expect(response.getResponsesList()[0].getEntityId()).to.equal(
                     school.getExternalUuid()
                 );
-                expect(resp.getErrors()?.hasEntityDoesNotExist()).to.be.true;
+                expect(response.getResponsesList()[0].getErrors()?.hasEntityDoesNotExist()).to.be.true;
             }
         });
     });
 
     INVALID_SCHOOLS_VALIDATION_ERROR.forEach(({ scenario, school }) => {
         it(`should fail when a school ${scenario}`, async () => {
-            const req = new OnboardingRequest()
-                .setRequestId(uuidv4())
-                .setAction(Action.CREATE)
-                .setSchool(school);
 
+            const req = createRequest(school, Action.CREATE);
             const response = await onboard([req]);
 
             if (response instanceof proto.Responses) {
                 expect(response.getResponsesList()).to.be.length(1)
-                const resp = response.getResponsesList()[0];
-                expect(resp.getSuccess()).to.be.false;
-                expect(resp.getEntityId()).to.equal(
+                expect(response.getResponsesList()[0].getSuccess()).to.be.false;
+                expect(response.getResponsesList()[0].getEntityId()).to.equal(
                     school.getExternalUuid()
                 );
-                expect(resp.getErrors()?.hasValidation()).to.be.true;
+                expect(response.getResponsesList()[0].getErrors()?.hasValidation()).to.be.true;
             }
         });
     });
 
-    ADD_MULTIPLE_SCHOOLS.forEach(({ scenario, school }) => {
-        it(`should pass when multiple schools are added ${scenario}`, async () => {
+    ADD_MULTIPLE_SCHOOLS.forEach(({ scenario, schools }) => {
+        it(`should pass when ${scenario}`, async () => {
+            // Create Requests
+            const req = createRequest(schools[0], Action.CREATE);
+            const req1 = createRequest(schools[1], Action.CREATE);
+            const req2 = createRequest(schools[2], Action.CREATE);
 
-            school.setName('Test School 26');
-            school.setExternalUuid(uuidv4());
-            school.setExternalOrganizationUuid('90da8a47-989c-4e80-a669-dfa4912596b3');
-            school.setShortCode('SCHOOL26');
-
-            const req = new OnboardingRequest()
-                .setRequestId(uuidv4())
-                .setAction(Action.CREATE)
-                .setSchool(school);
-
-            const school1 = new School();
-            school1.setName('Test School 27');
-            school1.setExternalUuid(uuidv4());
-            school1.setExternalOrganizationUuid('90da8a47-989c-4e80-a669-dfa4912596b3');
-            school1.setShortCode('SCHOOL27');
-
-            const req1 = new OnboardingRequest()
-                .setRequestId(uuidv4())
-                .setAction(Action.CREATE)
-                .setSchool(school1);
-
-            const school2 = new School();
-            school2.setName('Test School 28');
-            school2.setExternalUuid(uuidv4());
-            school2.setExternalOrganizationUuid('90da8a47-989c-4e80-a669-dfa4912596b3');
-            school2.setShortCode('SCHOOL28');
-
-            const req2 = new OnboardingRequest()
-                .setRequestId(uuidv4())
-                .setAction(Action.CREATE)
-                .setSchool(school2);
-
+            // Get Response
             const response = await onboard([req, req1, req2]);
 
             if (response instanceof proto.Responses) {
@@ -226,23 +230,6 @@ describe.only('School Onboard Validation', () => {
     });
 });
 
-const onboard = async (reqs: proto.OnboardingRequest[]) => {
-    return new Promise((resolve, reject) => {
-        const req = new BatchOnboarding().setRequestsList(reqs);
-        const metadata = new Metadata();
-        metadata.set('x-api-key', 'abcxyz'); // change it to process.env.API_KEY 
-        client.onboard(req, metadata, (error, response) => {
-            if (error !== null) {
-                console.error('Received Error\n', error);
-                reject(error);
-                return;
-            }
-            resolve(response);
-        });
-    });
-};
-
-
 function setUpSchool(
     name = true,
     uuid = true,
@@ -250,9 +237,10 @@ function setUpSchool(
     shortcode = true
 ): proto.School {
     const s = new School();
-    if (name) s.setName('Test School 11');
+    if (name) s.setName('St Stephens School');
     if (uuid) s.setExternalUuid(uuidv4());
+    // Assume that the organization exists
     if (orgId) s.setExternalOrganizationUuid('90da8a47-989c-4e80-a669-dfa4912596b3');
-    if (shortcode) s.setShortCode('SCHOOL16');
+    if (shortcode) s.setShortCode('StS');
     return s;
 }
