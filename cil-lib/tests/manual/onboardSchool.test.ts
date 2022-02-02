@@ -4,6 +4,7 @@ import { expect } from 'chai';
 import { v4 as uuidv4 } from 'uuid';
 import { proto } from '../..';
 import { OnboardingRequest } from '../../dist/main/lib/protos';
+import { RequestMetadata } from '../../src/lib/protos';
 
 const {
     School,
@@ -30,7 +31,7 @@ const SCHOOL = Object.freeze({
 });
 
 const client = new OnboardingClient(
-    '0.0.0.0:4200',
+    `${process.env.GENERIC_BACKEND_URL}`,
     grpc.ChannelCredentials.createInsecure()
 );
 
@@ -41,13 +42,18 @@ export const VALID_SCHOOLS: SchoolTestCase[] = [
     },
 ];
 
-export const INVALID_SCHOOLS_ENTITY_ALREADY_EXISTS: SchoolTestCase[] = [
+export const INVALID_SCHOOLS_ENTITY_ALREADY_EXISTS: SchoolTestCaseMultipleSchools[] = [
     {
         scenario: 'is already validated',
-        school: (() => {
-            const s = setUpSchool();
-            s.setExternalUuid('3a254084-a24d-4493-a9a4-bbdeb22264b8');
-            return s;
+        schools: (() => {
+
+            const sameSchools: proto.School[] = [];
+
+            const school = setUpSchool();
+            sameSchools.push(school);
+            sameSchools.push(school);
+
+            return sameSchools;
         })(),
     },
 ];
@@ -88,27 +94,15 @@ export const VALID_SCHOOLS_ADD_MULTIPLE: SchoolTestCaseMultipleSchools[] = [
         schools: (() => {
             const multipleSchools: proto.School[] = [];
 
-            const schoolLaniteio = setUpSchool();
-            schoolLaniteio.setName('Test School 59');
-            schoolLaniteio.setExternalUuid(uuidv4());
-            schoolLaniteio.setExternalOrganizationUuid('90da8a47-989c-4e80-a669-dfa4912596b3');
-            schoolLaniteio.setShortCode('SCHOOL59');
-
-            const schoolTheklio = setUpSchool();
-            schoolTheklio.setName('Test School 60');
-            schoolTheklio.setExternalUuid(uuidv4());
-            schoolTheklio.setExternalOrganizationUuid('90da8a47-989c-4e80-a669-dfa4912596b3');
-            schoolTheklio.setShortCode('SCHOOL60');
-
-            const schoolAgFyla = new School();
-            schoolAgFyla.setName('Test School 61');
-            schoolAgFyla.setExternalUuid(uuidv4());
-            schoolAgFyla.setExternalOrganizationUuid('90da8a47-989c-4e80-a669-dfa4912596b3');
-            schoolAgFyla.setShortCode('SCHOOL61');
-
-            multipleSchools.push(schoolLaniteio);
-            multipleSchools.push(schoolTheklio);
-            multipleSchools.push(schoolAgFyla);
+            for (let i = 0; i < 3; i += 1) {
+                const school = setUpSchool();
+                school
+                    .setName(`Test School ${i}`)
+                    .setExternalUuid(uuidv4())
+                    .setExternalOrganizationUuid('90da8a47-989c-4e80-a669-dfa4912596b3')
+                    .setShortCode(`SCHOOL-${i}`);
+                multipleSchools.push(school);
+            }
 
             return multipleSchools;
         })(),
@@ -117,7 +111,11 @@ export const VALID_SCHOOLS_ADD_MULTIPLE: SchoolTestCaseMultipleSchools[] = [
 
 function createRequest(school: proto.School, action: proto.Action): OnboardingRequest {
 
-    return new OnboardingRequest().setRequestId(uuidv4())
+    const requestMetadata = new RequestMetadata()
+    requestMetadata.setId(uuidv4());
+    requestMetadata.setN("1");
+
+    return new OnboardingRequest().setRequestId(requestMetadata)
         .setAction(action)
         .setSchool(school);
 }
@@ -127,11 +125,11 @@ const onboard = async (reqs: proto.OnboardingRequest[]) => {
 
         const req = new BatchOnboarding().setRequestsList(reqs);
         const metadata = new Metadata();
+        const apiKey = process.env.API_KEY;
+        metadata.set('x-api-key', `${apiKey}`);
 
-        metadata.set('x-api-key', 'abcxyz'); // change it to process.env.API_KEY 
         client.onboard(req, metadata, (error, response) => {
             if (error !== null) {
-                console.error('Received Error\n', error);
                 reject(error);
                 return;
             }
@@ -147,11 +145,11 @@ function setUpSchool(
     shortcode = true
 ): proto.School {
     const s = new School();
-    if (name) s.setName('St Stephens School 3');
+    if (name) s.setName('Test School 1');
     if (uuid) s.setExternalUuid(uuidv4());
     // Assume that the organization exists
     if (orgId) s.setExternalOrganizationUuid('90da8a47-989c-4e80-a669-dfa4912596b3');
-    if (shortcode) s.setShortCode('StS3');
+    if (shortcode) s.setShortCode('SCHOOL1');
     return s;
 }
 
@@ -174,18 +172,20 @@ describe('School Onboard Validation', () => {
         });
     });
 
-    INVALID_SCHOOLS_ENTITY_ALREADY_EXISTS.forEach(({ scenario, school }) => {
+    INVALID_SCHOOLS_ENTITY_ALREADY_EXISTS.forEach(({ scenario, schools }) => {
         it(`should fail when a school ${scenario}`, async () => {
 
-            const req = createRequest(school, Action.CREATE);
-            const response = await onboard([req]);
+            const requests: proto.OnboardingRequest[] = [];
+            for (const school of schools) {
+                const req = createRequest(school, Action.CREATE);
+                requests.push(req);
+            }
+
+            await onboard([requests[0]]);
+            const response = await onboard([requests[1]]);
 
             if (response instanceof proto.Responses) {
-                expect(response.getResponsesList()).to.be.length(1)
                 expect(response.getResponsesList()[0].getSuccess()).to.be.false;
-                expect(response.getResponsesList()[0].getEntityId()).to.equal(
-                    school.getExternalUuid()
-                );
                 expect(response.getResponsesList()[0].getErrors()?.hasEntityAlreadyExists()).to.be.true;
             }
         });
@@ -228,14 +228,12 @@ describe('School Onboard Validation', () => {
     VALID_SCHOOLS_ADD_MULTIPLE.forEach(({ scenario, schools }) => {
         it(`should pass when ${scenario}`, async () => {
 
-            // Create Requests
             const requests: proto.OnboardingRequest[] = [];
             for (const school of schools) {
                 const req = createRequest(school, Action.CREATE);
                 requests.push(req);
             }
 
-            // Get Response
             const response = await onboard(requests);
 
             if (response instanceof proto.Responses) {
