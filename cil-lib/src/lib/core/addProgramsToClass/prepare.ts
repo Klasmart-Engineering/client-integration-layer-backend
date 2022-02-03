@@ -44,6 +44,7 @@ export async function prepare(
       const response = new Response()
         .setEntity(Entity.CLASS)
         .setRequestId(requestIdToProtobuf(addProgramsToClass.requestId))
+        .setEntityId(addProgramsToClass.protobuf.getExternalClassUuid())
         .setSuccess(false);
       if (error instanceof Errors || error instanceof OnboardingError) {
         response.setErrors(error.toProtobufError());

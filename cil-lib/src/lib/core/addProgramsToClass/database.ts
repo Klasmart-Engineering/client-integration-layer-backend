@@ -17,7 +17,7 @@ export async function toSuccessResponses(
     const response = new Response()
       .setEntity(Entity.CLASS)
       .setSuccess(true)
-      .setEntityId(addProgramsToClass.externalClassUuid!)
+      .setEntityId(addProgramsToClass.externalClassUuid ?? '')
       .setRequestId(requestIdToProtobuf(requestId));
 
     responses.push(response);

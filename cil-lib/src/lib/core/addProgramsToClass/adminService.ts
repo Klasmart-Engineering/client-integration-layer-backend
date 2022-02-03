@@ -60,6 +60,7 @@ export async function sendRequest(
       const response = new Response()
         .setEntity(Entity.CLASS)
         .setRequestId(requestIdToProtobuf(addPrograms.requestId))
+        .setEntityId(addPrograms.protobuf.getExternalClassUuid())
         .setSuccess(false);
       if (error instanceof Errors || error instanceof OnboardingError) {
         response.setErrors(error.toProtobufError());
