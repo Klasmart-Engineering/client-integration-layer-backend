@@ -148,8 +148,8 @@ export class Program {
           log
         );
       const targets = new Set(programNames);
-      for (const { klUuid } of klUuids) {
-        targets.delete(klUuid);
+      for (const { name } of klUuids) {
+        targets.delete(name);
       }
       if (targets.size === 0)
         return klUuids.map((id) => ({ id: id.klUuid, name: id.name }));

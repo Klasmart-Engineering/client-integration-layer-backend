@@ -84,7 +84,7 @@ export class Class {
     shouldLogNotFoundError = true
   ): Promise<Uuid> {
     try {
-      const klUuid = await prisma.organization.findUnique({
+      const klUuid = await prisma.class.findUnique({
         where: {
           externalUuid: id,
         },

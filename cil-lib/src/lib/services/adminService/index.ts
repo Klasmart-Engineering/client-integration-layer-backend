@@ -30,7 +30,12 @@ import {
 import { GET_ORGANIZATION } from './organization';
 import { GET_PROGRAMS_BY_ORGANIZATION, GET_SYSTEM_PROGRAMS } from './programs';
 import { GET_ORGANIZATION_ROLES, GET_SYSTEM_ROLES } from './roles';
-import { CREATE_SCHOOLS, CreateSchoolInput } from './school';
+import {
+  ADD_PROGRAMS_TO_SCHOOLS,
+  AddProgramsToSchoolInput,
+  CREATE_SCHOOLS,
+  CreateSchoolInput,
+} from './school';
 import {
   ADD_ORGANIZATION_ROLES_TO_USER,
   AddOrganizationRolesToUser,
@@ -322,7 +327,7 @@ export class AdminService {
   }
 
   public async addProgramsToClass(
-    classes: AddProgramsToClassInput[],
+    addProgramsToClasses: AddProgramsToClassInput[],
     log: Logger
   ): Promise<IdNameMapper[]> {
     const transformer = (responses: {
@@ -330,12 +335,29 @@ export class AdminService {
     }) => responses.classes;
     const cl = await this.sendMutation(
       ADD_PROGRAMS_TO_CLASSES,
-      { classes },
+      { addProgramsToClasses },
       transformer,
       'addProgramsToClasses',
       log
     );
     return cl;
+  }
+
+  public async addProgramsToSchool(
+    addProgramsToSchools: AddProgramsToSchoolInput[],
+    log: Logger
+  ): Promise<IdNameMapper[]> {
+    const transformer = (responses: {
+      schools: { id: string; name: string }[];
+    }) => responses.schools;
+    const sc = await this.sendMutation(
+      ADD_PROGRAMS_TO_SCHOOLS,
+      { addProgramsToSchools },
+      transformer,
+      'addProgramsToSchools',
+      log
+    );
+    return sc;
   }
 
   /**

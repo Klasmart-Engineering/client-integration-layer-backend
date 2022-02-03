@@ -4,13 +4,11 @@ import { Uuid } from '../../..';
 import { AddProgramsToSchool, Response } from '../../protos';
 import { Operation } from '../../types';
 import { IdTracked } from '../batchRequest';
-import {
-  compose,
-  DUMMY_PREPARE,
-  DUMMY_SEND_REQUEST,
-  DUMMY_STORE,
-} from '../process';
+import { compose } from '../process';
 
+import { sendRequest } from './adminService';
+import { persist } from './database';
+import { prepare } from './prepare';
 import { validateMany } from './validate';
 
 export interface PAddProgramsToSchool {
@@ -27,9 +25,9 @@ export function process(
 ): Promise<Response[]> {
   return compose(
     validateMany,
-    DUMMY_PREPARE,
-    DUMMY_SEND_REQUEST,
-    DUMMY_STORE,
+    prepare,
+    sendRequest,
+    persist,
     data,
     Operation.ADD_PROGRAMS_TO_SCHOOL,
     log

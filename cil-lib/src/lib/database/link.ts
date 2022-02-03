@@ -37,7 +37,7 @@ export class Link {
       if (!school)
         throw ENTITY_NOT_FOUND_FOR(
           schoolId,
-          Entity.USER,
+          Entity.SCHOOL,
           organizationId,
           Entity.ORGANIZATION,
           log,
@@ -339,6 +339,50 @@ export class Link {
     } catch (error) {
       const msg = returnMessageOrThrowOnboardingError(error);
       throw new OnboardingError(MachineError.READ, msg, Category.POSTGRES, log);
+    }
+  }
+
+  public static async linkProgramToSchool(
+    programId: string,
+    schoolId: string,
+    log: Logger
+  ): Promise<Uuid> {
+    try {
+      const result = await prisma.programLink.create({
+        data: {
+          school: {
+            connect: {
+              klUuid: schoolId,
+            },
+          },
+          program: {
+            connect: { klUuid: programId },
+          },
+        },
+      });
+      if (!result)
+        throw ENTITY_NOT_FOUND_FOR(
+          programId,
+          Entity.PROGRAM,
+          schoolId,
+          Entity.SCHOOL,
+          log,
+          { operation: 'link program to school' }
+        );
+      return result.klUuid;
+    } catch (error) {
+      const msg = returnMessageOrThrowOnboardingError(error);
+      throw new OnboardingError(
+        MachineError.WRITE,
+        msg,
+        Category.POSTGRES,
+        log,
+        [],
+        {
+          operation: 'link program to school',
+          targetEntityId: schoolId,
+        }
+      );
     }
   }
 }

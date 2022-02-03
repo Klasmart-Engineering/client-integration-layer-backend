@@ -25,8 +25,10 @@ export const CREATE_CLASSES = gql`
 `;
 
 export const ADD_PROGRAMS_TO_CLASSES = gql`
-  mutation addProgramsToClasses($input: [AddProgramsToClassInput!]!) {
-    addProgramsToClasses(input: $input) {
+  mutation addProgramsToClasses(
+    $addProgramsToClasses: [AddProgramsToClassInput!]!
+  ) {
+    addProgramsToClasses(input: $addProgramsToClasses) {
       classes {
         id
         name
