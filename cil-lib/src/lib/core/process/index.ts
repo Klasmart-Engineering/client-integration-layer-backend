@@ -140,16 +140,20 @@ export async function compose<T extends IdTracked<V, U>, V extends Message, U>(
     responses = responses.concat(result.invalid);
     if (result.valid.length === 0) return responses;
 
-    logger = logger.child({ step: '3. SEND REQUEST TO ADMIN SERVICE' });
-    log.debug('attempting to write operation to admin service');
-    [result, logger] = await sendRequest(result.valid, logger);
-    responses = responses.concat(result.invalid);
-    if (result.valid.length === 0) return responses;
+    // Process 50 elements per iteration
+    const chunks = chunkItems(result.valid);
+    for (const chunk of chunks) {
+      logger = logger.child({ step: '3. SEND REQUEST TO ADMIN SERVICE' });
+      log.debug('attempting to write operation to admin service');
+      [result, logger] = await sendRequest(chunk, logger);
+      responses = responses.concat(result.invalid);
+      if (result.valid.length === 0) return responses;
 
-    logger = logger.child({ step: '4. WRITE TO DATABASE' });
-    log.debug('attempting to write operation to database');
-    const databaseResult = await store(result.valid, logger);
-    responses = responses.concat(databaseResult);
+      logger = logger.child({ step: '4. WRITE TO DATABASE' });
+      log.debug('attempting to write operation to database');
+      const databaseResult = await store(result.valid, logger);
+      responses = responses.concat(databaseResult);
+    }
   } catch (error) {
     log.warn(
       { error: error instanceof Error ? error.message : `${error}` },
@@ -184,3 +188,11 @@ export const DUMMY_STORE = async <T>(
 ): Promise<Response[]> => {
   throw new Error('Store has not been implemented');
 };
+
+function chunkItems<T>(items: T[], chunkSize = 50): T[][] {
+  return items.reduce((chunks: T[][], item: T, index) => {
+    const chunk = Math.floor(index / chunkSize);
+    chunks[chunk] = ([] as T[]).concat(chunks[chunk] || [], item);
+    return chunks;
+  }, []);
+}
