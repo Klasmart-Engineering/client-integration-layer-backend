@@ -7,18 +7,18 @@ import {
   MachineError,
   OnboardingError,
   processOnboardingRequest,
-} from '../../../../src';
-import * as ProcessFns from '../../../../src/lib/core/process';
-import { Organization as OrgRepo } from '../../../../src/lib/database';
+} from '../../../../../src';
+import * as ProcessFns from '../../../../../src/lib/core/process';
+import { Organization as OrgRepo } from '../../../../../src/lib/database';
 import {
   BatchOnboarding,
   Entity,
   Organization,
   Response,
   Responses,
-} from '../../../../src/lib/protos';
-import { Context } from '../../../../src/lib/utils';
-import { LOG_STUB, wrapRequest } from '../../../util';
+} from '../../../../../src/lib/protos';
+import { Context } from '../../../../../src/lib/utils';
+import { LOG_STUB, wrapRequest } from '../../../../util';
 
 export type OrgTestCase = {
   scenario: string;

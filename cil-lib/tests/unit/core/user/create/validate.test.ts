@@ -7,8 +7,8 @@ import {
   MachineError,
   OnboardingError,
   processOnboardingRequest,
-} from '../../../../src';
-import * as ProcessFns from '../../../../src/lib/core/process';
+} from '../../../../../src';
+import * as ProcessFns from '../../../../../src/lib/core/process';
 import {
   BatchOnboarding,
   Entity,
@@ -16,9 +16,9 @@ import {
   Response,
   Responses,
   User,
-} from '../../../../src/lib/protos';
-import { Context } from '../../../../src/lib/utils';
-import { LOG_STUB, wrapRequest } from '../../../util';
+} from '../../../../../src/lib/protos';
+import { Context } from '../../../../../src/lib/utils';
+import { LOG_STUB, wrapRequest } from '../../../../util';
 
 const USER = Object.freeze({
   externalUuid: true,

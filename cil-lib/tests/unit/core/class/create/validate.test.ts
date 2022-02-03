@@ -7,59 +7,67 @@ import {
   MachineError,
   OnboardingError,
   processOnboardingRequest,
-} from '../../../../src';
-import { School as SchoolDB } from '../../../../src/lib/database';
+} from '../../../../../src';
+import { Class as ClassDB } from '../../../../../src/lib/database';
 import {
   BatchOnboarding,
+  Class,
   Entity,
   Responses,
-  School,
-} from '../../../../src/lib/protos';
-import { AdminService } from '../../../../src/lib/services';
-import { Context } from '../../../../src/lib/utils';
-import { LOG_STUB, wrapRequest } from '../../../util';
+} from '../../../../../src/lib/protos';
+import { AdminService } from '../../../../../src/lib/services';
+import { Context } from '../../../../../src/lib/utils';
+import { LOG_STUB, wrapRequest } from '../../../../util';
 
-export type SchoolTestCase = {
+export type ClassTestCase = {
   scenario: string;
-  school: School;
+  c: Class;
 };
 
-export const VALID_SCHOOLS: SchoolTestCase[] = [
+export const VALID_CLASSES: ClassTestCase[] = [
   {
     scenario: 'valid',
-    school: setUpSchool(),
+    c: setUpClass(),
   },
 ];
 
-export const INVALID_SCHOOLS: SchoolTestCase[] = [
+export const INVALID_CLASSES: ClassTestCase[] = [
   {
     scenario: 'the external uuid is invalid',
-    school: (() => {
-      const s = setUpSchool();
+    c: (() => {
+      const s = setUpClass();
       s.setExternalUuid('6aec2c48-aa45-464c-b3ee-59cd');
       return s;
     })(),
   },
   {
     scenario: 'the external organization uuid is invalid',
-    school: (() => {
-      const s = setUpSchool();
+    c: (() => {
+      const s = setUpClass();
       s.setExternalOrganizationUuid('6aec2c48-aa45-464c-b3ee-59cd');
       return s;
     })(),
   },
   {
+    scenario: 'the external school uuid is invalid',
+    c: (() => {
+      const s = setUpClass();
+      s.setExternalSchoolUuid('6aec2c48-aa45-464c-b3ee-59cd');
+      return s;
+    })(),
+  },
+  {
     scenario: 'the name is less than the minimum character limit',
-    school: (() => {
-      const s = setUpSchool();
+    c: (() => {
+      const s = setUpClass();
       s.setName('A');
       return s;
     })(),
   },
   {
     scenario: 'the name is greater than the maximum character limit',
-    school: (() => {
-      const s = setUpSchool();
+    c: (() => {
+      const s = setUpClass();
       s.setName(
         'abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz1234567890abcdefghijklmnopqrstuvwxyz1234567890'
       );
@@ -67,104 +75,100 @@ export const INVALID_SCHOOLS: SchoolTestCase[] = [
     })(),
   },
   {
-    scenario: 'the shortcode is less than the minimum character limit',
-    school: (() => {
-      const s = setUpSchool();
-      s.setShortCode('A');
-      return s;
-    })(),
-  },
-  {
     scenario: 'the name is missing',
-    school: (() => {
-      const s = setUpSchool(false);
+    c: (() => {
+      const s = setUpClass(false);
       return s;
     })(),
   },
   {
     scenario: 'the uuid is missing',
-    school: (() => {
-      const s = setUpSchool(true, false);
+    c: (() => {
+      const s = setUpClass(true, false);
       return s;
     })(),
   },
   {
     scenario: 'the organization uuid is missing',
-    school: (() => {
-      const s = setUpSchool(true, true, false);
+    c: (() => {
+      const s = setUpClass(true, true, false);
       return s;
     })(),
   },
   {
-    scenario: 'the shortcode is missing',
-    school: (() => {
-      const s = setUpSchool(true, true, true, false);
+    scenario: 'the school uuid is missing',
+    c: (() => {
+      const s = setUpClass(true, true, true, false);
       return s;
     })(),
   },
   {
     scenario: 'the name is an empty string',
-    school: (() => {
-      const s = setUpSchool();
+    c: (() => {
+      const s = setUpClass();
       s.setName('');
       return s;
     })(),
   },
   {
     scenario: 'the uuid is an empty string',
-    school: (() => {
-      const s = setUpSchool();
+    c: (() => {
+      const s = setUpClass();
       s.setExternalUuid('');
       return s;
     })(),
   },
   {
     scenario: 'the organization uuid is an empty string',
-    school: (() => {
-      const s = setUpSchool();
+    c: (() => {
+      const s = setUpClass();
       s.setExternalOrganizationUuid('');
       return s;
     })(),
   },
   {
-    scenario: 'the shortcode is an empty string',
-    school: (() => {
-      const s = setUpSchool();
-      s.setShortCode('');
+    scenario: 'the school uuid is an empty string',
+    c: (() => {
+      const s = setUpClass();
+      s.setExternalSchoolUuid('');
       return s;
     })(),
   },
 ];
 
-describe('school validation', () => {
-  let orgIsValidStub: SinonStub;
-  let schoolIsValidStub: SinonStub;
-
+describe('class validation', () => {
+  let orgStub: SinonStub;
+  let schoolStub: SinonStub;
+  let classStub: SinonStub;
   const ctx = Context.getInstance();
 
   beforeEach(async () => {
     process.env.ADMIN_SERVICE_API_KEY = uuidv4();
     const admin = await AdminService.getInstance();
-    orgIsValidStub = sinon.stub(ctx, 'organizationIdIsValid').resolves();
-    sinon.stub(ctx, 'getOrganizationId').resolves(uuidv4());
-    schoolIsValidStub = sinon
-      .stub(ctx, 'getSchoolId')
-      .rejects(new Error('Does not exist'));
     sinon
-      .stub(admin, 'createSchools')
-      .resolves([{ id: uuidv4(), name: 'Test School' }]);
-    sinon.stub(SchoolDB, 'insertOne').resolves();
+      .stub(admin, 'createClasses')
+      .resolves([{ id: uuidv4(), name: 'Test Class' }]);
+    orgStub = sinon.stub(ctx, 'organizationIdIsValid');
+
+    schoolStub = sinon.stub(ctx, 'getSchoolId').resolves();
+    classStub = sinon
+      .stub(ctx, 'getClassId')
+      .rejects(new Error('Does not exist'));
+    sinon.stub(ctx, 'getOrganizationId').resolves(uuidv4());
+    sinon.stub(ClassDB, 'insertOne').resolves();
   });
 
   afterEach(() => {
+    orgStub.restore();
+    schoolStub.restore();
+    classStub.restore();
     sinon.restore();
   });
 
-  VALID_SCHOOLS.forEach(({ scenario, school }) => {
-    it(`should pass when a school is ${scenario}`, async () => {
-      const req = wrapRequest(school);
+  VALID_CLASSES.forEach(({ scenario, c }) => {
+    it(`should pass when a class is ${scenario}`, async () => {
+      const req = wrapRequest(c);
       const resp = await processOnboardingRequest(req, LOG_STUB);
-
       const responses = resp.getResponsesList();
       expect(responses).to.have.length(1);
       expect(responses[0]).not.to.be.undefined;
@@ -173,20 +177,19 @@ describe('school validation', () => {
   });
 
   describe('should fail when ', () => {
-    INVALID_SCHOOLS.forEach(({ scenario, school }) => {
+    INVALID_CLASSES.forEach(({ scenario, c }) => {
       it(scenario, async () => {
-        const req = wrapRequest(school);
+        const req = wrapRequest(c);
         const resp = await makeCommonAssertions(req);
-        const response = resp?.toObject().responsesList[0];
+        const response = resp.toObject().responsesList[0];
         expect(response.errors?.validation).not.to.be.undefined;
-        expect(response.errors?.validation?.errorsList[0]).not.to.be.undefined;
       });
     });
   });
 
   it('should fail if the organization ID is not in the database', async () => {
-    const req = wrapRequest(VALID_SCHOOLS[0].school);
-    orgIsValidStub.rejects(
+    const req = wrapRequest(VALID_CLASSES[0].c);
+    orgStub.rejects(
       new OnboardingError(
         MachineError.VALIDATION,
         'Invalid Organization',
@@ -195,37 +198,52 @@ describe('school validation', () => {
       )
     );
     const resp = await makeCommonAssertions(req);
-    const response = resp?.toObject().responsesList[0];
+    const response = resp.toObject().responsesList[0];
     expect(response.errors?.validation).not.to.be.undefined;
-    expect(response.errors?.validation?.errorsList[0]).not.to.be.undefined;
   });
 
-  it('should fail if the school ID already exists', async () => {
-    const req = wrapRequest(VALID_SCHOOLS[0].school);
-    schoolIsValidStub.resolves();
+  it('should fail if the school ID is not in the database', async () => {
+    const req = wrapRequest(VALID_CLASSES[0].c);
+    schoolStub.rejects(
+      new OnboardingError(
+        MachineError.VALIDATION,
+        'Invalid School',
+        Category.REQUEST,
+        LOG_STUB
+      )
+    );
     const resp = await makeCommonAssertions(req);
-    const response = resp?.toObject().responsesList[0];
+    const response = resp.toObject().responsesList[0];
+    expect(response.errors?.validation).not.to.be.undefined;
+  });
+
+  it('should fail if the class ID already exists', async () => {
+    const req = wrapRequest(VALID_CLASSES[0].c);
+    classStub.resolves();
+    const resp = await makeCommonAssertions(req);
+    const response = resp.toObject().responsesList[0];
     expect(response.errors?.entityAlreadyExists).not.to.be.undefined;
   });
 });
 
-function setUpSchool(
+function setUpClass(
   name = true,
   uuid = true,
   orgId = true,
-  shortcode = true
-): School {
-  const s = new School();
-  if (name) s.setName('Test School');
+  schoolId = true
+): Class {
+  const s = new Class();
+  if (name) s.setName('Test Class');
   if (uuid) s.setExternalUuid(uuidv4());
   if (orgId) s.setExternalOrganizationUuid(uuidv4());
-  if (shortcode) s.setShortCode('SCHOOL');
+  if (schoolId) s.setExternalSchoolUuid(uuidv4());
   return s;
 }
 
 async function makeCommonAssertions(req: BatchOnboarding): Promise<Responses> {
   try {
     const resp = await processOnboardingRequest(req, LOG_STUB);
+    expect(resp).not.to.be.undefined;
     const responses = resp.toObject().responsesList;
     expect(responses).to.have.lengthOf(1);
     const response = responses[0];
@@ -234,9 +252,9 @@ async function makeCommonAssertions(req: BatchOnboarding): Promise<Responses> {
       req.getRequestsList()[0].getRequestId()?.toObject()
     );
     expect(response.entityId).to.equal(
-      req.getRequestsList()[0].getSchool()?.getExternalUuid()
+      req.getRequestsList()[0].getClass()?.getExternalUuid()
     );
-    expect(response.entity).to.equal(Entity.SCHOOL);
+    expect(response.entity).to.equal(Entity.CLASS);
     return resp;
   } catch (error) {
     expect(error, 'this api should not error').to.be.undefined;

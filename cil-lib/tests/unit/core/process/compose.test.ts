@@ -2,11 +2,11 @@ import chai, { expect } from 'chai';
 import cp from 'chai-as-promised';
 import { Logger } from 'pino';
 
-import { Operation } from '../../../src';
-import { ICreateOrganization } from '../../../src/lib/core';
-import { compose, Result } from '../../../src/lib/core/process';
-import { Response } from '../../../src/lib/protos';
-import { LOG_STUB } from '../../util';
+import { Operation } from '../../../../src';
+import { ICreateOrganization } from '../../../../src/lib/core';
+import { compose, Result } from '../../../../src/lib/core/process';
+import { Response } from '../../../../src/lib/protos';
+import { LOG_STUB } from '../../../util';
 
 chai.use(cp);
 

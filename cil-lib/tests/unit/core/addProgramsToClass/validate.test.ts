@@ -7,22 +7,22 @@ import {
   MachineError,
   OnboardingError,
   processOnboardingRequest,
-} from '../../../src';
-import { Class as ClassDB, School as SchoolDB } from '../../../src/lib/database';
+} from '../../../../src';
+import { Class as ClassDB, School as SchoolDB } from '../../../../src/lib/database';
 import {
   BatchOnboarding,
   AddProgramsToClass,
   Entity,
   Responses,
-} from '../../../src/lib/protos';
-import { AdminService } from '../../../src/lib/services';
-import { Context } from '../../../src/lib/utils';
-import { LOG_STUB, wrapRequest } from '../../util';
+} from '../../../../src/lib/protos';
+import { AdminService } from '../../../../src/lib/services';
+import { Context } from '../../../../src/lib/utils';
+import { LOG_STUB, wrapRequest } from '../../../util';
 
 export type AddProgramsToClassTestCase = {
   scenario: string;
   addProgramsToClass: AddProgramsToClass;
-  message?: string; 
+  message?: string;
 };
 
 export const VALID_ADD_PROGRAMS_TO_CLASS: AddProgramsToClassTestCase[] = [
@@ -113,7 +113,7 @@ describe('add programs to class validation', () => {
 
   beforeEach(async () => {
     process.env.ADMIN_SERVICE_API_KEY = uuidv4();
-    const admin = await AdminService.getInstance(); 
+    const admin = await AdminService.getInstance();
     classStub = sinon.stub(ClassDB, 'findOne').resolves({
         externalUuid: uuidv4(),
         externalOrgUuid: uuidv4(),
@@ -170,7 +170,7 @@ describe('add programs to class validation', () => {
         MachineError.VALIDATION,
         'Invalid',
         Category.REQUEST,
-        LOG_STUB, [], {}, 
+        LOG_STUB, [], {},
         ["Invalid School"]
       )
     );
@@ -184,11 +184,11 @@ describe('add programs to class validation', () => {
           MachineError.VALIDATION,
           'Invalid',
           Category.REQUEST,
-          LOG_STUB, [], {}, 
+          LOG_STUB, [], {},
           ["Invalid Class"]
         )
       );
-    await makeCommonAssertions(req, 'Invalid Class');   
+    await makeCommonAssertions(req, 'Invalid Class');
   });
 
   it('should fail if the program name does not match', async () => {
