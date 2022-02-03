@@ -59,6 +59,7 @@ export async function sendRequest(
     for (const s of schools) {
       const r = new Response()
         .setEntity(Entity.SCHOOL)
+        .setEntityId(s.protobuf.getExternalUuid())
         .setRequestId(requestIdToProtobuf(s.requestId))
         .setSuccess(false);
       if (error instanceof Errors || error instanceof OnboardingError) {

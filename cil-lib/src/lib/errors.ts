@@ -146,13 +146,14 @@ export class OnboardingError {
   }
 
   public toProtobufError(): PbError {
+    const errorMessages = [this.msg, ...this.details];
     const e = new PbError();
     switch (this.error) {
       case MachineError.REQUEST: {
         const error = new InvalidRequestError();
         const pathBased = new PathBasedError();
         pathBased.setPath(this.path.join(', '));
-        pathBased.setDetailsList(this.details);
+        pathBased.setDetailsList(errorMessages);
         error.setErrorsList([pathBased]);
         e.setValidation(error);
         break;
@@ -161,20 +162,20 @@ export class OnboardingError {
         const error = new ValidationError();
         const pathBased = new PathBasedError();
         pathBased.setPath(this.path.join(', '));
-        pathBased.setDetailsList(this.details);
+        pathBased.setDetailsList(errorMessages);
         error.setErrorsList([pathBased]);
         e.setValidation(error);
         break;
       }
       case MachineError.ENTITY_ALREADY_EXISTS: {
         const error = new EntityAlreadyExistsError();
-        error.setDetailsList(this.details);
+        error.setDetailsList(errorMessages);
         e.setEntityAlreadyExists(error);
         break;
       }
       case MachineError.ENTITY_DOES_NOT_EXIST: {
         const error = new EntityDoesNotExistError();
-        error.setDetailsList(this.details);
+        error.setDetailsList(errorMessages);
         e.setEntityDoesNotExist(error);
         break;
       }

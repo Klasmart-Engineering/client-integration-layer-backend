@@ -5,6 +5,7 @@ import {
   BAD_REQUEST,
   Category,
   ENTITY_NOT_FOUND,
+  Errors,
   MachineError,
   OnboardingError,
   POSTGRES_GET_KIDSLOOP_ID_QUERY,
@@ -18,6 +19,7 @@ const prisma = new PrismaClient();
 
 export class User {
   public static entity = Entity.USER;
+
   public static async insertOne(
     user: Prisma.UserCreateInput,
     log: Logger
@@ -36,6 +38,34 @@ export class User {
         [],
         { entityId: user.externalUuid, operation: 'INSERT ONE' }
       );
+    }
+  }
+
+  public static async insertMany(
+    users: Prisma.UserCreateInput[],
+    log: Logger
+  ): Promise<void> {
+    try {
+      await prisma.user.createMany({
+        data: users,
+        // Is this actually okay?
+        skipDuplicates: true,
+      });
+    } catch (error) {
+      const errors = [];
+      const msg = returnMessageOrThrowOnboardingError(error);
+      for (const u of users) {
+        const e = new OnboardingError(
+          MachineError.WRITE,
+          msg,
+          Category.POSTGRES,
+          log,
+          [],
+          { entityId: u.externalUuid, operation: 'INSERT ONE' }
+        );
+        errors.push(e);
+      }
+      throw new Errors(errors);
     }
   }
 

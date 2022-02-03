@@ -7,7 +7,7 @@ import { IncomingData } from '.';
 
 export async function toSuccessResponses(
   addProgramsToClasses: IncomingData[],
-  log: Logger
+  _log: Logger
 ): Promise<Response[]> {
   const responses: Response[] = [];
   for (const incomingData of addProgramsToClasses) {

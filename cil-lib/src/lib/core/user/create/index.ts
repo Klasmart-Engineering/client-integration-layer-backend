@@ -4,13 +4,10 @@ import { Response, User } from '../../../protos';
 import { Operation } from '../../../types';
 import { Uuid } from '../../../utils';
 import { IdTracked } from '../../batchRequest';
-import {
-  compose,
-  DUMMY_PREPARE,
-  DUMMY_SEND_REQUEST,
-  DUMMY_STORE,
-} from '../../process';
+import { compose, NOOP } from '../../process';
 
+import { sendRequest } from './adminService';
+import { persist } from './database';
 import { validateMany } from './validate';
 
 export interface CreateUser {
@@ -25,9 +22,9 @@ export function process(
 ): Promise<Response[]> {
   return compose(
     validateMany,
-    DUMMY_PREPARE,
-    DUMMY_SEND_REQUEST,
-    DUMMY_STORE,
+    NOOP,
+    sendRequest,
+    persist,
     data,
     Operation.CREATE_USER,
     log
