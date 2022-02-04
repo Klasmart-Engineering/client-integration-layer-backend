@@ -1,8 +1,26 @@
+import Joi from 'joi';
 import { Logger } from 'pino';
 
-import { Context, Link } from '../../..';
-import { convertErrorToProtobuf } from '../../errors';
-import { Entity as PbEntity, Response } from '../../protos';
+import {
+  Context,
+  Entity,
+  JOI_VALIDATION_SETTINGS,
+  Link,
+  VALIDATION_RULES,
+} from '../../..';
+import {
+  BASE_PATH,
+  Category,
+  convertErrorToProtobuf,
+  Errors,
+  MachineError,
+  OnboardingError,
+} from '../../errors';
+import {
+  AddOrganizationRolesToUser,
+  Entity as PbEntity,
+  Response,
+} from '../../protos';
 import { requestIdToProtobuf } from '../batchRequest';
 import { Result } from '../process';
 
@@ -33,6 +51,7 @@ export async function validateMany(
 
 async function validate(r: IncomingData, log: Logger): Promise<IncomingData> {
   const { protobuf } = r;
+  schemaValidation(protobuf.toObject(), log);
 
   const userId = protobuf.getExternalUserUuid();
   const orgId = protobuf.getExternalOrganizationUuid();
@@ -45,3 +64,46 @@ async function validate(r: IncomingData, log: Logger): Promise<IncomingData> {
 
   return r;
 }
+
+function schemaValidation(
+  entity: AddOrganizationRolesToUser.AsObject,
+  log: Logger
+): void {
+  const errors = new Map();
+  const { error } = schema.validate(entity, JOI_VALIDATION_SETTINGS);
+  if (error) {
+    for (const { path: p, message } of error.details) {
+      const e =
+        errors.get(p) ||
+        new OnboardingError(
+          MachineError.VALIDATION,
+          `${Entity.USER} failed validation`,
+          Category.REQUEST,
+          log,
+          [...BASE_PATH, 'addOrganizationRolesToUser', ...p.map(toString)]
+        );
+      e.details.push(message);
+      errors.set(p, e);
+    }
+  }
+  if (errors.size > 0) throw new Errors(Array.from(errors.values()));
+}
+
+export const schema = Joi.object({
+  externalUserUuid: Joi.string()
+    .guid({ version: ['uuidv4'] })
+    .required(),
+
+  externalOrganizationUuid: Joi.string()
+    .guid({ version: ['uuidv4'] })
+    .required(),
+
+  roleIdentifiersList: Joi.array()
+    .min(1)
+    .items(
+      Joi.string()
+        .min(VALIDATION_RULES.ROLE_NAME_MIN_LENGTH)
+        .max(VALIDATION_RULES.ROLE_NAME_MAX_LENGTH)
+    )
+    .required(),
+});

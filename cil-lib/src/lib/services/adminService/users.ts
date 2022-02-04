@@ -1,5 +1,7 @@
 import { gql } from '@apollo/client/core';
 
+import { Uuid } from '../../utils';
+
 export type CreateUserInput = {
   givenName: string;
   familyName: string;
@@ -28,6 +30,22 @@ export const CREATE_USERS = gql`
           email
           phone
         }
+      }
+    }
+  }
+`;
+
+export type AddOrganizationRolesToUser = {
+  userId: Uuid;
+  organizationId: Uuid;
+  roleIds: Uuid[];
+};
+
+export const ADD_ORGANIZATION_ROLES_TO_USER = gql`
+  mutation addOrgRolesToUser($input: [AddOrganizationRolesToUserInput!]!) {
+    addOrganizationRolesToUsers(input: $input) {
+      users {
+        id
       }
     }
   }

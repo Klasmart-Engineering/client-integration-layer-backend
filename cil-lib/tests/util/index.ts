@@ -3,6 +3,7 @@ import sinon from 'sinon';
 import { v4 as uuidv4 } from 'uuid';
 
 import {
+  AddOrganizationRolesToUser,
   AddProgramsToClass,
   BatchOnboarding,
   Class,
@@ -21,7 +22,10 @@ export function wrapRequest<T>(data: T): BatchOnboarding {
   if (data instanceof School) req.setSchool(data);
   if (data instanceof Class) req.setClass(data);
   if (data instanceof User) req.setUser(data);
-  if (data instanceof AddProgramsToClass) req.setLinkEntities(new Link().setAddProgramsToClass(data));
+  if (data instanceof AddProgramsToClass)
+    req.setLinkEntities(new Link().setAddProgramsToClass(data));
+  if (data instanceof AddOrganizationRolesToUser)
+    req.setLinkEntities(new Link().setAddOrganizationRolesToUser(data));
   return new BatchOnboarding().setRequestsList([req]);
 }
 

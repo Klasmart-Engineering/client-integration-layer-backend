@@ -31,7 +31,13 @@ import { GET_ORGANIZATION } from './organization';
 import { GET_PROGRAMS_BY_ORGANIZATION, GET_SYSTEM_PROGRAMS } from './programs';
 import { GET_ORGANIZATION_ROLES, GET_SYSTEM_ROLES } from './roles';
 import { CREATE_SCHOOLS, CreateSchoolInput } from './school';
-import { ContactInfo, CREATE_USERS, CreateUserInput } from './users';
+import {
+  ADD_ORGANIZATION_ROLES_TO_USER,
+  AddOrganizationRolesToUser,
+  ContactInfo,
+  CREATE_USERS,
+  CreateUserInput,
+} from './users';
 
 type SupportedConnections =
   | 'programsConnection'
@@ -297,6 +303,22 @@ export class AdminService {
       log
     );
     return u;
+  }
+
+  public async addOrganizationRolesToUser(
+    roles: AddOrganizationRolesToUser[],
+    log: Logger
+  ): Promise<{ id: Uuid }[]> {
+    const transformer = (responses: { users: { id: string }[] }) =>
+      responses.users;
+    const users = await this.sendMutation(
+      ADD_ORGANIZATION_ROLES_TO_USER,
+      { input: roles },
+      transformer,
+      'addOrganizationRolesToUsers',
+      log
+    );
+    return users;
   }
 
   public async addProgramsToClass(

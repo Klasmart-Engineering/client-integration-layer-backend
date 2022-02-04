@@ -147,6 +147,22 @@ export class Context {
     return klUuid;
   }
 
+  public async getUserId(
+    id: ExternalUuid,
+    log: Logger,
+    shouldLogNotFoundError = true
+  ): Promise<Uuid> {
+    {
+      const klId = this.users.get(id);
+      if (klId) return klId;
+    }
+
+    // Will error
+    const klUuid = await User.getKidsloopId(id, log, shouldLogNotFoundError);
+    this.users.set(id, klUuid);
+    return klUuid;
+  }
+
   /**
    * @param {ExternalUuid} id - The external uuid of the user
    * @errors if there's a database error or entity already exists
