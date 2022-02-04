@@ -52,7 +52,7 @@ function setUpProgramsToClass(
   return programs;
 }
 
-describe.only('Adding programs to class', () => {
+describe.skip('Adding programs to class', () => {
   VALID_ADD_PROGRAMS_TO_CLASS.forEach(({ scenario, addProgramsToClass }) => {
     it(`should pass when adding programs to class ${scenario}`, async () => {
       const req = createRequest(addProgramsToClass, Action.CREATE);
