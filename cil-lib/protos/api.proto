@@ -30,8 +30,7 @@ message User {
   string family_name = 7;
   Gender gender = 8;
   string date_of_birth = 9;
-  string short_code = 10;
-  repeated string role_identifiers = 11;
+  repeated string role_identifiers = 10;
 }
 
 enum Gender {

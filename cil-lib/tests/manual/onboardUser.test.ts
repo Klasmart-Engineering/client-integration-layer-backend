@@ -101,7 +101,6 @@ function setUpUser(user = USER): User {
   if (familyName) u.setFamilyName('Name');
   if (gender) u.setGender(Gender.MALE);
   if (dateOfBirth) u.setDateOfBirth('01-2017');
-  if (shortCode) u.setShortCode('abcdef');
   if (roleIdentifiers) u.addRoleIdentifiers('Student');
   return u;
 }

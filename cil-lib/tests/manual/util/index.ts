@@ -1,9 +1,11 @@
 import { Metadata } from '@grpc/grpc-js';
 import { proto } from '../../../dist/main';
 import * as grpc from '@grpc/grpc-js';
-import { Responses } from '../../../src/lib/protos';
-
-const { BatchOnboarding, OnboardingClient } = proto;
+import {
+  BatchOnboarding,
+  OnboardingClient,
+  Responses,
+} from '../../../src/lib/protos';
 
 const client = new OnboardingClient(
   `${process.env.GENERIC_BACKEND_URL}`,

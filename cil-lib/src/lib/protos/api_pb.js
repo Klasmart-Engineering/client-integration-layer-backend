@@ -1155,7 +1155,7 @@ proto.cil_onboarding.api.Class.prototype.setExternalSchoolUuid = function(value)
  * @private {!Array<number>}
  * @const
  */
-proto.cil_onboarding.api.User.repeatedFields_ = [11];
+proto.cil_onboarding.api.User.repeatedFields_ = [10];
 
 
 
@@ -1197,8 +1197,7 @@ proto.cil_onboarding.api.User.toObject = function(includeInstance, msg) {
     familyName: jspb.Message.getFieldWithDefault(msg, 7, ""),
     gender: jspb.Message.getFieldWithDefault(msg, 8, 0),
     dateOfBirth: jspb.Message.getFieldWithDefault(msg, 9, ""),
-    shortCode: jspb.Message.getFieldWithDefault(msg, 10, ""),
-    roleIdentifiersList: (f = jspb.Message.getRepeatedField(msg, 11)) == null ? undefined : f
+    roleIdentifiersList: (f = jspb.Message.getRepeatedField(msg, 10)) == null ? undefined : f
   };
 
   if (includeInstance) {
@@ -1272,10 +1271,6 @@ proto.cil_onboarding.api.User.deserializeBinaryFromReader = function(msg, reader
       msg.setDateOfBirth(value);
       break;
     case 10:
-      var value = /** @type {string} */ (reader.readString());
-      msg.setShortCode(value);
-      break;
-    case 11:
       var value = /** @type {string} */ (reader.readString());
       msg.addRoleIdentifiers(value);
       break;
@@ -1371,17 +1366,10 @@ proto.cil_onboarding.api.User.serializeBinaryToWriter = function(message, writer
       f
     );
   }
-  f = message.getShortCode();
-  if (f.length > 0) {
-    writer.writeString(
-      10,
-      f
-    );
-  }
   f = message.getRoleIdentifiersList();
   if (f.length > 0) {
     writer.writeRepeatedString(
-      11,
+      10,
       f
     );
   }
@@ -1551,29 +1539,11 @@ proto.cil_onboarding.api.User.prototype.setDateOfBirth = function(value) {
 
 
 /**
- * optional string short_code = 10;
- * @return {string}
- */
-proto.cil_onboarding.api.User.prototype.getShortCode = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 10, ""));
-};
-
-
-/**
- * @param {string} value
- * @return {!proto.cil_onboarding.api.User} returns this
- */
-proto.cil_onboarding.api.User.prototype.setShortCode = function(value) {
-  return jspb.Message.setProto3StringField(this, 10, value);
-};
-
-
-/**
- * repeated string role_identifiers = 11;
+ * repeated string role_identifiers = 10;
  * @return {!Array<string>}
  */
 proto.cil_onboarding.api.User.prototype.getRoleIdentifiersList = function() {
-  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 11));
+  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 10));
 };
 
 
@@ -1582,7 +1552,7 @@ proto.cil_onboarding.api.User.prototype.getRoleIdentifiersList = function() {
  * @return {!proto.cil_onboarding.api.User} returns this
  */
 proto.cil_onboarding.api.User.prototype.setRoleIdentifiersList = function(value) {
-  return jspb.Message.setField(this, 11, value || []);
+  return jspb.Message.setField(this, 10, value || []);
 };
 
 
@@ -1592,7 +1562,7 @@ proto.cil_onboarding.api.User.prototype.setRoleIdentifiersList = function(value)
  * @return {!proto.cil_onboarding.api.User} returns this
  */
 proto.cil_onboarding.api.User.prototype.addRoleIdentifiers = function(value, opt_index) {
-  return jspb.Message.addToRepeatedField(this, 11, value, opt_index);
+  return jspb.Message.addToRepeatedField(this, 10, value, opt_index);
 };
 
 

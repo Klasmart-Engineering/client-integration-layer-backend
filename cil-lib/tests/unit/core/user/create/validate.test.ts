@@ -167,38 +167,6 @@ export const INVALID_USERS: UserTestCase[] = [
     })(),
   },
   {
-    scenario: 'the short code is empty',
-    user: (() => {
-      const s = setUpUser();
-      s.setShortCode('');
-      return s;
-    })(),
-  },
-  {
-    scenario: 'the short code is too short',
-    user: (() => {
-      const s = setUpUser();
-      s.setShortCode('AB');
-      return s;
-    })(),
-  },
-  {
-    scenario: 'the short code is too long',
-    user: (() => {
-      const s = setUpUser();
-      s.setShortCode('ABCdefHIJklmNOPqr');
-      return s;
-    })(),
-  },
-  {
-    scenario: 'the short code is invalid',
-    user: (() => {
-      const s = setUpUser();
-      s.setShortCode('****');
-      return s;
-    })(),
-  },
-  {
     scenario: 'the external organization uuid is invalid',
     user: (() => {
       const s = setUpUser();
@@ -374,7 +342,6 @@ function setUpUser(user = USER): User {
   if (familyName) u.setFamilyName('Name');
   if (gender) u.setGender(Gender.MALE);
   if (dateOfBirth) u.setDateOfBirth('01-2017');
-  if (shortCode) u.setShortCode('abcdef');
   if (roleIdentifiers) u.addRoleIdentifiers('Role');
   return u;
 }

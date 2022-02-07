@@ -106,8 +106,6 @@ export class User extends jspb.Message {
     setGender(value: Gender): User;
     getDateOfBirth(): string;
     setDateOfBirth(value: string): User;
-    getShortCode(): string;
-    setShortCode(value: string): User;
     clearRoleIdentifiersList(): void;
     getRoleIdentifiersList(): Array<string>;
     setRoleIdentifiersList(value: Array<string>): User;
@@ -134,7 +132,6 @@ export namespace User {
         familyName: string,
         gender: Gender,
         dateOfBirth: string,
-        shortCode: string,
         roleIdentifiersList: Array<string>,
     }
 }

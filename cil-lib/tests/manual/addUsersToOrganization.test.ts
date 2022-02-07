@@ -40,7 +40,7 @@ function setUpUsersToOrg(
   return addUsersToOrg;
 }
 
-describe.only('Adding users to org', () => {
+describe.skip('Adding users to org', () => {
   VALID_ADD_USERS_TO_ORG.forEach(({ scenario, addUsersToOrganization }) => {
     it(`should pass when adding users to org ${scenario}`, async () => {
       const req = wrapRequest(addUsersToOrganization);

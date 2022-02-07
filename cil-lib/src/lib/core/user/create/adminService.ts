@@ -34,7 +34,6 @@ export async function sendRequest(
         username: data.username,
         dateOfBirth: data.dateOfBirth,
         gender: protoGenderToString(data.gender!, log),
-        shortcode: data.shortCode,
       })),
       log
     );
