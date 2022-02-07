@@ -72,32 +72,32 @@ CREATE TABLE "validation_user_schools" (
 
 -- CreateTable
 CREATE TABLE "validation_roles" (
-    "external_uuid" UUID NOT NULL,
+    "kl_uuid" UUID NOT NULL,
     "name" VARCHAR(20) NOT NULL,
     "external_org_uuid" UUID NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
     "deleted_at" TIMESTAMP(3),
 
-    CONSTRAINT "validation_roles_pkey" PRIMARY KEY ("external_uuid")
+    CONSTRAINT "validation_roles_pkey" PRIMARY KEY ("kl_uuid")
 );
 
 -- CreateTable
 CREATE TABLE "validation_programs" (
-    "external_uuid" UUID NOT NULL,
+    "kl_uuid" UUID NOT NULL,
     "name" VARCHAR(100) NOT NULL,
     "external_org_uuid" UUID NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
     "deleted_at" TIMESTAMP(3),
 
-    CONSTRAINT "validation_programs_pkey" PRIMARY KEY ("external_uuid")
+    CONSTRAINT "validation_programs_pkey" PRIMARY KEY ("kl_uuid")
 );
 
 -- CreateTable
 CREATE TABLE "validation_school_programs" (
     "id" UUID NOT NULL,
-    "external_uuid" UUID NOT NULL,
+    "kl_uuid" UUID NOT NULL,
     "external_school_uuid" UUID NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -143,7 +143,7 @@ CREATE INDEX "validation_roles_name_external_org_uuid_idx" ON "validation_roles"
 CREATE INDEX "validation_programs_name_external_org_uuid_idx" ON "validation_programs"("name", "external_org_uuid");
 
 -- CreateIndex
-CREATE INDEX "validation_school_programs_external_uuid_idx" ON "validation_school_programs"("external_uuid");
+CREATE INDEX "validation_school_programs_kl_uuid_idx" ON "validation_school_programs"("kl_uuid");
 
 -- AddForeignKey
 ALTER TABLE "validation_schools" ADD CONSTRAINT "validation_schools_external_org_uuid_fkey" FOREIGN KEY ("external_org_uuid") REFERENCES "validation_organizations"("external_uuid") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -173,7 +173,7 @@ ALTER TABLE "validation_roles" ADD CONSTRAINT "validation_roles_external_org_uui
 ALTER TABLE "validation_programs" ADD CONSTRAINT "validation_programs_external_org_uuid_fkey" FOREIGN KEY ("external_org_uuid") REFERENCES "validation_organizations"("external_uuid") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "validation_school_programs" ADD CONSTRAINT "validation_school_programs_external_uuid_fkey" FOREIGN KEY ("external_uuid") REFERENCES "validation_programs"("external_uuid") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "validation_school_programs" ADD CONSTRAINT "validation_school_programs_kl_uuid_fkey" FOREIGN KEY ("kl_uuid") REFERENCES "validation_programs"("kl_uuid") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "validation_school_programs" ADD CONSTRAINT "validation_school_programs_external_school_uuid_fkey" FOREIGN KEY ("external_school_uuid") REFERENCES "validation_schools"("external_uuid") ON DELETE RESTRICT ON UPDATE CASCADE;

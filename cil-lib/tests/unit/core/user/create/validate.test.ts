@@ -128,10 +128,34 @@ export const INVALID_USERS: UserTestCase[] = [
     })(),
   },
   {
-    scenario: 'the date of birth is an invalid format',
+    scenario: 'the date of birth is an invalid human readable format',
     user: (() => {
       const s = setUpUser();
       s.setDateOfBirth('18th March 2015');
+      return s;
+    })(),
+  },
+  {
+    scenario: 'the date of birth uses invalid separators',
+    user: (() => {
+      const s = setUpUser();
+      s.setDateOfBirth('01/2017');
+      return s;
+    })(),
+  },
+  {
+    scenario: 'the date of birth is a full date of birth',
+    user: (() => {
+      const s = setUpUser();
+      s.setDateOfBirth('18-01-2017');
+      return s;
+    })(),
+  },
+  {
+    scenario: 'the date of birth has the day instead of month',
+    user: (() => {
+      const s = setUpUser();
+      s.setDateOfBirth('28-2017');
       return s;
     })(),
   },
@@ -349,7 +373,7 @@ function setUpUser(user = USER): User {
   if (givenName) u.setGivenName('Name');
   if (familyName) u.setFamilyName('Name');
   if (gender) u.setGender(Gender.MALE);
-  if (dateOfBirth) u.setDateOfBirth('09-01-2017');
+  if (dateOfBirth) u.setDateOfBirth('01-2017');
   if (shortCode) u.setShortCode('abcdef');
   if (roleIdentifiers) u.addRoleIdentifiers('Role');
   return u;

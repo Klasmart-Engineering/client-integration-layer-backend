@@ -152,11 +152,10 @@ export const userSchema = Joi.object({
     .alphanum()
     .required(),
 
-  // Due to niche rules, need to validate in ValidationWrapper.validate
   email: Joi.any(),
   phone: Joi.any(),
 
-  dateOfBirth: Joi.date().max('now'),
+  dateOfBirth: Joi.string().regex(VALIDATION_RULES.DOB_REGEX),
 
   // 0 = Male, 1 = Female
   gender: Joi.number().min(0).max(1).required(),
