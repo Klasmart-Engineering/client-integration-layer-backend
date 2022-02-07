@@ -135,7 +135,7 @@ export class Role {
           name: true,
         },
       });
-      if (!klUuids)
+      if (!klUuids || klUuids.length === 0)
         throw POSTGRES_GET_KIDSLOOP_ID_QUERY(
           orgId,
           this.entity,

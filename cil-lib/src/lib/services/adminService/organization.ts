@@ -1,5 +1,13 @@
 import { gql } from '@apollo/client/core';
 
+import { Uuid } from '../../utils';
+
+export type AddUsersToOrganizationInput = {
+  organizationId: Uuid;
+  organizationRoleIds: Uuid[];
+  userIds: Uuid[];
+};
+
 export const GET_ORGANIZATION = gql`
   query getOrganization($count: PageSize, $cursor: String, $orgName: String!) {
     organizationsConnection(
@@ -24,6 +32,19 @@ export const GET_ORGANIZATION = gql`
           id
           name
         }
+      }
+    }
+  }
+`;
+
+export const ADD_USERS_TO_ORGANIZATIONS = gql`
+  mutation addUsersToOrganizations(
+    $addUsersToOrganizations: [AddUsersToOrganizationInput!]!
+  ) {
+    addUsersToOrganizations(input: $addUsersToOrganizations) {
+      organizations {
+        id
+        name
       }
     }
   }

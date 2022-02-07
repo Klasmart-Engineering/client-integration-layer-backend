@@ -7,6 +7,7 @@ import {
   AddProgramsToClass,
   AddProgramsToSchool,
   AddUsersToSchool,
+  AddUsersToOrganization,
   BatchOnboarding,
   Class,
   Link,
@@ -34,6 +35,8 @@ export function wrapRequest<T>(data: T): BatchOnboarding {
     req.setLinkEntities(new Link().setAddProgramsToSchool(data));
   if (data instanceof AddUsersToSchool)
     req.setLinkEntities(new Link().setAddUsersToSchool(data));
+  if (data instanceof AddUsersToOrganization)
+    req.setLinkEntities(new Link().setAddUsersToOrganization(data));
   return new BatchOnboarding().setRequestsList([req]);
 }
 

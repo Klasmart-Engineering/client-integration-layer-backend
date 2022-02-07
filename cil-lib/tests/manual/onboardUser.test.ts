@@ -1,11 +1,10 @@
 import * as grpc from '@grpc/grpc-js';
 import { expect } from 'chai';
 import { v4 as uuidv4 } from 'uuid';
-import { proto } from '../..';
-import { OnboardingRequest, RequestMetadata } from '../../src/lib/protos';
 import { onboard } from './util';
+import { wrapRequest } from '../util';
 
-const { User, Action, OnboardingClient } = proto;
+import { Gender, Responses, User } from '../../../cil-lib/src/lib/protos';
 
 const USER = Object.freeze({
   externalUuid: true,
@@ -23,7 +22,7 @@ const USER = Object.freeze({
 
 export type UserTestCase = {
   scenario: string;
-  user: proto.User;
+  user: User;
 };
 
 export const VALID_USERS: UserTestCase[] = [
@@ -77,21 +76,7 @@ export const INVALID_USER_ENTITY_DOES_NOT_EXISTS: UserTestCase[] = [
   },
 ];
 
-function createRequest(
-  user: proto.User,
-  action: proto.Action
-): OnboardingRequest {
-  const requestMetadata = new RequestMetadata();
-  requestMetadata.setId(uuidv4());
-  requestMetadata.setN('1');
-
-  return new OnboardingRequest()
-    .setRequestId(requestMetadata)
-    .setAction(action)
-    .setUser(user);
-}
-
-function setUpUser(user = USER): proto.User {
+function setUpUser(user = USER): User {
   const {
     externalUuid,
     externalOrganizationUuid,
@@ -109,13 +94,13 @@ function setUpUser(user = USER): proto.User {
   if (externalUuid) u.setExternalUuid(uuidv4());
   if (externalOrganizationUuid)
     u.setExternalOrganizationUuid('47a0c632-5c08-4b2e-ac91-9f798219203a');
-  if (email) u.setEmail('testtest.com');
+  if (email) u.setEmail('testtest@example.com');
   if (phone) u.setPhone('+912212345678');
   if (username) u.setUsername('USERNAME');
   if (givenName) u.setGivenName('Name');
   if (familyName) u.setFamilyName('Name');
-  if (gender) u.setGender(proto.Gender.MALE);
-  if (dateOfBirth) u.setDateOfBirth('09-01-2017');
+  if (gender) u.setGender(Gender.MALE);
+  if (dateOfBirth) u.setDateOfBirth('01-2017');
   if (shortCode) u.setShortCode('abcdef');
   if (roleIdentifiers) u.addRoleIdentifiers('Student');
   return u;
@@ -124,10 +109,10 @@ function setUpUser(user = USER): proto.User {
 describe.skip('User Onboard Validation', () => {
   INVALID_USERS.forEach(({ scenario, user }) => {
     it(`should fail when ${scenario}`, async () => {
-      const req = createRequest(user, Action.CREATE);
-      const response = await onboard([req]);
+      const req = wrapRequest(user);
+      const response = await onboard(req);
 
-      if (response instanceof proto.Responses) {
+      if (response instanceof Responses) {
         expect(response.getResponsesList()).to.be.length(1);
         const resp = response.getResponsesList()[0];
         expect(resp.getSuccess()).to.be.false;
@@ -139,10 +124,10 @@ describe.skip('User Onboard Validation', () => {
 
   INVALID_USER_EXISTS.forEach(({ scenario, user }) => {
     it(`should fail when a user ${scenario}`, async () => {
-      const req = createRequest(user, Action.CREATE);
-      const response = await onboard([req]);
+      const req = wrapRequest(user);
+      const response = await onboard(req);
 
-      if (response instanceof proto.Responses) {
+      if (response instanceof Responses) {
         expect(response.getResponsesList()).to.be.length(1);
         const resp = response.getResponsesList()[0];
         expect(resp.getSuccess()).to.be.false;
@@ -154,10 +139,10 @@ describe.skip('User Onboard Validation', () => {
 
   INVALID_USER_ENTITY_DOES_NOT_EXISTS.forEach(({ scenario, user }) => {
     it(`should fail when a user ${scenario}`, async () => {
-      const req = createRequest(user, Action.CREATE);
-      const response = await onboard([req]);
+      const req = wrapRequest(user);
+      const response = await onboard(req);
 
-      if (response instanceof proto.Responses) {
+      if (response instanceof Responses) {
         expect(response.getResponsesList()).to.be.length(1);
         const resp = response.getResponsesList()[0];
         expect(resp.getSuccess()).to.be.false;
@@ -169,10 +154,10 @@ describe.skip('User Onboard Validation', () => {
 
   VALID_USERS.forEach(({ scenario, user }) => {
     it(`should pass when a user ${scenario}`, async () => {
-      const req = createRequest(user, Action.CREATE);
-      const response = await onboard([req]);
+      const req = wrapRequest(user);
+      const response = await onboard(req);
 
-      if (response instanceof proto.Responses) {
+      if (response instanceof Responses) {
         expect(response.getResponsesList()).to.be.length(1);
         const resp = response.getResponsesList()[0];
         expect(resp.getSuccess()).to.be.true;

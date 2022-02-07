@@ -76,9 +76,11 @@ export class Errors {
         }
         default: {
           const error = new InternalServerError();
-          error.setDetailsList([
-            'Unexpected error occurred when attempting to process request',
-          ]);
+          error.setDetailsList(
+            err.details ?? [
+              'Unexpected error occurred when attempting to process request',
+            ]
+          );
           other = error;
           break;
         }
@@ -181,9 +183,11 @@ export class OnboardingError {
       }
       default: {
         const error = new InternalServerError();
-        error.setDetailsList([
-          'Unexpected error occurred when attempting to process request',
-        ]);
+        error.setDetailsList(
+          errorMessages ?? [
+            'Unexpected error occurred when attempting to process request',
+          ]
+        );
         e.setInternalServer(error);
         break;
       }

@@ -1,21 +1,27 @@
 import * as grpc from '@grpc/grpc-js';
 import { expect } from 'chai';
 import { v4 as uuidv4 } from 'uuid';
-import { proto } from '../..';
 import { OnboardingRequest } from '../../dist/main/lib/protos';
 import { RequestMetadata } from '../../src/lib/protos';
+import { wrapRequest } from '../util';
 import { onboard } from './util';
 
-const { School, Action, OnboardingClient } = proto;
+import {
+  Action,
+  BatchOnboarding,
+  OnboardingClient,
+  Responses,
+  School,
+} from '../../../cil-lib/src/lib/protos';
 
 export type SchoolTestCase = {
   scenario: string;
-  school: proto.School;
+  school: School;
 };
 
 export type SchoolTestCaseMultipleSchools = {
   scenario: string;
-  schools: proto.School[];
+  schools: School[];
 };
 
 const client = new OnboardingClient(
@@ -71,7 +77,7 @@ export const VALID_SCHOOLS_ADD_MULTIPLE: SchoolTestCaseMultipleSchools[] = [
   {
     scenario: 'multiple schools are added',
     schools: (() => {
-      const multipleSchools: proto.School[] = [];
+      const multipleSchools: School[] = [];
 
       for (let i = 0; i < 3; i += 1) {
         const school = setUpSchool();
@@ -88,10 +94,7 @@ export const VALID_SCHOOLS_ADD_MULTIPLE: SchoolTestCaseMultipleSchools[] = [
   },
 ];
 
-function createRequest(
-  school: proto.School,
-  action: proto.Action
-): OnboardingRequest {
+function createRequest(school: School, action: Action): OnboardingRequest {
   const requestMetadata = new RequestMetadata();
   requestMetadata.setId(uuidv4());
   requestMetadata.setN('1');
@@ -107,7 +110,7 @@ function setUpSchool(
   uuid = true,
   orgId = true,
   shortcode = true
-): proto.School {
+): School {
   const s = new School();
   if (name) s.setName('Test School 1');
   if (uuid) s.setExternalUuid(uuidv4());
@@ -121,10 +124,10 @@ function setUpSchool(
 describe.skip('School Onboard Validation', () => {
   VALID_SCHOOLS.forEach(({ scenario, school }) => {
     it(`should pass when a school ${scenario}`, async () => {
-      const req = createRequest(school, Action.CREATE);
-      const response = await onboard([req]);
+      const req = wrapRequest(school);
+      const response = await onboard(req);
 
-      if (response instanceof proto.Responses) {
+      if (response instanceof Responses) {
         expect(response.getResponsesList()).to.be.length(1);
         expect(response.getResponsesList()[0].getSuccess()).to.be.true;
         expect(response.getResponsesList()[0].getEntityId()).to.equal(
@@ -137,13 +140,13 @@ describe.skip('School Onboard Validation', () => {
 
   INVALID_SCHOOLS_ENTITY_ALREADY_EXISTS.forEach(({ scenario, school }) => {
     it(`should fail when a school ${scenario}`, async () => {
-      const requests: proto.OnboardingRequest[] = [];
-      const req = createRequest(school, Action.CREATE);
+      const requests: OnboardingRequest[] = [];
+      const req = wrapRequest(school);
 
-      await onboard([req]);
-      const response = await onboard([req]);
+      await onboard(req);
+      const response = await onboard(req);
 
-      if (response instanceof proto.Responses) {
+      if (response instanceof Responses) {
         expect(response.getResponsesList()[0].getSuccess()).to.be.false;
         expect(
           response.getResponsesList()[0].getErrors()?.hasEntityAlreadyExists()
@@ -154,10 +157,10 @@ describe.skip('School Onboard Validation', () => {
 
   INVALID_SCHOOLS_ENTITY_NOT_EXIST.forEach(({ scenario, school }) => {
     it(`should fail when a school ${scenario}`, async () => {
-      const req = createRequest(school, Action.CREATE);
-      const response = await onboard([req]);
+      const req = wrapRequest(school);
+      const response = await onboard(req);
 
-      if (response instanceof proto.Responses) {
+      if (response instanceof Responses) {
         expect(response.getResponsesList()).to.be.length(1);
         expect(response.getResponsesList()[0].getSuccess()).to.be.false;
         expect(response.getResponsesList()[0].getEntityId()).to.equal(
@@ -172,10 +175,10 @@ describe.skip('School Onboard Validation', () => {
 
   INVALID_SCHOOLS_VALIDATION_ERROR.forEach(({ scenario, school }) => {
     it(`should fail when a school ${scenario}`, async () => {
-      const req = createRequest(school, Action.CREATE);
-      const response = await onboard([req]);
+      const req = wrapRequest(school);
+      const response = await onboard(req);
 
-      if (response instanceof proto.Responses) {
+      if (response instanceof Responses) {
         expect(response.getResponsesList()).to.be.length(1);
         expect(response.getResponsesList()[0].getSuccess()).to.be.false;
         expect(response.getResponsesList()[0].getEntityId()).to.equal(
@@ -189,15 +192,17 @@ describe.skip('School Onboard Validation', () => {
 
   VALID_SCHOOLS_ADD_MULTIPLE.forEach(({ scenario, schools }) => {
     it(`should pass when ${scenario}`, async () => {
-      const requests: proto.OnboardingRequest[] = [];
+      const requests: OnboardingRequest[] = [];
       for (const school of schools) {
         const req = createRequest(school, Action.CREATE);
         requests.push(req);
       }
 
-      const response = await onboard(requests);
+      const response = await onboard(
+        new BatchOnboarding().setRequestsList(requests)
+      );
 
-      if (response instanceof proto.Responses) {
+      if (response instanceof Responses) {
         expect(response.getResponsesList()).to.be.length(3);
         const resps = response.getResponsesList();
         for (const resp of resps) {

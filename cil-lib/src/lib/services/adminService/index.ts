@@ -27,7 +27,11 @@ import {
   CREATE_CLASSES,
   CreateClassInput,
 } from './class';
-import { GET_ORGANIZATION } from './organization';
+import {
+  ADD_USERS_TO_ORGANIZATIONS,
+  AddUsersToOrganizationInput,
+  GET_ORGANIZATION,
+} from './organization';
 import { GET_PROGRAMS_BY_ORGANIZATION, GET_SYSTEM_PROGRAMS } from './programs';
 import { GET_ORGANIZATION_ROLES, GET_SYSTEM_ROLES } from './roles';
 import {
@@ -376,6 +380,23 @@ export class AdminService {
       log
     );
     return sc;
+  }
+
+  public async addUsersToOrganizations(
+    addUsersToOrganizations: AddUsersToOrganizationInput[],
+    log: Logger
+  ): Promise<IdNameMapper[]> {
+    const transformer = (responses: {
+      organizations: { id: string; name: string }[];
+    }) => responses.organizations;
+    const org = await this.sendMutation(
+      ADD_USERS_TO_ORGANIZATIONS,
+      { addUsersToOrganizations },
+      transformer,
+      'addUsersToOrganizations',
+      log
+    );
+    return org;
   }
 
   /**

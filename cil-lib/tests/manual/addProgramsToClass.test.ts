@@ -1,15 +1,12 @@
 import { expect } from 'chai';
-import { v4 as uuidv4 } from 'uuid';
-import { proto } from '../../dist/main';
-import { OnboardingRequest } from '../../dist/main/lib/protos';
-import { Link, RequestMetadata } from '../../src/lib/protos';
 import { onboard } from './util';
+import { wrapRequest } from '../util';
 
-const { AddProgramsToClass, Action } = proto;
+import { AddProgramsToClass, Responses } from '../../../cil-lib/src/lib/protos';
 
 export type AddProgramsToClassTestCase = {
   scenario: string;
-  addProgramsToClass: proto.AddProgramsToClass;
+  addProgramsToClass: AddProgramsToClass;
 };
 
 export const VALID_ADD_PROGRAMS_TO_CLASS: AddProgramsToClassTestCase[] = [
@@ -19,25 +16,11 @@ export const VALID_ADD_PROGRAMS_TO_CLASS: AddProgramsToClassTestCase[] = [
   },
 ];
 
-function createRequest(
-  addPrograms: proto.AddProgramsToClass,
-  action: proto.Action
-): OnboardingRequest {
-  const requestMetadata = new RequestMetadata();
-  requestMetadata.setId(uuidv4());
-  requestMetadata.setN('1');
-
-  return new OnboardingRequest()
-    .setRequestId(requestMetadata)
-    .setAction(action)
-    .setLinkEntities(new Link().setAddProgramsToClass(addPrograms));
-}
-
 function setUpProgramsToClass(
   classId = true,
   programNames = true,
   orgId = true
-): proto.AddProgramsToClass {
+): AddProgramsToClass {
   const programs = new AddProgramsToClass();
   // Assume that the class exists
   if (classId)
@@ -55,10 +38,10 @@ function setUpProgramsToClass(
 describe.skip('Adding programs to class', () => {
   VALID_ADD_PROGRAMS_TO_CLASS.forEach(({ scenario, addProgramsToClass }) => {
     it(`should pass when adding programs to class ${scenario}`, async () => {
-      const req = createRequest(addProgramsToClass, Action.CREATE);
-      const response = await onboard([req]);
+      const req = wrapRequest(addProgramsToClass);
+      const response = await onboard(req);
 
-      if (response instanceof proto.Responses) {
+      if (response instanceof Responses) {
         expect(response.getResponsesList()).to.be.length(1);
         expect(response.getResponsesList()[0].getSuccess()).to.be.true;
         expect(response.getResponsesList()[0].getEntityId()).to.equal(

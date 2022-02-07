@@ -385,4 +385,49 @@ export class Link {
       );
     }
   }
+
+  public static async linkUserToOrg(
+    userId: string,
+    orgId: string,
+    log: Logger
+  ): Promise<Uuid> {
+    try {
+      const result = await prisma.userLinkOrganization.create({
+        data: {
+          user: {
+            connect: {
+              klUuid: userId,
+            },
+          },
+          organization: {
+            connect: { klUuid: orgId },
+          },
+        },
+      });
+      if (!result)
+        throw ENTITY_NOT_FOUND_FOR(
+          userId,
+          Entity.USER,
+          orgId,
+          Entity.ORGANIZATION,
+          log,
+          { operation: 'link user to organization' }
+        );
+      return result.id;
+    } catch (error) {
+      const msg = returnMessageOrThrowOnboardingError(error);
+      throw new OnboardingError(
+        MachineError.WRITE,
+        msg,
+        Category.POSTGRES,
+        log,
+        [],
+        {
+          operation: 'link user to organization',
+          entity: userId,
+          targetEntityId: orgId,
+        }
+      );
+    }
+  }
 }

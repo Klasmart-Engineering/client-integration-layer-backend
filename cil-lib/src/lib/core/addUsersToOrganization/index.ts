@@ -4,17 +4,16 @@ import { AddUsersToOrganization, Response } from '../../protos';
 import { Operation } from '../../types';
 import { ExternalUuid, Uuid } from '../../utils';
 import { IdTracked } from '../batchRequest';
-import {
-  compose,
-  DUMMY_PREPARE,
-  DUMMY_SEND_REQUEST,
-  DUMMY_STORE,
-} from '../process';
+import { compose } from '../process';
 
+import { sendRequest } from './adminService';
+import { persist } from './database';
+import { prepare } from './prepare';
 import { validateMany } from './validate';
 
 export interface PAddUsersToOrganization {
   externalOrganizationUuid: string;
+  organizationUuid: Uuid;
   roleIds: { name: string; id: Uuid }[];
   userIds: { external: ExternalUuid; kidsloop: Uuid }[];
 }
@@ -30,9 +29,9 @@ export function process(
 ): Promise<Response[]> {
   return compose(
     validateMany,
-    DUMMY_PREPARE,
-    DUMMY_SEND_REQUEST,
-    DUMMY_STORE,
+    prepare,
+    sendRequest,
+    persist,
     data,
     Operation.ADD_USERS_TO_ORGANIZATION,
     log

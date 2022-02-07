@@ -1,6 +1,7 @@
 import { Metadata } from '@grpc/grpc-js';
 import { proto } from '../../../dist/main';
 import * as grpc from '@grpc/grpc-js';
+import { Responses } from '../../../src/lib/protos';
 
 const { BatchOnboarding, OnboardingClient } = proto;
 
@@ -9,9 +10,10 @@ const client = new OnboardingClient(
   grpc.ChannelCredentials.createInsecure()
 );
 
-export const onboard = async (reqs: proto.OnboardingRequest[]) => {
+export const onboard = async (
+  req: proto.BatchOnboarding
+): Promise<Responses> => {
   return new Promise((resolve, reject) => {
-    const req = new BatchOnboarding().setRequestsList(reqs);
     const metadata = new Metadata();
     const apiKey = process.env.API_KEY;
     metadata.set('x-api-key', `${apiKey}`);
