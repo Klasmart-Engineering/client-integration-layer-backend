@@ -52,7 +52,7 @@ export const INVALID: AddOrganizationRolesToUserTestCase[] = [
     message: '"roleIdentifiersList" must contain at least 1 items',
   },
   {
-    scenario: 'the program name is less than the minimum character limit',
+    scenario: 'the role identifiers is less than the minimum character limit',
     req: (() => {
       const r = setUpRequest();
       r.setRoleIdentifiersList(['A']);
@@ -264,7 +264,6 @@ async function makeCommonAssertions(
     }
     return resp;
   } catch (error) {
-    console.error('ERROR', error);
     expect(error, 'this api should not error').to.be.undefined;
   }
   throw new Error('Unexpected reached the end of the test');

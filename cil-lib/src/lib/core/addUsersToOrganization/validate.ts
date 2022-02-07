@@ -68,7 +68,7 @@ async function validate(
   // Check the target users are valid
   // This is an all or nothing
   // @TODO - do we want to make this more lienient
-  const { valid, invalid } = await ctx.userIdsAreValid(
+  const { valid, invalid } = await ctx.getUserIds(
     protobuf.getExternalUserUuidsList(),
     log
   );

@@ -38,7 +38,9 @@ import {
 } from './school';
 import {
   ADD_ORGANIZATION_ROLES_TO_USER,
+  ADD_USERS_TO_SCHOOL,
   AddOrganizationRolesToUser,
+  AddUsersToSchool,
   ContactInfo,
   CREATE_USERS,
   CreateUserInput,
@@ -324,6 +326,22 @@ export class AdminService {
       log
     );
     return users;
+  }
+
+  public async addUsersToSchools(
+    input: AddUsersToSchool[],
+    log: Logger
+  ): Promise<{ id: Uuid }[]> {
+    const transformer = (responses: { schools: { id: string }[] }) =>
+      responses.schools;
+    const schools = await this.sendMutation(
+      ADD_USERS_TO_SCHOOL,
+      { input },
+      transformer,
+      'addUsersToSchools',
+      log
+    );
+    return schools;
   }
 
   public async addProgramsToClass(

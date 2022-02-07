@@ -221,4 +221,37 @@ export class User {
       );
     return { klUserUuid: user.klUuid, schoolKlUuid: school.klUuid };
   }
+
+  public static async addUserToSchool(
+    userId: ExternalUuid,
+    schoolId: ExternalUuid,
+    log: Logger
+  ): Promise<void> {
+    try {
+      await prisma.userLinkSchool.create({
+        data: {
+          user: {
+            connect: {
+              externalUuid: userId,
+            },
+          },
+          school: {
+            connect: {
+              externalUuid: schoolId,
+            },
+          },
+        },
+      });
+    } catch (error) {
+      const msg = returnMessageOrThrowOnboardingError(error);
+      throw new OnboardingError(
+        MachineError.WRITE,
+        msg,
+        Category.POSTGRES,
+        log,
+        [],
+        { entityId: userId, schoolId, operation: 'LINK USER TO SCHOOL' }
+      );
+    }
+  }
 }

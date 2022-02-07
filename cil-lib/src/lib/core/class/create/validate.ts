@@ -76,7 +76,7 @@ function schemaValidation(entity: PbClass.AsObject, log: Logger): void {
           `${AppEntity.CLASS} failed validation`,
           Category.REQUEST,
           log,
-          [...BASE_PATH, 'class', ...p.map(toString)]
+          [...BASE_PATH, 'class', ...p.map((s) => `${s}`)]
         );
       e.details.push(message);
       errors.set(p, e);

@@ -80,7 +80,7 @@ function schemaValidation(
           `${Entity.USER} failed validation`,
           Category.REQUEST,
           log,
-          [...BASE_PATH, 'addOrganizationRolesToUser', ...p.map(toString)]
+          [...BASE_PATH, 'addOrganizationRolesToUser', ...p.map((s) => `${s}`)]
         );
       e.details.push(message);
       errors.set(p, e);

@@ -190,7 +190,7 @@ export class Context {
     }
   }
 
-  public async userIdsAreValid(
+  public async getUserIds(
     ids: ExternalUuid[],
     log: Logger
   ): Promise<{ valid: Map<ExternalUuid, Uuid>; invalid: ExternalUuid[] }> {

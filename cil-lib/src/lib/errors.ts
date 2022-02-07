@@ -57,7 +57,7 @@ export class Errors {
       switch (err.error) {
         case MachineError.VALIDATION: {
           const pathBased = new PathBasedError();
-          pathBased.setPath(err.path.join(', '));
+          pathBased.setPath(err.path.join('.'));
           pathBased.setDetailsList(err.details);
           validationErrors.push(pathBased);
           break;
@@ -152,7 +152,7 @@ export class OnboardingError {
       case MachineError.REQUEST: {
         const error = new InvalidRequestError();
         const pathBased = new PathBasedError();
-        pathBased.setPath(this.path.join(', '));
+        pathBased.setPath(this.path.join('.'));
         pathBased.setDetailsList(errorMessages);
         error.setErrorsList([pathBased]);
         e.setValidation(error);
@@ -161,7 +161,7 @@ export class OnboardingError {
       case MachineError.VALIDATION: {
         const error = new ValidationError();
         const pathBased = new PathBasedError();
-        pathBased.setPath(this.path.join(', '));
+        pathBased.setPath(this.path.join('.'));
         pathBased.setDetailsList(errorMessages);
         error.setErrorsList([pathBased]);
         e.setValidation(error);

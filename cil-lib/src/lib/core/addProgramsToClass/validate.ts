@@ -88,7 +88,7 @@ function schemaValidation(
           `${Entity.CLASS} failed validation`,
           Category.REQUEST,
           log,
-          [...BASE_PATH, 'addProgramsToClass', ...p.map(toString)]
+          [...BASE_PATH, 'addProgramsToClass', ...p.map((s) => `${s}`)]
         );
       e.details.push(message);
       errors.set(p, e);

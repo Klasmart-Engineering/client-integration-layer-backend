@@ -68,7 +68,7 @@ function schemaValidation(entity: PbUser.AsObject, log: Logger): void {
           `${Entity.USER} failed validation`,
           Category.REQUEST,
           log,
-          [...BASE_PATH, 'user', ...p.map(toString)]
+          [...BASE_PATH, 'user', ...p.map((s) => `${s}`)]
         );
       e.details.push(message);
       errors.set(p, e);

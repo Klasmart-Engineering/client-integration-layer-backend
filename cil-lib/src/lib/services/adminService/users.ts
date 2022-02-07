@@ -50,3 +50,19 @@ export const ADD_ORGANIZATION_ROLES_TO_USER = gql`
     }
   }
 `;
+
+export type AddUsersToSchool = {
+  schoolId: Uuid;
+  userIds: Uuid[];
+  schoolRoleIds?: Uuid[];
+};
+
+export const ADD_USERS_TO_SCHOOL = gql`
+  mutation addUsersToSchool($input: [AddUsersToSchoolInput!]!) {
+    addUsersToSchools(input: $input) {
+      schools {
+        id
+      }
+    }
+  }
+`;
