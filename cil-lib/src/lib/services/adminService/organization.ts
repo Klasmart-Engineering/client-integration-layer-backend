@@ -8,6 +8,22 @@ export type AddUsersToOrganizationInput = {
   userIds: Uuid[];
 };
 
+export type CreateOrganizationInput = {
+  userId: Uuid;
+  organizationName: string;
+};
+
+export const CREATE_ORGANIZATIONS = gql`
+  mutation createOrgs($input: [CreateOrganizationInput!]!) {
+    createOrganizations(input: $input) {
+      organizations {
+        id
+        name
+      }
+    }
+  }
+`;
+
 export const GET_ORGANIZATION = gql`
   query getOrganization($count: PageSize, $cursor: String, $orgName: String!) {
     organizationsConnection(

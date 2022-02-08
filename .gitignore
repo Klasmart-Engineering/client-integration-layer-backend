@@ -56,3 +56,4 @@ Thumbs.db
 newrelic_agent.log
 
 archive/**
+.envrc

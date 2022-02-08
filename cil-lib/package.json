@@ -40,7 +40,8 @@
     "reset-hard": "git clean -dfx && git reset --hard && npm i",
     "prisma:generate": "npx prisma generate --schema=./prisma/schema.prisma",
     "migrate:dev": "npx prisma migrate dev --schema=./prisma/schema.prisma",
-    "migrate:prod": "npx prisma migrate deploy --schema=./prisma/schema.prisma"
+    "migrate:prod": "npx prisma migrate deploy --schema=./prisma/schema.prisma",
+    "init:admin": "ts-node ./tests/manual/initializeAdminService.ts"
   },
   "engines": {
     "node": ">=10"

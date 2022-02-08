@@ -30,6 +30,8 @@ import {
 import {
   ADD_USERS_TO_ORGANIZATIONS,
   AddUsersToOrganizationInput,
+  CREATE_ORGANIZATIONS,
+  CreateOrganizationInput,
   GET_ORGANIZATION,
 } from './organization';
 import { GET_PROGRAMS_BY_ORGANIZATION, GET_SYSTEM_PROGRAMS } from './programs';
@@ -56,6 +58,7 @@ type SupportedConnections =
   | 'organizationConnection';
 
 type MutationAccessor =
+  | 'createOrganizations'
   | 'createSchools'
   | 'createClasses'
   | 'createUsers'
@@ -80,7 +83,7 @@ const idNameTransformer = ({ id, name }: IdNameMapper): IdNameMapper => ({
 
 export class AdminService {
   private static _instance: AdminService;
-  private context: { headers: { authorization: string } };
+  public readonly context: { headers: { authorization: string } };
 
   private constructor(
     private _client: ApolloClient<NormalizedCacheObject>,
@@ -118,45 +121,19 @@ export class AdminService {
       },
     });
     const errorLink = onError(({ graphQLErrors, networkError, response }) => {
-      /**
-       * GraphQL errors, will not retry
-       *
-       * - Syntax errors (e.g., a query was malformed) - 4xx error
-       * - Validation errors (e.g., a query included a schema field that doesn't exist) - 4xx error
-       * - Resolver errors (e.g., an error occurred while attempting to populate a query field) - 2xx error
-       *
-       * Reference: https://www.apollographql.com/docs/react/data/error-handling
-       */
-      if (graphQLErrors)
-        graphQLErrors.forEach(({ message, path }) =>
-          baseLogger.error(
-            {
-              error: message,
-              api: 'admin',
-              path,
-            },
-            `GraphQL query failed`
-          )
-        );
-
-      // 4xx/5xx errors
-      if (networkError)
-        baseLogger.error(
-          {
-            error: networkError,
-            api: 'admin',
-          },
-          `Network error while attempting a GraphQL call`
-        );
-
-      if (response)
-        baseLogger.error(
-          {
-            error: response,
-            api: 'admin',
-          },
-          `Received response but found an error`
-        );
+      throw new OnboardingError(
+        MachineError.NETWORK,
+        'Recieved error when sending request to admin service',
+        Category.ADMIN_SERVICE,
+        baseLogger,
+        [],
+        {},
+        [
+          ...(graphQLErrors?.map((e) => e as unknown as string) || []),
+          ...(response?.errors?.map((m) => m as unknown as string) || []),
+          networkError?.message || '',
+        ]
+      );
     });
 
     try {
@@ -243,6 +220,25 @@ export class AdminService {
       );
     if (org.length === 0) throw new Error(`Organization ${orgName} not found`);
     return org[0];
+  }
+
+  /**
+   * For testing purposes only
+   */
+  public async createOrganizations(
+    input: CreateOrganizationInput[],
+    log: Logger
+  ): Promise<IdNameMapper[]> {
+    const transformer = (responses: { organizations: IdNameMapper[] }) =>
+      responses.organizations;
+    const org = await this.sendMutation(
+      CREATE_ORGANIZATIONS,
+      { input },
+      transformer,
+      'createOrganizations',
+      log
+    );
+    return org;
   }
 
   public async createSchools(

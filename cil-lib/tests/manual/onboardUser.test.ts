@@ -1,10 +1,10 @@
-import * as grpc from '@grpc/grpc-js';
 import { expect } from 'chai';
 import { v4 as uuidv4 } from 'uuid';
-import { onboard } from './util';
-import { wrapRequest } from '../util';
 
 import { Gender, Responses, User } from '../../../cil-lib/src/lib/protos';
+import { wrapRequest } from '../util';
+
+import { onboard } from './util';
 
 const USER = Object.freeze({
   externalUuid: true,
