@@ -10,3 +10,7 @@ docker-compose.yml
 
 .git
 .vscode
+
+**/dist
+**/node_modules
+**/.env

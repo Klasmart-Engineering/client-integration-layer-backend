@@ -1,7 +1,4 @@
-#!/bin/bash
-
-BASEDIR=$(dirname "$0")
-cd ${BASEDIR}/../
+#!/bin/sh
 
 PROTO_DEST=./src/lib/protos
 BUILD_DEST=./dist/main/lib/protos
