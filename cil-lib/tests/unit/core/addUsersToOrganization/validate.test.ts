@@ -282,7 +282,6 @@ async function makeCommonAssertions(
     );
     expect(response.entity).to.equal(Entity.USER);
     expect(response.errors?.validation).not.to.be.undefined;
-    console.log(response.errors?.validation?.errorsList[0].detailsList[0]);
     if (expectedMessage) {
       expect(
         response.errors?.validation?.errorsList[0].detailsList[0]
@@ -290,7 +289,6 @@ async function makeCommonAssertions(
     }
     return resp;
   } catch (error) {
-    console.log(error);
     expect(error, 'this api should not error').to.be.undefined;
   }
   throw new Error('Unexpected reached the end of the test');

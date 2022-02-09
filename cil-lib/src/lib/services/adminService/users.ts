@@ -65,3 +65,35 @@ export const ADD_USERS_TO_SCHOOL = gql`
     }
   }
 `;
+
+export type AddTeachersToClassInput = {
+  classId: Uuid;
+  teacherIds: Uuid[];
+};
+
+export const ADD_TEACHERS_TO_CLASS = gql`
+  mutation addTeachersToClasses($input: [AddTeachersToClassInput!]!) {
+    addTeachersToClasses(input: $input) {
+      classes {
+        id
+        name
+      }
+    }
+  }
+`;
+
+export type AddStudentsToClassInput = {
+  classId: Uuid;
+  studentIds: Uuid[];
+};
+
+export const ADD_STUDENTS_TO_CLASS = gql`
+  mutation addStudentsToClasses($input: [AddStudentsToClassInput!]!) {
+    addStudentsToClasses(input: $input) {
+      classes {
+        id
+        name
+      }
+    }
+  }
+`;

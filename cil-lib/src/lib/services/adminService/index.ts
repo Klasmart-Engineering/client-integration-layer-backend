@@ -44,8 +44,12 @@ import {
 } from './school';
 import {
   ADD_ORGANIZATION_ROLES_TO_USER,
+  ADD_STUDENTS_TO_CLASS,
+  ADD_TEACHERS_TO_CLASS,
   ADD_USERS_TO_SCHOOL,
   AddOrganizationRolesToUser,
+  AddStudentsToClassInput,
+  AddTeachersToClassInput,
   AddUsersToSchool,
   ContactInfo,
   CREATE_USERS,
@@ -393,6 +397,40 @@ export class AdminService {
       log
     );
     return org;
+  }
+
+  public async addTeachersToClasses(
+    input: AddTeachersToClassInput[],
+    log: Logger
+  ): Promise<IdNameMapper[]> {
+    const transformer = (responses: {
+      classes: { id: string; name: string }[];
+    }) => responses.classes;
+    const c = await this.sendMutation(
+      ADD_TEACHERS_TO_CLASS,
+      { input },
+      transformer,
+      'addTeachersToClasses',
+      log
+    );
+    return c;
+  }
+
+  public async addStudentsToClasses(
+    input: AddStudentsToClassInput[],
+    log: Logger
+  ): Promise<IdNameMapper[]> {
+    const transformer = (responses: {
+      classes: { id: string; name: string }[];
+    }) => responses.classes;
+    const c = await this.sendMutation(
+      ADD_STUDENTS_TO_CLASS,
+      { input },
+      transformer,
+      'addStudentsToClasses',
+      log
+    );
+    return c;
   }
 
   /**

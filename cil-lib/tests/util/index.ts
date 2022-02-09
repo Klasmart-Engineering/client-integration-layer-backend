@@ -16,6 +16,7 @@ import {
   RequestMetadata,
   School,
   User,
+  AddUsersToClass,
 } from '../../src/lib/protos';
 
 export function wrapRequest<T>(data: T): BatchOnboarding {
@@ -37,6 +38,8 @@ export function wrapRequest<T>(data: T): BatchOnboarding {
     req.setLinkEntities(new Link().setAddUsersToSchool(data));
   if (data instanceof AddUsersToOrganization)
     req.setLinkEntities(new Link().setAddUsersToOrganization(data));
+  if (data instanceof AddUsersToClass)
+    req.setLinkEntities(new Link().setAddUsersToClass(data));
   return new BatchOnboarding().setRequestsList([req]);
 }
 
