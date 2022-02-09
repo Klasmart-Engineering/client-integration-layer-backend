@@ -69,7 +69,8 @@ export class Context {
    */
   public async organizationIdIsValid(
     id: ExternalUuid,
-    log: Logger
+    log: Logger,
+    shouldLogNotFoundError = true
   ): Promise<void> {
     {
       const cachedKlId = this.organizations.get(id);
@@ -77,7 +78,11 @@ export class Context {
     }
 
     // Will error
-    const klId = await Organization.getKidsloopId(id, log);
+    const klId = await Organization.getKidsloopId(
+      id,
+      log,
+      shouldLogNotFoundError
+    );
     this.organizations.set(id, klId);
     return;
   }

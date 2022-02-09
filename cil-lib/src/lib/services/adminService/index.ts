@@ -121,7 +121,7 @@ export class AdminService {
       },
     });
     const errorLink = onError(({ graphQLErrors, networkError, response }) => {
-      throw new OnboardingError(
+      new OnboardingError(
         MachineError.NETWORK,
         'Recieved error when sending request to admin service',
         Category.ADMIN_SERVICE,
@@ -425,7 +425,7 @@ export class AdminService {
        * - 4xx/5xx were handled in `errorLink` when initializing `ApolloClient`
        * - 2xx errors won't exist in this case
        */
-      const { data } = await this.client.query({
+      const response = await this.client.query({
         query,
         variables: {
           count: 50,
@@ -434,6 +434,14 @@ export class AdminService {
         },
         context: this.context,
       });
+      const data = response.data;
+      if (!data)
+        throw new OnboardingError(
+          MachineError.NETWORK,
+          'Received no data property on the response object',
+          Category.ADMIN_SERVICE,
+          logger
+        );
 
       const responseData = data[connectionName];
       if (!responseData || !responseData.pageInfo) {
@@ -479,13 +487,14 @@ export class AdminService {
     mutationAccessor: MutationAccessor,
     logger: Logger
   ): Promise<T[]> {
-    const { data } = await this.client.mutate({
+    const response = await this.client.mutate({
       mutation: query,
       variables: {
         ...variables,
       },
       context: this.context,
     });
+    const data = response.data;
 
     if (!data)
       throw new OnboardingError(

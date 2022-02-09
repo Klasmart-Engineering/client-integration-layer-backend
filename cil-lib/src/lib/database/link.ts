@@ -245,8 +245,7 @@ export class Link {
     if (orgIds.every((id) => id === targetOrg)) return;
     throw new OnboardingError(
       MachineError.VALIDATION,
-      `The entities provided don't share the same parent organization and
-      therefore cannot be linked`,
+      `The entities provided don't share the same parent organization and therefore cannot be linked`,
       Category.REQUEST,
       log
     );
@@ -270,8 +269,7 @@ export class Link {
       if (schools.length !== schoolIds.length)
         throw new OnboardingError(
           MachineError.READ,
-          `Expected to find ${schoolIds.length} valid schools when looking up
-        school ids, however only found ${schools.length}`,
+          `Expected to find ${schoolIds.length} valid schools when looking up school ids, however only found ${schools.length}`,
           Category.REQUEST,
           log
         );
@@ -300,8 +298,7 @@ export class Link {
       if (classes.length !== classIds.length)
         throw new OnboardingError(
           MachineError.READ,
-          `Expected to find ${classIds.length} valid classes when looking up
-        class ids, however only found ${classes.length}`,
+          `Expected to find ${classIds.length} valid classes when looking up class ids, however only found ${classes.length}`,
           Category.REQUEST,
           log
         );
@@ -330,8 +327,7 @@ export class Link {
       if (users.length !== userIds.length)
         throw new OnboardingError(
           MachineError.READ,
-          `Expected to find ${userIds.length} valid users when looking up
-        user ids, however only found ${users.length}`,
+          `Expected to find ${userIds.length} valid users when looking up user ids, however only found ${users.length}`,
           Category.REQUEST,
           log
         );

@@ -94,7 +94,7 @@ async function entityValidation(
   try {
     const ctx = Context.getInstance();
     // Organizations should already exist
-    await ctx.organizationIdIsValid(e.externalUuid, log);
+    await ctx.organizationIdIsValid(e.externalUuid, log, false);
   } catch (_) {
     /* In this case we can try and fetch the organization*/
   }
