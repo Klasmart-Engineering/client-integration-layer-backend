@@ -97,7 +97,12 @@ async function validate(
   r.data.externalUserUuidsList = Array.from(valid.keys());
 
   // Checking that the school ID is valid is covered by this
-  await Link.shareTheSameOrganization(log, [schoolId], undefined, userIds);
+  await Link.shareTheSameOrganization(
+    log,
+    [schoolId],
+    undefined,
+    protobuf.getExternalUserUuidsList()
+  );
   return { valid: r, invalid };
 }
 
