@@ -8,7 +8,7 @@ import {
   StatusObject,
 } from '@grpc/grpc-js';
 import { Status } from '@grpc/grpc-js/build/src/constants';
-import { log, processOnboardingRequest, proto } from 'cil-lib';
+import { log, Logger, processOnboardingRequest, proto } from 'cil-lib';
 
 const logger = log.child({ api: 'cil-api' });
 
@@ -62,7 +62,7 @@ export class OnboardingServer implements proto.IOnboardingServer {
   }
 }
 
-export function serve(): void {
+export function serve(log: Logger = logger): Server {
   const server = new Server();
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore
@@ -72,11 +72,12 @@ export function serve(): void {
     ServerCredentials.createInsecure(),
     (err, port) => {
       if (err) {
-        logger.error({ error: err }, 'Found error when starting up server');
+        log.error({ error: err }, 'Found error when starting up server');
         throw err;
       }
       logger.info(`Starting up server, listening on port ${port}`);
       server.start();
     }
   );
+  return server;
 }

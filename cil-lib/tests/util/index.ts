@@ -53,4 +53,5 @@ export const LOG_STUB = {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
 } as any as Logger;
 
+// @ts-ignore
 LOG_STUB.child = () => LOG_STUB;

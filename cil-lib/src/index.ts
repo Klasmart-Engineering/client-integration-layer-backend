@@ -7,5 +7,6 @@ export * from './lib/services';
 
 export { Prisma, PrismaClient } from '@prisma/client';
 export { processOnboardingRequest } from './lib/core';
+export { Logger } from 'pino';
 
 export * as grpc from '@grpc/grpc-js';
