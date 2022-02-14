@@ -67,6 +67,8 @@ export class Class extends jspb.Message {
     setName(value: string): Class;
     getExternalSchoolUuid(): string;
     setExternalSchoolUuid(value: string): Class;
+    getShortCode(): string;
+    setShortCode(value: string): Class;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): Class.AsObject;
@@ -84,6 +86,7 @@ export namespace Class {
         externalOrganizationUuid: string,
         name: string,
         externalSchoolUuid: string,
+        shortCode: string,
     }
 }
 

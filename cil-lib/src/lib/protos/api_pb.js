@@ -964,7 +964,8 @@ proto.cil_onboarding.api.Class.toObject = function(includeInstance, msg) {
     externalUuid: jspb.Message.getFieldWithDefault(msg, 1, ""),
     externalOrganizationUuid: jspb.Message.getFieldWithDefault(msg, 2, ""),
     name: jspb.Message.getFieldWithDefault(msg, 3, ""),
-    externalSchoolUuid: jspb.Message.getFieldWithDefault(msg, 4, "")
+    externalSchoolUuid: jspb.Message.getFieldWithDefault(msg, 4, ""),
+    shortCode: jspb.Message.getFieldWithDefault(msg, 5, "")
   };
 
   if (includeInstance) {
@@ -1016,6 +1017,10 @@ proto.cil_onboarding.api.Class.deserializeBinaryFromReader = function(msg, reade
     case 4:
       var value = /** @type {string} */ (reader.readString());
       msg.setExternalSchoolUuid(value);
+      break;
+    case 5:
+      var value = /** @type {string} */ (reader.readString());
+      msg.setShortCode(value);
       break;
     default:
       reader.skipField();
@@ -1071,6 +1076,13 @@ proto.cil_onboarding.api.Class.serializeBinaryToWriter = function(message, write
   if (f.length > 0) {
     writer.writeString(
       4,
+      f
+    );
+  }
+  f = message.getShortCode();
+  if (f.length > 0) {
+    writer.writeString(
+      5,
       f
     );
   }
@@ -1146,6 +1158,24 @@ proto.cil_onboarding.api.Class.prototype.getExternalSchoolUuid = function() {
  */
 proto.cil_onboarding.api.Class.prototype.setExternalSchoolUuid = function(value) {
   return jspb.Message.setProto3StringField(this, 4, value);
+};
+
+
+/**
+ * optional string short_code = 5;
+ * @return {string}
+ */
+proto.cil_onboarding.api.Class.prototype.getShortCode = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 5, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.cil_onboarding.api.Class} returns this
+ */
+proto.cil_onboarding.api.Class.prototype.setShortCode = function(value) {
+  return jspb.Message.setProto3StringField(this, 5, value);
 };
 
 

@@ -29,6 +29,18 @@ export const VALID_CLASSES: ClassTestCase[] = [
     scenario: 'valid',
     c: setUpClass(),
   },
+  {
+    scenario: 'valid and the shortcode is missing',
+    c: setUpClass(true, true, true, true, false)
+  },
+  {
+    scenario: 'valid and the shortcode is an empty string',
+    c: (() => {
+      const s = setUpClass();
+      s.setShortCode('');
+      return s;
+    })(),
+  },
 ];
 
 export const INVALID_CLASSES: ClassTestCase[] = [
@@ -134,6 +146,22 @@ export const INVALID_CLASSES: ClassTestCase[] = [
       return s;
     })(),
   },
+  {
+    scenario: 'the shortcode is less characters than the minimum character limit',
+    c: (() => {
+      const s = setUpClass();
+      s.setShortCode('A');
+      return s;
+    })(),
+  },
+  {
+    scenario: 'the shortcode is more characters than the maximum character limit',
+    c: (() => {
+      const s = setUpClass();
+      s.setShortCode('Ajlsdhfjdhfsljjsldfdfj');
+      return s;
+    })(),
+  },
 ];
 
 describe('class validation', () => {
@@ -230,13 +258,15 @@ function setUpClass(
   name = true,
   uuid = true,
   orgId = true,
-  schoolId = true
+  schoolId = true,
+  shortCode = true,
 ): Class {
   const s = new Class();
   if (name) s.setName('Test Class');
   if (uuid) s.setExternalUuid(uuidv4());
   if (orgId) s.setExternalOrganizationUuid(uuidv4());
   if (schoolId) s.setExternalSchoolUuid(uuidv4());
+  if (shortCode) s.setShortCode('TESTCLASS')
   return s;
 }
 

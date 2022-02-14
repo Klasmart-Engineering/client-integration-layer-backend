@@ -26,7 +26,9 @@ export async function sendRequest(
       classes.map(({ data }) => ({
         organizationId: data.kidsloopOrganizationUuid!,
         name: data.name!,
-        shortCode: data.shortCode,
+        ...(data.shortCode && data.shortCode.length > 0
+          ? { shortcode: data.shortCode }
+          : {}),
       })),
       log
     );

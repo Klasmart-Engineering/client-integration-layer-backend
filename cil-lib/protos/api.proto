@@ -18,6 +18,7 @@ message Class {
   string external_organization_uuid = 2;
   string name = 3;
   string external_school_uuid = 4;
+  string short_code = 5;
 }
 
 message User {

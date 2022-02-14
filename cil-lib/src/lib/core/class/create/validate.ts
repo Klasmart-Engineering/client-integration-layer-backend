@@ -119,4 +119,10 @@ export const classSchema = Joi.object({
   externalSchoolUuid: Joi.string()
     .guid({ version: ['uuidv4'] })
     .required(),
+
+  shortCode: Joi.string()
+    .allow('')
+    .min(VALIDATION_RULES.CLASS_SHORT_CODE_MIN_LENGTH)
+    .max(VALIDATION_RULES.CLASS_SHORT_CODE_MAX_LENGTH)
+    .optional(),
 });

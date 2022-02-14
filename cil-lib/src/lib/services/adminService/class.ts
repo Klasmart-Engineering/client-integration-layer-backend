@@ -5,7 +5,7 @@ import { Uuid } from '../../utils';
 export type CreateClassInput = {
   name: string;
   organizationId: Uuid;
-  shortCode?: string;
+  shortcode?: string;
 };
 
 export type AddProgramsToClassInput = {
