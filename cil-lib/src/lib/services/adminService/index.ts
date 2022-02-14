@@ -37,7 +37,9 @@ import {
 import { GET_PROGRAMS_BY_ORGANIZATION, GET_SYSTEM_PROGRAMS } from './programs';
 import { GET_ORGANIZATION_ROLES, GET_SYSTEM_ROLES } from './roles';
 import {
+  ADD_CLASSES_TO_SCHOOL,
   ADD_PROGRAMS_TO_SCHOOLS,
+  AddClassesToSchoolInput,
   AddProgramsToSchoolInput,
   CREATE_SCHOOLS,
   CreateSchoolInput,
@@ -365,6 +367,23 @@ export class AdminService {
     return cl;
   }
 
+  public async addClassesToSchool(
+    input: AddClassesToSchoolInput[],
+    log: Logger
+  ): Promise<{ id: Uuid; name: string }[]> {
+    const transformer = (responses: {
+      schools: { id: string; name: string }[];
+    }) => responses.schools;
+    const schools = await this.sendMutation(
+      ADD_CLASSES_TO_SCHOOL,
+      { input },
+      transformer,
+      'addClassesToSchools',
+      log
+    );
+    return schools;
+  }
+
   public async addProgramsToSchool(
     addProgramsToSchools: AddProgramsToSchoolInput[],
     log: Logger
@@ -537,7 +556,7 @@ export class AdminService {
     if (!data)
       throw new OnboardingError(
         MachineError.NETWORK,
-        `Expected to recieve data when sending a graphql mutation, however found
+        `Expected to receive data when sending a graphql mutation, however found
       nothing`,
         Category.ADMIN_SERVICE,
         logger

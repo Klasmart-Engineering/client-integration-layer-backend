@@ -5,18 +5,16 @@ import { AddClassesToSchool, Response } from '../../protos';
 import { Operation } from '../../types';
 import { ExternalUuid } from '../../utils';
 import { IdTracked } from '../batchRequest';
-import {
-  compose,
-  DUMMY_PREPARE,
-  DUMMY_SEND_REQUEST,
-  DUMMY_STORE,
-} from '../process';
+import { compose } from '../process';
 
+import { sendRequest } from './adminService';
+import { toSuccessResponses } from './database';
+import { prepare } from './prepare';
 import { validateMany } from './validate';
 
 export interface PAddClassesToSchool {
   kidsloopSchoolUuid: Uuid;
-  kidsloopClassUuids: { kidsloop: Uuid; external: ExternalUuid }[];
+  kidsloopClassIds: { external: ExternalUuid; kidsloop: Uuid }[];
 }
 
 export type IncomingData = IdTracked<AddClassesToSchool, PAddClassesToSchool>;
@@ -27,9 +25,9 @@ export function process(
 ): Promise<Response[]> {
   return compose(
     validateMany,
-    DUMMY_PREPARE,
-    DUMMY_SEND_REQUEST,
-    DUMMY_STORE,
+    prepare,
+    sendRequest,
+    toSuccessResponses,
     data,
     Operation.ADD_CLASSES_TO_SCHOOL,
     log

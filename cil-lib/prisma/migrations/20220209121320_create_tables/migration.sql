@@ -26,7 +26,7 @@ CREATE TABLE "validation_schools" (
 CREATE TABLE "validation_classes" (
     "external_uuid" UUID NOT NULL,
     "external_org_uuid" UUID NOT NULL,
-    "external_school_uuid" UUID NOT NULL,
+    "external_school_uuid" UUID,
     "kl_uuid" UUID NOT NULL,
     "created_at" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updated_at" TIMESTAMP(3) NOT NULL,
@@ -152,7 +152,7 @@ ALTER TABLE "validation_schools" ADD CONSTRAINT "validation_schools_external_org
 ALTER TABLE "validation_classes" ADD CONSTRAINT "validation_classes_external_org_uuid_fkey" FOREIGN KEY ("external_org_uuid") REFERENCES "validation_organizations"("external_uuid") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "validation_classes" ADD CONSTRAINT "validation_classes_external_school_uuid_fkey" FOREIGN KEY ("external_school_uuid") REFERENCES "validation_schools"("external_uuid") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "validation_classes" ADD CONSTRAINT "validation_classes_external_school_uuid_fkey" FOREIGN KEY ("external_school_uuid") REFERENCES "validation_schools"("external_uuid") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "validation_user_organizations" ADD CONSTRAINT "validation_user_organizations_external_uuid_fkey" FOREIGN KEY ("external_uuid") REFERENCES "validation_users"("external_uuid") ON DELETE RESTRICT ON UPDATE CASCADE;

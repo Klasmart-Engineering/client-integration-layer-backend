@@ -51,6 +51,16 @@ async function validate(r: IncomingData, log: Logger): Promise<IncomingData> {
   const classId = protobuf.getExternalClassUuid();
   const programs = protobuf.getProgramNamesList();
   const schoolId = (await Class.findOne(classId, log)).externalSchoolUuid;
+
+  if (!schoolId) {
+    throw new OnboardingError(
+      MachineError.ENTITY_DOES_NOT_EXIST,
+      `School Id is empty`,
+      Category.REQUEST,
+      log
+    );
+  }
+
   const schoolPrograms = await School.getProgramsForSchool(schoolId, log);
   const validPrograms = new Set(schoolPrograms.map((p) => p.name));
   const invalidPrograms = [];

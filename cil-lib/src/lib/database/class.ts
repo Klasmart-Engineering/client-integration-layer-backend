@@ -104,9 +104,12 @@ export class Class {
     schoolId: ExternalUuid,
     ids: ExternalUuid[],
     log: Logger
-  ): Promise<void> {
+  ): Promise<{
+    valid: ExternalUuid[];
+    invalid: ExternalUuid[];
+  }> {
     try {
-      const count = (
+      const validSet = (
         await prisma.class.findMany({
           where: {
             externalUuid: {
@@ -119,24 +122,19 @@ export class Class {
           },
         })
       ).map((c) => c.externalUuid);
-      if (count.length === ids.length) return;
-      const idSet = new Set(ids);
-      for (const id of count) {
-        idSet.delete(id);
+
+      const invalidSet = new Set(ids);
+      for (const id of validSet) {
+        invalidSet.delete(id);
       }
-      throw new Error(
-        `Classes: ${[Array.from(idSet).join(', ')]} are not valid`
-      );
+
+      return {
+        valid: validSet,
+        invalid: Array.from(invalidSet.values()),
+      };
     } catch (error) {
-      const msg = error instanceof Error ? error.message : `${error}`;
-      throw new OnboardingError(
-        MachineError.ENTITY_DOES_NOT_EXIST,
-        msg,
-        Category.REQUEST,
-        log,
-        [],
-        { entityIds: ids, operation: 'ARE VALID' }
-      );
+      const msg = returnMessageOrThrowOnboardingError(error);
+      throw new OnboardingError(MachineError.READ, msg, Category.POSTGRES, log);
     }
   }
 }

@@ -47,6 +47,16 @@ async function validate(r: IncomingData, log: Logger): Promise<IncomingData> {
   const students = protobuf.getExternalStudentUuidList();
   const teachers = protobuf.getExternalTeacherUuidList();
   const schoolId = (await Class.findOne(classId, log)).externalSchoolUuid;
+
+  if (!schoolId) {
+    throw new OnboardingError(
+      MachineError.ENTITY_DOES_NOT_EXIST,
+      `School Id is empty`,
+      Category.REQUEST,
+      log
+    );
+  }
+
   const { invalid } = await Link.usersBelongToSchool(
     [...students, ...teachers],
     schoolId,

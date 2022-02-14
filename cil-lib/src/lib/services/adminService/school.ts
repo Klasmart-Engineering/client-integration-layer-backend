@@ -13,6 +13,11 @@ export type AddProgramsToSchoolInput = {
   programIds: string[];
 };
 
+export type AddClassesToSchoolInput = {
+  schoolId: string;
+  classIds: string[];
+};
+
 export const CREATE_SCHOOLS = gql`
   mutation createSchools($schools: [CreateSchoolInput!]!) {
     createSchools(input: $schools) {
@@ -29,6 +34,17 @@ export const ADD_PROGRAMS_TO_SCHOOLS = gql`
     $addProgramsToSchools: [AddProgramsToSchoolInput!]!
   ) {
     addProgramsToSchools(input: $addProgramsToSchools) {
+      schools {
+        id
+        name
+      }
+    }
+  }
+`;
+
+export const ADD_CLASSES_TO_SCHOOL = gql`
+  mutation addClassesToSchools($input: [AddClassesToSchoolInput!]!) {
+    addClassesToSchools(input: $input) {
       schools {
         id
         name

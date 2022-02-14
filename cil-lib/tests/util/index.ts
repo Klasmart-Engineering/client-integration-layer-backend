@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 
 import {
   AddOrganizationRolesToUser,
+  AddClassesToSchool,
   AddProgramsToClass,
   AddProgramsToSchool,
   AddUsersToSchool,
@@ -40,6 +41,10 @@ export function wrapRequest<T>(data: T): BatchOnboarding {
     req.setLinkEntities(new Link().setAddUsersToOrganization(data));
   if (data instanceof AddUsersToClass)
     req.setLinkEntities(new Link().setAddUsersToClass(data));
+  if (data instanceof AddProgramsToClass)
+    req.setLinkEntities(new Link().setAddProgramsToClass(data));
+  if (data instanceof AddClassesToSchool)
+    req.setLinkEntities(new Link().setAddClassesToSchool(data));
   return new BatchOnboarding().setRequestsList([req]);
 }
 

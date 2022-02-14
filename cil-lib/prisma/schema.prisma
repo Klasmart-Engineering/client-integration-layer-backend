@@ -53,8 +53,8 @@ model Class {
   externalOrgUuid String       @map("external_org_uuid") @db.Uuid
   organization    Organization @relation(fields: [externalOrgUuid], references: [externalUuid])
 
-  externalSchoolUuid String @map("external_school_uuid") @db.Uuid
-  school             School @relation(fields: [externalSchoolUuid], references: [externalUuid])
+  externalSchoolUuid String? @map("external_school_uuid") @db.Uuid
+  school             School? @relation(fields: [externalSchoolUuid], references: [externalUuid])
 
   klUuid String @unique @map("kl_uuid") @db.Uuid
 
