@@ -37,7 +37,9 @@ export async function validateMany(
   for (const d of data) {
     try {
       const result = await validate(d, log);
-      valid.push(result.valid);
+      if (result.valid) {
+        valid.push(result.valid);
+      }
       for (const i of result.invalid) {
         const resp = new Response()
           .setSuccess(false)
@@ -82,7 +84,7 @@ export async function validateMany(
 async function validate(
   r: IncomingData,
   log: Logger
-): Promise<{ valid: IncomingData; invalid: ExternalUuid[] }> {
+): Promise<{ valid: IncomingData | null; invalid: ExternalUuid[] }> {
   const { protobuf } = r;
 
   schemaValidation(protobuf.toObject(), log);
@@ -98,6 +100,10 @@ async function validate(
     protobuf.getExternalUserUuidsList(),
     log
   );
+
+  if (valid.size === 0) {
+    return { valid: null, invalid };
+  }
 
   // Re-make the initial request with only the valid users
   protobuf.setExternalUserUuidsList(Array.from(valid.keys()));

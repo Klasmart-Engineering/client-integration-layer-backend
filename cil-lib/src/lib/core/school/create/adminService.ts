@@ -9,21 +9,24 @@ import {
 } from '../../../errors';
 import { Entity, Response } from '../../../protos';
 import { AdminService } from '../../../services';
+import { AdminDupeError } from '../../../services/adminService';
+import { retryDupes } from '../../../utils/dupe';
 import { requestIdToProtobuf } from '../../batchRequest';
 import { Result } from '../../process';
 
 import { IncomingData } from '.';
 
 export async function sendRequest(
-  schools: IncomingData[],
-  log: Logger
+  incomingData: IncomingData[],
+  log: Logger,
+  retry = true
 ): Promise<[Result<IncomingData>, Logger]> {
-  const invalid: Response[] = [];
+  let invalid: Response[] = [];
 
   try {
     const admin = await AdminService.getInstance();
     const result = await admin.createSchools(
-      schools.map(({ data }) => ({
+      incomingData.map(({ data }) => ({
         organizationId: data.kidsloopOrganizationUuid!,
         name: data.name!,
         shortCode: data.shortCode,
@@ -32,7 +35,7 @@ export async function sendRequest(
     );
 
     const m = new Map<string, IncomingData>();
-    for (const s of schools) {
+    for (const s of incomingData) {
       m.set(s.data.name || 'UNKNOWN', s);
     }
 
@@ -54,22 +57,68 @@ export async function sendRequest(
     }
     return [{ valid: Array.from(m.values()), invalid: [] }, log];
   } catch (error) {
-    // @TODO - We need to filter out any invalid entities or entities that
-    // already exist and retry
-    for (const s of schools) {
-      const r = new Response()
-        .setEntity(Entity.SCHOOL)
-        .setEntityId(s.protobuf.getExternalUuid())
-        .setRequestId(requestIdToProtobuf(s.requestId))
-        .setSuccess(false);
-      if (error instanceof Errors || error instanceof OnboardingError) {
-        r.setErrors(error.toProtobufError());
-      } else {
-        r.setErrors(INTERNAL_SERVER_ERROR_PROTOBUF);
+    if (error instanceof AdminDupeError && retry) {
+      const retryResult = await retryDupes(
+        incomingData,
+        error,
+        invalid,
+        sendRequest,
+        dupeErrors,
+        log
+      );
+      if (retryResult.hasRetried()) {
+        return retryResult.getRetryResult();
       }
-      invalid.push(r);
+      invalid = invalid.concat(retryResult.getInvalid());
+    } else {
+      for (const s of incomingData) {
+        const r = new Response()
+          .setEntity(Entity.SCHOOL)
+          .setEntityId(s.protobuf.getExternalUuid())
+          .setRequestId(requestIdToProtobuf(s.requestId))
+          .setSuccess(false);
+        if (error instanceof Errors || error instanceof OnboardingError) {
+          r.setErrors(error.toProtobufError());
+        } else {
+          r.setErrors(INTERNAL_SERVER_ERROR_PROTOBUF);
+        }
+        invalid.push(r);
+      }
     }
   }
-
   return [{ valid: [], invalid }, log];
+}
+
+function dupeErrors(
+  error: AdminDupeError,
+  incoming: IncomingData[],
+  log: Logger
+): Result<IncomingData> {
+  const errorNames: Map<string, Set<string>> = error.getDupes();
+  const retries: IncomingData[] = [];
+  const invalid: Response[] = [];
+  incoming.forEach((school) => {
+    const entityNames =
+      errorNames.get(school.data.kidsloopOrganizationUuid!) ?? new Set();
+
+    if (!entityNames.has(school.data.name!)) {
+      retries.push(school);
+    } else {
+      const response = new Response()
+        .setEntity(Entity.SCHOOL)
+        .setEntityId(school.protobuf.getExternalUuid())
+        .setRequestId(requestIdToProtobuf(school.requestId))
+        .setErrors(
+          new OnboardingError(
+            MachineError.ENTITY_ALREADY_EXISTS,
+            `school with id ${school.data.externalUuid!} already exists`,
+            Category.REQUEST,
+            log
+          ).toProtobufError()
+        )
+        .setSuccess(false);
+      invalid.push(response);
+    }
+  });
+  return { valid: retries, invalid: invalid };
 }

@@ -335,4 +335,14 @@ export class Context {
       log
     );
   }
+
+  public async reset() {
+    this.classes.reset();
+    this.organizations.reset();
+    this.schools.reset();
+    this.classes.reset();
+    this.users.reset();
+    this.roles.reset();
+    this.programs.reset();
+  }
 }

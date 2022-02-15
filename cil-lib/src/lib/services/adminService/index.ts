@@ -1,5 +1,6 @@
 import {
   ApolloClient,
+  ApolloError,
   DocumentNode,
   from,
   HttpLink,
@@ -7,9 +8,11 @@ import {
   NormalizedCacheObject,
   TypedDocumentNode,
 } from '@apollo/client/core';
+import { GraphQLErrors } from '@apollo/client/errors';
 import { onError } from '@apollo/client/link/error';
 import { RetryLink } from '@apollo/client/link/retry';
 import fetch from 'cross-fetch';
+import { GraphQLError } from 'graphql/error/GraphQLError';
 import { Logger } from 'pino';
 
 import {
@@ -98,6 +101,39 @@ export class AdminService {
     this.context = { headers: { authorization: `Bearer ${apiKey}` } };
   }
 
+  private static dupes(graphQLErrors: GraphQLErrors): Map<Uuid, Set<string>> {
+    const dupes: Map<string, Set<string>> = new Map();
+    graphQLErrors.forEach((gqlError) => {
+      const exception: Record<string, unknown> = gqlError.extensions[
+        'exception'
+      ] as Record<string, unknown>;
+      if (exception) {
+        const errors = exception['errors'];
+        if (errors && errors instanceof Array) {
+          errors.forEach((error) => {
+            if (
+              (error.code &&
+                error.code === DupeError.ERR_DUPLICATE_CHILD_ENTITY) ||
+              error.code === DupeError.ERR_DUPLICATE_CHILD_ENTITY_ATTRIBUTE
+            ) {
+              const parentName = error.parentName;
+              const entityName =
+                error.code === DupeError.ERR_DUPLICATE_CHILD_ENTITY
+                  ? error.entityName
+                  : error.attributeValue;
+              const entityNames = dupes.get(parentName) ?? new Set();
+
+              entityNames.add(entityName);
+
+              dupes.set(parentName, entityNames);
+            }
+          });
+        }
+      }
+    });
+    return dupes;
+  }
+
   public static async getInstance() {
     if (this._instance) return this._instance;
 
@@ -126,21 +162,35 @@ export class AdminService {
         retryIf: (error, _operation) => !!error,
       },
     });
-    const errorLink = onError(({ graphQLErrors, networkError, response }) => {
-      new OnboardingError(
-        MachineError.NETWORK,
-        'Recieved error when sending request to admin service',
-        Category.ADMIN_SERVICE,
-        baseLogger,
-        [],
-        {},
-        [
-          ...(graphQLErrors?.map((e) => e as unknown as string) || []),
-          ...(response?.errors?.map((m) => m as unknown as string) || []),
-          networkError?.message || '',
-        ]
-      );
-    });
+    const errorLink = onError(
+      ({ graphQLErrors, response, networkError, forward, operation }) => {
+        // For logging purposes this error isn't used
+        new OnboardingError(
+          MachineError.NETWORK,
+          'Received error when sending request to admin service',
+          Category.ADMIN_SERVICE,
+          baseLogger,
+          [],
+          {},
+          [
+            ...(graphQLErrors?.map((e) => e as unknown as string) || []),
+            ...(response?.errors?.map((m) => m as unknown as string) || []),
+            networkError?.message || '',
+          ]
+        );
+
+        if (graphQLErrors) {
+          const dupes = this.dupes(graphQLErrors);
+          if (dupes.size > 0) {
+            return forward(operation).map((data) => {
+              data.errors = [new AdminDupeError(dupes)];
+              return data;
+            });
+          }
+        }
+        return forward(operation);
+      }
+    );
 
     try {
       const client = new ApolloClient({
@@ -544,34 +594,65 @@ export class AdminService {
     mutationAccessor: MutationAccessor,
     logger: Logger
   ): Promise<T[]> {
-    const response = await this.client.mutate({
-      mutation: query,
-      variables: {
-        ...variables,
-      },
-      context: this.context,
-    });
-    const data = response.data;
+    try {
+      const response = await this.client.mutate({
+        mutation: query,
+        variables: {
+          ...variables,
+        },
+        context: this.context,
+      });
 
-    if (!data)
-      throw new OnboardingError(
-        MachineError.NETWORK,
-        `Expected to receive data when sending a graphql mutation, however found
-      nothing`,
-        Category.ADMIN_SERVICE,
-        logger
-      );
+      const data = response.data;
 
-    const responseData = data[mutationAccessor];
-    if (responseData === null || responseData === undefined)
-      throw new OnboardingError(
-        MachineError.APP_CONFIG,
-        `Failed to access data from mutation with accessor ${mutationAccessor}`,
-        Category.ADMIN_SERVICE,
-        logger
-      );
+      if (!data)
+        throw new OnboardingError(
+          MachineError.NETWORK,
+          `Expected to receive data when sending a graphql mutation, however found
+        nothing`,
+          Category.ADMIN_SERVICE,
+          logger
+        );
 
-    const result = transformer(responseData as U);
-    return result;
+      const responseData = data[mutationAccessor];
+      if (responseData === null || responseData === undefined)
+        throw new OnboardingError(
+          MachineError.APP_CONFIG,
+          `Failed to access data from mutation with accessor ${mutationAccessor}`,
+          Category.ADMIN_SERVICE,
+          logger
+        );
+
+      const result = transformer(responseData as U);
+      return result;
+    } catch (error) {
+      if (error instanceof ApolloError) {
+        error.graphQLErrors.find((error) => error);
+        const dupes = error.graphQLErrors.find((error) => error);
+
+        if (dupes && dupes instanceof AdminDupeError) {
+          throw dupes;
+        }
+      }
+      throw error;
+    }
+  }
+}
+
+enum DupeError {
+  ERR_DUPLICATE_CHILD_ENTITY = 'ERR_DUPLICATE_CHILD_ENTITY',
+  ERR_DUPLICATE_CHILD_ENTITY_ATTRIBUTE = 'ERR_DUPLICATE_CHILD_ENTITY_ATTRIBUTE',
+}
+
+export class AdminDupeError extends GraphQLError {
+  private dupes: Map<string, Set<string>> = new Map();
+
+  constructor(dupes: Map<string, Set<string>>) {
+    super('Dupe errors from the admin service');
+    this.dupes = dupes;
+  }
+
+  public getDupes() {
+    return this.dupes;
   }
 }
