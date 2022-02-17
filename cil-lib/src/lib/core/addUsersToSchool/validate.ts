@@ -137,7 +137,6 @@ export const schema = Joi.object({
 
   externalUserUuidsList: Joi.array()
     .min(1)
-    .max(50)
     .items(Joi.string().guid({ version: ['uuidv4'] }))
     .required(),
 });
