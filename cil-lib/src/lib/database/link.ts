@@ -166,37 +166,25 @@ export class Link {
     log: Logger
   ): Promise<{ valid: ExternalUuid[]; invalid: ExternalUuid[] }> {
     try {
-      const validUsers = await prisma.userLinkSchool.findMany({
-        where: {
-          AND: [
-            {
-              externalUuid: {
-                in: userIds,
-              },
+      const validUsers = (
+        await prisma.userLinkSchool.findMany({
+          where: {
+            externalUuid: {
+              in: userIds,
             },
-            {
-              externalSchoolUuid: schoolId,
-            },
-          ],
-        },
-        select: {
-          user: {
-            select: {
-              externalUuid: true,
-            },
+            externalSchoolUuid: schoolId,
           },
-        },
-      });
+          select: {
+            externalUuid: true,
+          },
+        })
+      ).map((u) => u.externalUuid);
 
       const toValidate = new Set(userIds);
       const valid = [];
-      for (const {
-        user: { externalUuid },
-      } of validUsers) {
+      for (const externalUuid of validUsers) {
         // delete returns true if the user was in the list
-        if (toValidate.delete(externalUuid)) {
-          valid.push(externalUuid);
-        }
+        if (toValidate.delete(externalUuid)) valid.push(externalUuid);
       }
       return { valid: valid, invalid: Array.from(toValidate) };
     } catch (error) {

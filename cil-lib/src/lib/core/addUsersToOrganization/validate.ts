@@ -87,7 +87,7 @@ async function validate(
 
   schemaValidation(protobuf.toObject(), log);
   const orgId = protobuf.getExternalOrganizationUuid();
-  const ctx = Context.getInstance();
+  const ctx = await Context.getInstance();
   // Check the target organization is valid
   await ctx.organizationIdIsValid(orgId, log);
 

@@ -17,13 +17,57 @@ const prisma = new PrismaClient();
 
 export class Class {
   public static entity = Entity.CLASS;
+
   public static async insertOne(
-    c: Prisma.ClassCreateInput,
+    externalUuid: ExternalUuid,
+    kidsloopUuid: Uuid,
+    externalOrgUuid: ExternalUuid,
     log: Logger
   ): Promise<void> {
     try {
+      const c: Prisma.ClassCreateInput = {
+        externalUuid,
+        klUuid: kidsloopUuid,
+        organization: {
+          connect: { externalUuid: externalOrgUuid },
+        },
+      };
       await prisma.class.create({
         data: c,
+      });
+    } catch (error) {
+      console.error(error);
+      const msg = returnMessageOrThrowOnboardingError(error);
+      throw new OnboardingError(
+        MachineError.WRITE,
+        msg,
+        Category.POSTGRES,
+        log,
+        [],
+        { entityId: externalUuid, statement: 'INSERT ONE' }
+      );
+    }
+  }
+
+  public static async linkToSchool(
+    externalUuid: ExternalUuid,
+    schoolId: ExternalUuid,
+    log: Logger
+  ): Promise<void> {
+    try {
+      await prisma.classLinkSchool.create({
+        data: {
+          class: {
+            connect: {
+              externalUuid,
+            },
+          },
+          school: {
+            connect: {
+              externalUuid: schoolId,
+            },
+          },
+        },
       });
     } catch (error) {
       const msg = returnMessageOrThrowOnboardingError(error);
@@ -33,7 +77,7 @@ export class Class {
         Category.POSTGRES,
         log,
         [],
-        { entityId: c.externalUuid, operation: 'INSERT ONE' }
+        { entityId: externalUuid, statement: 'LINK CLASS TO SCHOOL' }
       );
     }
   }
@@ -55,7 +99,7 @@ export class Class {
         Category.POSTGRES,
         log,
         [],
-        { entityId: id, operation: 'FIND ONE' }
+        { entityId: id, statement: 'FIND ONE' }
       );
     }
   }
@@ -75,6 +119,41 @@ export class Class {
     } catch (error) {
       const msg = returnMessageOrThrowOnboardingError(error);
       throw POSTGRES_IS_VALID_QUERY(id, this.entity, msg, log);
+    }
+  }
+
+  public static async getExternalSchoolIds(
+    id: ExternalUuid,
+    log: Logger,
+    shouldLogNotFoundError = true
+  ): Promise<Set<ExternalUuid>> {
+    try {
+      const schoolIds = await prisma.class.findUnique({
+        where: {
+          externalUuid: id,
+        },
+        select: {
+          schools: {
+            select: {
+              externalSchoolUuid: true,
+            },
+          },
+        },
+      });
+      if (schoolIds === null || schoolIds.schools.length === 0)
+        throw ENTITY_NOT_FOUND(
+          id,
+          this.entity,
+          log,
+          {},
+          shouldLogNotFoundError
+        );
+      return new Set(
+        schoolIds.schools.map(({ externalSchoolUuid }) => externalSchoolUuid)
+      );
+    } catch (error) {
+      const msg = returnMessageOrThrowOnboardingError(error);
+      throw POSTGRES_GET_KIDSLOOP_ID_QUERY(id, this.entity, msg, log);
     }
   }
 
@@ -101,7 +180,6 @@ export class Class {
   }
 
   public static async areValid(
-    schoolId: ExternalUuid,
     ids: ExternalUuid[],
     log: Logger
   ): Promise<{
@@ -115,7 +193,6 @@ export class Class {
             externalUuid: {
               in: ids,
             },
-            externalSchoolUuid: schoolId,
           },
           select: {
             externalUuid: true,
@@ -124,13 +201,18 @@ export class Class {
       ).map((c) => c.externalUuid);
 
       const invalidSet = new Set(ids);
-      for (const id of validSet) {
-        invalidSet.delete(id);
+      for (const id of validSet) invalidSet.delete(id);
+      const invalid = Array.from(invalidSet);
+      if (invalid.length > 0) {
+        log.warn(
+          { invalidClasses: invalid },
+          'found invalid classes however filtering them out'
+        );
       }
 
       return {
         valid: validSet,
-        invalid: Array.from(invalidSet.values()),
+        invalid,
       };
     } catch (error) {
       const msg = returnMessageOrThrowOnboardingError(error);

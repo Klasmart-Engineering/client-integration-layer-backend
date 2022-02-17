@@ -118,6 +118,44 @@ export class Program {
     }
   }
 
+  /**
+   *
+   * Have to be careful with this function, as it's actually valid for
+   * an org to have no custom programs
+   *
+   */
+  public static async getForOrg(
+    orgId: ExternalUuid,
+    log: Logger
+  ): Promise<Map<string, Uuid>> {
+    try {
+      const result = await prisma.program.findMany({
+        where: {
+          organization: {
+            externalUuid: orgId,
+          },
+        },
+        select: {
+          klUuid: true,
+          name: true,
+        },
+      });
+      const m = new Map();
+      for (const { klUuid, name } of result) m.set(name, klUuid);
+      return m;
+    } catch (error) {
+      if (error instanceof OnboardingError) throw error;
+      const msg = error instanceof Error ? error.message : `${error}`;
+      throw new OnboardingError(
+        MachineError.WRITE,
+        msg,
+        Category.POSTGRES,
+        log,
+        [],
+        { operation: 'FIND PROGRAMS FOR ORG' }
+      );
+    }
+  }
   public static async getIdsByNames(
     programNames: string[],
     orgId: ExternalUuid,
@@ -171,6 +209,41 @@ export class Program {
         log,
         [],
         { operation: 'FIND MANY' }
+      );
+    }
+  }
+
+  public static async getSchoolPrograms(
+    schoolId: ExternalUuid,
+    log: Logger
+  ): Promise<Map<string, Uuid>> {
+    try {
+      const results = await prisma.programLink.findMany({
+        where: {
+          externalSchoolUuid: schoolId,
+        },
+        select: {
+          klUuid: true,
+          program: {
+            select: {
+              name: true,
+            },
+          },
+        },
+      });
+      const m = new Map();
+      for (const result of results) m.set(result.program.name, result.klUuid);
+      return m;
+    } catch (error) {
+      if (error instanceof OnboardingError) throw error;
+      const msg = error instanceof Error ? error.message : `${error}`;
+      throw new OnboardingError(
+        MachineError.WRITE,
+        msg,
+        Category.POSTGRES,
+        log,
+        [],
+        { operation: 'GET PROGRAMS FOR SCHOOL' }
       );
     }
   }

@@ -174,6 +174,13 @@ export class RequestBatch {
       } as OnboardingData);
       map.set(key, arr);
     }
+    const details: Record<string, number> = {};
+    for (const [k, v] of map) details[k] = v.length;
+
+    log.info(
+      { operationCounts: details },
+      'received incoming batch of requests'
+    );
     return new RequestBatch(map);
   }
 

@@ -50,17 +50,20 @@ async function validate(r: IncomingData, log: Logger): Promise<IncomingData> {
   schemaValidation(protobuf.toObject(), log);
   const classId = protobuf.getExternalClassUuid();
   const programs = protobuf.getProgramNamesList();
-  const schoolId = (await Class.findOne(classId, log)).externalSchoolUuid;
-
-  if (!schoolId) {
+  const schoolIds = await Class.getExternalSchoolIds(classId, log);
+  if (schoolIds.size > 1)
     throw new OnboardingError(
-      MachineError.ENTITY_DOES_NOT_EXIST,
-      `School Id is empty`,
-      Category.REQUEST,
-      log
+      MachineError.APP_CONFIG,
+      `We currently don't support adding a class to more than 1 school`,
+      Category.APP,
+      log,
+      [],
+      {},
+      ['Talk to someone in the CSI team if you think we need to support this']
     );
-  }
+  const schoolId = schoolIds.values().next().value;
 
+  r.data.externalSchoolUuid = schoolId;
   const schoolPrograms = await School.getProgramsForSchool(schoolId, log);
   const validPrograms = new Set(schoolPrograms.map((p) => p.name));
   const invalidPrograms = [];
@@ -109,10 +112,6 @@ function schemaValidation(
 
 export const addProgramsToClassSchema = Joi.object({
   externalClassUuid: Joi.string().required(),
-
-  externalOrganizationUuid: Joi.string()
-    .guid({ version: ['uuidv4'] })
-    .required(),
 
   programNamesList: Joi.array()
     .min(1)

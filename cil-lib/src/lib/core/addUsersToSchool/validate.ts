@@ -87,7 +87,7 @@ async function validate(
   schemaValidation(protobuf.toObject(), log);
   const schoolId = protobuf.getExternalSchoolUuid();
 
-  const ctx = Context.getInstance();
+  const ctx = await Context.getInstance();
   const userIds = protobuf.getExternalUserUuidsList();
   // check the target users are valid
   const { valid, invalid } = await ctx.getUserIds(userIds, log);
@@ -137,6 +137,7 @@ export const schema = Joi.object({
 
   externalUserUuidsList: Joi.array()
     .min(1)
+    .max(50)
     .items(Joi.string().guid({ version: ['uuidv4'] }))
     .required(),
 });

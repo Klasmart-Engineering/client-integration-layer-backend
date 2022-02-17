@@ -125,6 +125,7 @@ export async function compose<T extends IdTracked<V, U>, V extends Message, U>(
   if (data.length === 0) return [];
   let responses: Response[] = [];
   let logger = log.child({ operation: op });
+  log.debug('processing with next batch of processing');
   try {
     let result: Result<T>;
 
@@ -156,7 +157,10 @@ export async function compose<T extends IdTracked<V, U>, V extends Message, U>(
     }
   } catch (error) {
     log.warn(
-      { error: error instanceof Error ? error.message : `${error}` },
+      {
+        error: error instanceof Error ? error.message : `${error}`,
+        operation: op,
+      },
       'If you are seeing this message, it means that errors that should have already been caught have made their way through in to the compose function'
     );
   }

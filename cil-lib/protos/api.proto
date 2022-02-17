@@ -58,20 +58,18 @@ message AddUsersToClass {
 }
 
 message AddUsersToSchool {
-  repeated string external_user_uuids = 1;
-  string external_school_uuid = 2;
+  string external_school_uuid = 1;
+  repeated string external_user_uuids = 2;
 }
 
 message AddProgramsToSchool {
-  string external_organization_uuid = 1;
-  string external_school_uuid = 2;
-  repeated string program_names = 3;
+  string external_school_uuid = 1;
+  repeated string program_names = 2;
 }
 
 message AddProgramsToClass {
-  string external_organization_uuid = 1;
-  string external_class_uuid = 2;
-  repeated string program_names = 3;
+  string external_class_uuid = 1;
+  repeated string program_names = 2;
 }
 
 message AddClassesToSchool {

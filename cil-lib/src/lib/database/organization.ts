@@ -201,12 +201,8 @@ export class Organization {
       const admin = await AdminService.getInstance();
       const { name, externalUuid } = org;
       const klUuid = await admin.getOrganization(name, log);
-      const systemPrograms = await admin.getSystemPrograms(log);
-      const systemRoles = await admin.getSystemRoles(log);
       const customPrograms = await admin.getOrganizationPrograms(klUuid, log);
       const customRoles = await admin.getOrganizationRoles(klUuid, log);
-      const programUuids = systemPrograms.concat(customPrograms);
-      const roleUuids = systemRoles.concat(customRoles);
 
       await Organization.insertOne(
         {
@@ -216,8 +212,8 @@ export class Organization {
         },
         log
       );
-      await Program.insertMany(programUuids, externalUuid, log);
-      await Role.insertMany(roleUuids, externalUuid, log);
+      await Program.insertMany(customPrograms, externalUuid, log);
+      await Role.insertMany(customRoles, externalUuid, log);
     } catch (error) {
       const msg = returnMessageOrThrowOnboardingError(error);
       throw new OnboardingError(

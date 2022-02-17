@@ -167,12 +167,12 @@ export namespace AddUsersToClass {
 }
 
 export class AddUsersToSchool extends jspb.Message { 
+    getExternalSchoolUuid(): string;
+    setExternalSchoolUuid(value: string): AddUsersToSchool;
     clearExternalUserUuidsList(): void;
     getExternalUserUuidsList(): Array<string>;
     setExternalUserUuidsList(value: Array<string>): AddUsersToSchool;
     addExternalUserUuids(value: string, index?: number): string;
-    getExternalSchoolUuid(): string;
-    setExternalSchoolUuid(value: string): AddUsersToSchool;
 
     serializeBinary(): Uint8Array;
     toObject(includeInstance?: boolean): AddUsersToSchool.AsObject;
@@ -186,14 +186,12 @@ export class AddUsersToSchool extends jspb.Message {
 
 export namespace AddUsersToSchool {
     export type AsObject = {
-        externalUserUuidsList: Array<string>,
         externalSchoolUuid: string,
+        externalUserUuidsList: Array<string>,
     }
 }
 
 export class AddProgramsToSchool extends jspb.Message { 
-    getExternalOrganizationUuid(): string;
-    setExternalOrganizationUuid(value: string): AddProgramsToSchool;
     getExternalSchoolUuid(): string;
     setExternalSchoolUuid(value: string): AddProgramsToSchool;
     clearProgramNamesList(): void;
@@ -213,15 +211,12 @@ export class AddProgramsToSchool extends jspb.Message {
 
 export namespace AddProgramsToSchool {
     export type AsObject = {
-        externalOrganizationUuid: string,
         externalSchoolUuid: string,
         programNamesList: Array<string>,
     }
 }
 
 export class AddProgramsToClass extends jspb.Message { 
-    getExternalOrganizationUuid(): string;
-    setExternalOrganizationUuid(value: string): AddProgramsToClass;
     getExternalClassUuid(): string;
     setExternalClassUuid(value: string): AddProgramsToClass;
     clearProgramNamesList(): void;
@@ -241,7 +236,6 @@ export class AddProgramsToClass extends jspb.Message {
 
 export namespace AddProgramsToClass {
     export type AsObject = {
-        externalOrganizationUuid: string,
         externalClassUuid: string,
         programNamesList: Array<string>,
     }

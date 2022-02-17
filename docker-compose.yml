@@ -1,22 +1,16 @@
 version: "3.9"
 
 services:
-  # server:
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile
-  #   container_name: node-server
-  #   environment:
-  #     DATABASE_URL: postgresql://postgres:kidsloop@db:5432/mcb-integration
-  #     REDIS_HOST: redis
-  #     REDIS_PORT: 6379
-  #   expose:
-  #     - '4200'
-  #   ports:
-  #     - '4200:4200'
-  #   depends_on:
-  #     - db
-  #     - redis
+  user-db:
+    container_name: postgres1
+    image: postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: kidsloop
+      POSTGRES_DB: postgres1
+    ports:
+      - "5433:5432"
 
   db:
     container_name: postgres
@@ -36,7 +30,7 @@ services:
     container_name: user-service
     environment:
       - DOMAIN=kidsloop-user-service:8080
-      - DATABASE_URL=postgres://postgres:kidsloop@db:5432/cil-validation
+      - DATABASE_URL=postgres://postgres:kidsloop@user-db:5432/postgres1
       - STORAGE_BUCKET=kidsloop-alpha-account-asset-objects
       - STORAGE_PROVIDER=amazon
       - NODE_ENV=development
@@ -53,7 +47,7 @@ services:
       - "8080:8080"
     depends_on:
       - localstack1
-      - db
+      - user-db
 
   localstack1:
     container_name: localstack1

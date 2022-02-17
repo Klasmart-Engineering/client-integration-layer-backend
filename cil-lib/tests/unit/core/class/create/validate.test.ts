@@ -136,32 +136,38 @@ export const INVALID_CLASSES: ClassTestCase[] = [
   },
 ];
 
-describe('class validation', () => {
+describe('class creation', () => {
   let orgStub: SinonStub;
   let schoolStub: SinonStub;
   let classStub: SinonStub;
-  const ctx = Context.getInstance();
+  let orgIdStub: SinonStub;
+  let adminStub: SinonStub;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     process.env.ADMIN_SERVICE_API_KEY = uuidv4();
-    const admin = await AdminService.getInstance();
-    sinon
-      .stub(admin, 'createClasses')
-      .resolves([{ id: uuidv4(), name: 'Test Class' }]);
-    orgStub = sinon.stub(ctx, 'organizationIdIsValid');
+    adminStub = sinon.stub(AdminService, 'getInstance').resolves({
+      createClasses: sinon
+        .stub()
+        .resolves([{ id: uuidv4(), name: 'Test Class' }]),
+    } as unknown as AdminService);
 
-    schoolStub = sinon.stub(ctx, 'getSchoolId').resolves();
-    classStub = sinon
-      .stub(ctx, 'getClassId')
-      .rejects(new Error('Does not exist'));
-    sinon.stub(ctx, 'getOrganizationId').resolves(uuidv4());
+    orgStub = sinon.stub().resolves();
+
+    schoolStub = sinon.stub().resolves();
+    classStub = sinon.stub().rejects(new Error('Does not exist'));
+    orgIdStub = sinon.stub().resolves(uuidv4());
+
     sinon.stub(ClassDB, 'insertOne').resolves();
+
+    sinon.stub(Context, 'getInstance').resolves({
+      getOrganizationId: orgIdStub,
+      getSchoolId: schoolStub,
+      getClassId: classStub,
+      organizationIdIsValid: orgStub,
+    } as unknown as Context);
   });
 
   afterEach(() => {
-    orgStub.restore();
-    schoolStub.restore();
-    classStub.restore();
     sinon.restore();
   });
 

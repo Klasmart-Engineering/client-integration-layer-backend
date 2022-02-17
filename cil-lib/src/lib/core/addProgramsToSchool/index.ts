@@ -3,6 +3,7 @@ import { Logger } from 'pino';
 import { Uuid } from '../../..';
 import { AddProgramsToSchool, Response } from '../../protos';
 import { Operation } from '../../types';
+import { ExternalUuid } from '../../utils';
 import { IdTracked } from '../batchRequest';
 import { compose } from '../process';
 
@@ -12,6 +13,7 @@ import { prepare } from './prepare';
 import { validateMany } from './validate';
 
 export interface PAddProgramsToSchool {
+  externalOrganizationUuid: ExternalUuid;
   kidsloopOrganizationUuid: Uuid;
   kidsloopSchoolUuid: Uuid;
   programIds: { id: Uuid; name: string }[];

@@ -10,6 +10,7 @@ import { sendRequest } from './adminService';
 import { persist } from './database';
 import { prepare } from './prepare';
 import { validateMany } from './validate';
+
 export interface CreateClass {
   kidsloopOrganizationUuid: Uuid;
   kidsloopSchoolUuid: Uuid;

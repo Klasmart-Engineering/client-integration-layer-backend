@@ -129,14 +129,14 @@ export const INVALID_ADD_USERS_TO_ORGANIZATION: AddUsersToOrganizationTestCase[]
     },
   ];
 
-describe('add programs to school validation', () => {
+describe('add users to organization', () => {
   let adminStub: SinonStub;
   let orgStub: SinonStub;
   let userStub: SinonStub;
   let roleStub: SinonStub;
-  const ctx = Context.getInstance();
+  let orgIdStub: SinonStub;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     process.env.ADMIN_SERVICE_API_KEY = uuidv4();
     const orgId = uuidv4();
     adminStub = sinon.stub(AdminService, 'getInstance').resolves({
@@ -144,23 +144,25 @@ describe('add programs to school validation', () => {
         .stub()
         .resolves([{ id: orgId, name: 'Test org' }]),
     } as unknown as AdminService);
-    orgStub = sinon.stub(ctx, 'organizationIdIsValid').resolves();
-    userStub = sinon.stub(ctx, 'getUserIds').resolves({
+    orgStub = sinon.stub().resolves();
+    userStub = sinon.stub().resolves({
       valid: new Map<string, string>([[uuidv4(), uuidv4()]]),
       invalid: [],
     });
-    roleStub = sinon
-      .stub(ctx, 'rolesAreValid')
-      .resolves([{ id: uuidv4(), name: 'Test role 1' }]);
-    sinon.stub(ctx, 'getOrganizationId').resolves(orgId);
+    roleStub = sinon.stub().resolves([{ id: uuidv4(), name: 'Test role 1' }]);
+    orgIdStub = sinon.stub().resolves(orgId);
+
+    sinon.stub(Context, 'getInstance').resolves({
+      getOrganizationId: orgIdStub,
+      organizationIdIsValid: orgStub,
+      rolesAreValid: roleStub,
+      getUserIds: userStub,
+    } as unknown as Context);
+
     sinon.stub(Link, 'linkUserToOrg').resolves(orgId);
   });
 
   afterEach(() => {
-    orgStub.restore();
-    userStub.restore();
-    roleStub.restore();
-    adminStub.restore();
     sinon.restore();
   });
 

@@ -1,6 +1,7 @@
 import { Logger } from 'pino';
 
 import { Context } from '../../../';
+import { School } from '../../database';
 import {
   Errors,
   INTERNAL_SERVER_ERROR_PROTOBUF,
@@ -17,24 +18,24 @@ export async function prepare(
   addProgramsToSchools: IncomingData[],
   log: Logger
 ): Promise<[Result<IncomingData>, Logger]> {
-  const ctx = Context.getInstance();
+  const ctx = await Context.getInstance();
   const valid = [];
   const invalid: Response[] = [];
   for (const addProgramsToSchool of addProgramsToSchools) {
+    const { data } = addProgramsToSchool;
     try {
-      const externalOrgId = tryGetMember(
-        addProgramsToSchool.data.externalOrganizationUuid,
-        log
-      );
-      const orgId = await ctx.getOrganizationId(externalOrgId, log);
       const schoolId = await ctx.getSchoolId(
-        tryGetMember(addProgramsToSchool.data.externalSchoolUuid, log),
+        tryGetMember(data.externalSchoolUuid, log),
         log
       );
+      const externalOrgId = data.externalOrganizationUuid
+        ? data.externalOrganizationUuid
+        : await School.getExternalOrgId(schoolId, log);
+      const orgId = await ctx.getOrganizationId(externalOrgId, log);
       const programs = await ctx.programsAreValid(
-        tryGetMember(addProgramsToSchool.data.programNamesList, log),
-        externalOrgId,
-        log
+        tryGetMember(data.programNamesList, log),
+        log,
+        externalOrgId
       );
       addProgramsToSchool.data.kidsloopOrganizationUuid = orgId;
       addProgramsToSchool.data.kidsloopSchoolUuid = schoolId;

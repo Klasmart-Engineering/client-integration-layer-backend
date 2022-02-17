@@ -4,8 +4,10 @@ import { Uuid } from '../../../..';
 import { Organization, Response } from '../../../protos';
 import { Operation } from '../../../types';
 import { IdTracked } from '../../batchRequest';
-import { compose, DUMMY_SEND_REQUEST, DUMMY_STORE, NOOP } from '../../process';
+import { compose, NOOP } from '../../process';
 
+import { sendRequest } from './adminService';
+import { toSuccessResponses } from './database';
 import { validateMany } from './validate';
 
 export interface CreateOrganization {
@@ -21,8 +23,8 @@ export function process(
   return compose(
     validateMany,
     NOOP,
-    DUMMY_SEND_REQUEST,
-    DUMMY_STORE,
+    sendRequest,
+    toSuccessResponses,
     data,
     Operation.CREATE_ORGANIZATION,
     log

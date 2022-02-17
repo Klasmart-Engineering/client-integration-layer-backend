@@ -17,7 +17,7 @@ export async function prepare(
   classes: IncomingData[],
   log: Logger
 ): Promise<[Result<IncomingData>, Logger]> {
-  const ctx = Context.getInstance();
+  const ctx = await Context.getInstance();
   const valid = [];
   const invalid: Response[] = [];
   for (const clazz of classes) {

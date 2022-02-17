@@ -1,6 +1,7 @@
 import { Logger } from 'pino';
 
 import { Context } from '../../../';
+import { Class } from '../../database';
 import {
   Errors,
   INTERNAL_SERVER_ERROR_PROTOBUF,
@@ -17,26 +18,30 @@ export async function prepare(
   addProgramsToClasses: IncomingData[],
   log: Logger
 ): Promise<[Result<IncomingData>, Logger]> {
-  const ctx = Context.getInstance();
+  const ctx = await Context.getInstance();
   const valid = [];
   const invalid: Response[] = [];
   for (const addProgramsToClass of addProgramsToClasses) {
+    const { data } = addProgramsToClass;
     try {
-      const externalOrgId = tryGetMember(
-        addProgramsToClass.data.externalOrganizationUuid,
-        log
-      );
-      const orgId = await ctx.getOrganizationId(externalOrgId, log);
       const classId = await ctx.getClassId(
-        tryGetMember(addProgramsToClass.data.externalClassUuid, log),
+        tryGetMember(data.externalClassUuid, log),
         log
       );
+      const schoolId = data.externalSchoolUuid
+        ? data.externalSchoolUuid
+        : // This is only okay as we've currently validated it in the
+          // validate function. If we no longer throw an error if there
+          // is more than 1 school, then this is no longer valid
+          (await Class.getExternalSchoolIds(data.externalClassUuid!, log))
+            .values()
+            .next().value;
       const programs = await ctx.programsAreValid(
-        tryGetMember(addProgramsToClass.data.programNamesList, log),
-        externalOrgId,
-        log
+        tryGetMember(data.programNamesList, log),
+        log,
+        undefined,
+        schoolId
       );
-      addProgramsToClass.data.kidsloopOrganizationUuid = orgId;
       addProgramsToClass.data.kidsloopClassUuid = classId;
       addProgramsToClass.data.programIds = programs;
       valid.push(addProgramsToClass);

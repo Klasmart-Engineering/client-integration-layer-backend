@@ -8,13 +8,11 @@ import {
   OnboardingError,
   processOnboardingRequest,
 } from '../../../../../src';
-import * as ProcessFns from '../../../../../src/lib/core/process';
 import { Organization as OrgRepo } from '../../../../../src/lib/database';
 import {
   BatchOnboarding,
   Entity,
   Organization,
-  Response,
   Responses,
 } from '../../../../../src/lib/protos';
 import { Context } from '../../../../../src/lib/utils';
@@ -70,41 +68,22 @@ export const INVALID_ORGANIZATIONS: OrgTestCase[] = [
 ];
 
 describe('organization validation', () => {
-  let contextStub: SinonStub;
   let orgStub: SinonStub;
-  const ctx = Context.getInstance();
-  let _composeFunctions: {
-    prepare: SinonStub;
-    sendRequest: SinonStub;
-    store: SinonStub;
-  };
+  let orgIdValidStub: SinonStub;
 
   before(() => {
     process.env.ADMIN_SERVICE_API_KEY = 'abcdefg';
   });
 
-  beforeEach(async () => {
-    contextStub = sinon.stub(ctx, 'organizationIdIsValid');
+  beforeEach(() => {
+    orgIdValidStub = sinon.stub().rejects();
+    sinon.stub(Context, 'getInstance').resolves({
+      organizationIdIsValid: orgIdValidStub,
+    } as unknown as Context);
     orgStub = sinon.stub(OrgRepo, 'initializeOrganization').resolves();
-    const resp = [new Response().setSuccess(true)];
-    _composeFunctions = {
-      prepare: sinon
-        .stub(ProcessFns, 'DUMMY_PREPARE')
-        .callsFake(async (data) => {
-          return [{ valid: data, invalid: [] }, LOG_STUB];
-        }),
-      sendRequest: sinon
-        .stub(ProcessFns, 'DUMMY_SEND_REQUEST')
-        .callsFake(async (data) => {
-          return [{ valid: data, invalid: [] }, LOG_STUB];
-        }),
-      store: sinon.stub(ProcessFns, 'DUMMY_STORE').resolves(resp),
-    };
   });
 
   afterEach(() => {
-    contextStub.restore();
-    orgStub.restore();
     sinon.restore();
   });
 
@@ -116,6 +95,7 @@ describe('organization validation', () => {
       expect(responses).to.have.length(1);
       expect(responses[0]).not.to.be.undefined;
       expect(responses[0].getSuccess()).to.be.true;
+      expect(orgStub.callCount).to.equal(1);
     });
   });
 
@@ -126,11 +106,12 @@ describe('organization validation', () => {
         const resp = await makeCommonAssertions(req);
         const response = resp?.toObject()?.responsesList[0];
         expect(response.errors?.validation).not.to.be.undefined;
+        expect(orgStub.callCount).to.equal(0);
       });
     });
   });
 
-  it('should fail if the organization ID is not in the database', async () => {
+  it('should fail if the organization ID is not in the admin service', async () => {
     const req = wrapRequest(VALID_ORGANIZATIONS[0].org);
     orgStub.rejects(
       new OnboardingError(

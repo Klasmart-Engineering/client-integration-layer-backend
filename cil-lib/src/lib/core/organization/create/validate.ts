@@ -1,12 +1,7 @@
 import Joi from 'joi';
 import { Logger } from 'pino';
 
-import {
-  Context,
-  JOI_VALIDATION_SETTINGS,
-  Organization,
-  VALIDATION_RULES,
-} from '../../../..';
+import { JOI_VALIDATION_SETTINGS, VALIDATION_RULES } from '../../../..';
 import {
   BASE_PATH,
   Category,
@@ -58,8 +53,7 @@ async function validate(r: IncomingData, log: Logger): Promise<IncomingData> {
     name: entity.name,
     entity: Entity.ORGANIZATION,
   });
-  schemaValidation(entity, log);
-  await entityValidation(entity, newLogger);
+  schemaValidation(entity, newLogger);
   return r;
 }
 
@@ -85,23 +79,6 @@ function schemaValidation(entity: PbOrganization.AsObject, log: Logger): void {
     }
   }
   if (errors.size > 0) throw new Errors(Array.from(errors.values()));
-}
-
-async function entityValidation(
-  e: PbOrganization.AsObject,
-  log: Logger
-): Promise<void> {
-  try {
-    const ctx = Context.getInstance();
-    // Organizations should already exist
-    await ctx.organizationIdIsValid(e.externalUuid, log, false);
-  } catch (_) {
-    /* In this case we can try and fetch the organization*/
-  }
-  // If this errors, then looks like the organization is invalid
-  // NOTE: There are a lot of moving parts in this.. can we revisit for better
-  // error handling?
-  await Organization.initializeOrganization(e, log);
 }
 
 export const organizationSchema = Joi.object({

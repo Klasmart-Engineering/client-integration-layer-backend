@@ -67,7 +67,6 @@ describe('add users to school ', () => {
   let userIdStub: SinonStub;
   let linkDbStub: SinonStub;
   let userDbStub: SinonStub;
-  const ctx = Context.getInstance();
 
   beforeEach(() => {
     process.env.ADMIN_SERVICE_API_KEY = uuidv4();
@@ -78,11 +77,17 @@ describe('add users to school ', () => {
     adminStub = sinon.stub(AdminService, 'getInstance').resolves({
       addUsersToSchools: sinon.stub().resolves([{ id: schoolId }]),
     } as unknown as AdminService);
-    schoolIdStub = sinon.stub(ctx, 'getSchoolId').resolves(schoolId);
-    userIdStub = sinon.stub(ctx, 'getUserIds').resolves({
+    schoolIdStub = sinon.stub().resolves(schoolId);
+    userIdStub = sinon.stub().resolves({
       valid: validMap,
       invalid: [],
     });
+
+    sinon.stub(Context, 'getInstance').resolves({
+      getSchoolId: schoolIdStub,
+      getUserIds: userIdStub,
+    } as unknown as Context);
+
     linkDbStub = sinon.stub(LinkDB, 'shareTheSameOrganization').resolves();
     userDbStub = sinon.stub(UserDB, 'addUserToSchool').resolves();
   });

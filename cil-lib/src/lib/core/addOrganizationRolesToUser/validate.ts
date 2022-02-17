@@ -58,7 +58,7 @@ async function validate(r: IncomingData, log: Logger): Promise<IncomingData> {
   // Check that the user already exists in that organization
   await Link.userBelongsToOrganization(userId, orgId, log);
 
-  const ctx = Context.getInstance();
+  const ctx = await Context.getInstance();
   // Check that the roles are valid for that organization
   await ctx.rolesAreValid(protobuf.getRoleIdentifiersList(), orgId, log);
 

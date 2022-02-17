@@ -108,13 +108,12 @@ export const INVALID: AddOrganizationRolesToUserTestCase[] = [
   },
 ];
 
-describe('add organization roles to user validation', () => {
+describe('add organization roles to user', () => {
   let adminStub: SinonStub;
   let orgIdStub: SinonStub;
   let userIdStub: SinonStub;
   let roleIdsStub: SinonStub;
   let linkDbStub: SinonStub;
-  const ctx = Context.getInstance();
 
   beforeEach(() => {
     process.env.ADMIN_SERVICE_API_KEY = uuidv4();
@@ -122,16 +121,18 @@ describe('add organization roles to user validation', () => {
     adminStub = sinon.stub(AdminService, 'getInstance').resolves({
       addOrganizationRolesToUser: sinon.stub().resolves([{ id: userId }]),
     } as unknown as AdminService);
-    orgIdStub = sinon.stub(ctx, 'getOrganizationId').resolves(uuidv4());
-    userIdStub = sinon.stub(ctx, 'getUserId').resolves(userId);
-    roleIdsStub = sinon
-      .stub(ctx, 'rolesAreValid')
-      .resolves([{ id: uuidv4(), name: 'Test role' }]);
+    orgIdStub = sinon.stub().resolves(uuidv4());
+    userIdStub = sinon.stub().resolves(userId);
+    roleIdsStub = sinon.stub().resolves([{ id: uuidv4(), name: 'Test role' }]);
+    sinon.stub(Context, 'getInstance').resolves({
+      getOrganizationId: orgIdStub,
+      getUserId: userIdStub,
+      rolesAreValid: roleIdsStub,
+    } as unknown as Context);
     linkDbStub = sinon.stub(LinkDB, 'userBelongsToOrganization').resolves();
   });
 
   afterEach(() => {
-    adminStub.restore();
     sinon.restore();
   });
 

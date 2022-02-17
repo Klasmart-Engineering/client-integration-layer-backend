@@ -8,7 +8,7 @@ import { IdTracked } from '../batchRequest';
 import { compose } from '../process';
 
 import { sendRequest } from './adminService';
-import { toSuccessResponses } from './database';
+import { persist } from './database';
 import { prepare } from './prepare';
 import { validateMany } from './validate';
 
@@ -27,7 +27,7 @@ export function process(
     validateMany,
     prepare,
     sendRequest,
-    toSuccessResponses,
+    persist,
     data,
     Operation.ADD_CLASSES_TO_SCHOOL,
     log

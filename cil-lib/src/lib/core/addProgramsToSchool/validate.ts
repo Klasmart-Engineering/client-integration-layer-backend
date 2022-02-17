@@ -1,7 +1,8 @@
 import Joi from 'joi';
 import { Logger } from 'pino';
 
-import { Context, Link } from '../../..';
+import { Context } from '../../..';
+import { School } from '../../database';
 import {
   BASE_PATH,
   Category,
@@ -53,11 +54,15 @@ async function validate(r: IncomingData, log: Logger): Promise<IncomingData> {
 
   schemaValidation(protobuf.toObject(), log);
   const schoolId = protobuf.getExternalSchoolUuid();
-  const orgId = protobuf.getExternalOrganizationUuid();
-  await Link.schoolBelongsToOrganization(schoolId, orgId, log);
+  const externalOrgId = await School.getExternalOrgId(schoolId, log);
+  r.data.externalOrganizationUuid = externalOrgId;
 
-  const ctx = Context.getInstance();
-  await ctx.programsAreValid(protobuf.getProgramNamesList(), orgId, log);
+  const ctx = await Context.getInstance();
+  await ctx.programsAreValid(
+    protobuf.getProgramNamesList(),
+    log,
+    externalOrgId
+  );
   return r;
 }
 
@@ -90,10 +95,6 @@ function schemaValidation(
 
 export const addProgramsToSchoolSchema = Joi.object({
   externalSchoolUuid: Joi.string().required(),
-
-  externalOrganizationUuid: Joi.string()
-    .guid({ version: ['uuidv4'] })
-    .required(),
 
   programNamesList: Joi.array()
     .min(1)

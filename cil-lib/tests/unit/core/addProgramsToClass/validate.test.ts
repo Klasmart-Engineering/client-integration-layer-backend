@@ -37,15 +37,6 @@ export const VALID_ADD_PROGRAMS_TO_CLASS: AddProgramsToClassTestCase[] = [
 
 export const INVALID_ADD_PROGRAMS_TO_CLASS: AddProgramsToClassTestCase[] = [
   {
-    scenario: 'the external organization uuid is invalid',
-    addProgramsToClass: (() => {
-      const addPrograms = setUpAddProgramsToClass();
-      addPrograms.setExternalOrganizationUuid('6aec2c48-aa45-464c-b3ee-59cd');
-      return addPrograms;
-    })(),
-    message: '"externalOrganizationUuid" must be a valid GUID',
-  },
-  {
     scenario: 'the program names are empty',
     addProgramsToClass: (() => {
       const addPrograms = setUpAddProgramsToClass();
@@ -78,7 +69,7 @@ export const INVALID_ADD_PROGRAMS_TO_CLASS: AddProgramsToClassTestCase[] = [
   {
     scenario: 'the program names is missing',
     addProgramsToClass: (() => {
-      const addPrograms = setUpAddProgramsToClass(true, true, false);
+      const addPrograms = setUpAddProgramsToClass(true, false);
       return addPrograms;
     })(),
     message: '"programNamesList" must contain at least 1 items',
@@ -86,18 +77,10 @@ export const INVALID_ADD_PROGRAMS_TO_CLASS: AddProgramsToClassTestCase[] = [
   {
     scenario: 'the class uuid is empty',
     addProgramsToClass: (() => {
-      const addPrograms = setUpAddProgramsToClass(false, true, true);
+      const addPrograms = setUpAddProgramsToClass(false, true);
       return addPrograms;
     })(),
     message: '"externalClassUuid" is not allowed to be empty',
-  },
-  {
-    scenario: 'the organization uuid is empty',
-    addProgramsToClass: (() => {
-      const addPrograms = setUpAddProgramsToClass(true, false, true);
-      return addPrograms;
-    })(),
-    message: '"externalOrganizationUuid" is not allowed to be empty',
   },
   {
     scenario: 'the program name is an empty string',
@@ -110,13 +93,15 @@ export const INVALID_ADD_PROGRAMS_TO_CLASS: AddProgramsToClassTestCase[] = [
   },
 ];
 
-describe('add programs to class validation', () => {
+describe('add programs to class should', () => {
   let schoolStub: SinonStub;
   let classStub: SinonStub;
   let adminStub: SinonStub;
-  const ctx = Context.getInstance();
+  let orgIdStub: SinonStub;
+  let classIdStub: SinonStub;
+  let programsStub: SinonStub;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     process.env.ADMIN_SERVICE_API_KEY = uuidv4();
     const classId = uuidv4();
     adminStub = sinon.stub(AdminService, 'getInstance').resolves({
@@ -124,34 +109,31 @@ describe('add programs to class validation', () => {
         .stub()
         .resolves([{ id: classId, name: 'Test class' }]),
     } as unknown as AdminService);
-    classStub = sinon.stub(ClassDB, 'findOne').resolves({
-      externalUuid: uuidv4(),
-      externalOrgUuid: uuidv4(),
-      externalSchoolUuid: uuidv4(),
-      klUuid: uuidv4(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      deletedAt: new Date(),
-    });
+    const s = new Set<string>();
+    s.add(classId);
+    classStub = sinon.stub(ClassDB, 'getExternalSchoolIds').resolves(s);
     schoolStub = sinon
       .stub(SchoolDB, 'getProgramsForSchool')
       .resolves([{ id: uuidv4(), name: 'Test program' }]);
-    sinon.stub(ctx, 'getOrganizationId').resolves(uuidv4());
-    sinon.stub(ctx, 'getClassId').resolves(classId);
-    sinon
-      .stub(ctx, 'programsAreValid')
+
+    orgIdStub = sinon.stub().resolves(uuidv4());
+    classIdStub = sinon.stub().resolves(classId);
+    programsStub = sinon
+      .stub()
       .resolves([{ id: uuidv4(), name: 'Test program' }]);
+    sinon.stub(Context, 'getInstance').resolves({
+      getOrganizationId: orgIdStub,
+      getClassId: classIdStub,
+      programsAreValid: programsStub,
+    } as unknown as Context);
   });
 
   afterEach(() => {
-    schoolStub.restore();
-    classStub.restore();
-    adminStub.restore();
     sinon.restore();
   });
 
   VALID_ADD_PROGRAMS_TO_CLASS.forEach(({ scenario, addProgramsToClass: c }) => {
-    it(`should pass when a add programs to class is ${scenario}`, async () => {
+    it(`pass when a add programs to class is ${scenario}`, async () => {
       const req = wrapRequest(c);
       const resp = await processOnboardingRequest(req, LOG_STUB);
       const responses = resp.getResponsesList();
@@ -161,7 +143,7 @@ describe('add programs to class validation', () => {
     });
   });
 
-  describe('should fail when ', () => {
+  describe('fail when ', () => {
     INVALID_ADD_PROGRAMS_TO_CLASS.forEach(
       ({ scenario, addProgramsToClass: c, message: m }) => {
         it(scenario, async () => {
@@ -174,7 +156,7 @@ describe('add programs to class validation', () => {
     );
   });
 
-  it('should fail if the school ID is not in the database', async () => {
+  it('fail if the school ID is not in the database', async () => {
     const req = wrapRequest(VALID_ADD_PROGRAMS_TO_CLASS[0].addProgramsToClass);
     schoolStub.rejects(
       new OnboardingError(
@@ -190,7 +172,7 @@ describe('add programs to class validation', () => {
     await makeCommonAssertions(req, 'Invalid School');
   });
 
-  it('should fail if the class ID is not in the database', async () => {
+  it('fail if the class ID is not in the database', async () => {
     const req = wrapRequest(VALID_ADD_PROGRAMS_TO_CLASS[0].addProgramsToClass);
     classStub.rejects(
       new OnboardingError(
@@ -206,7 +188,7 @@ describe('add programs to class validation', () => {
     await makeCommonAssertions(req, 'Invalid Class');
   });
 
-  it('should fail if the program name does not match', async () => {
+  it('fail if the program name does not match', async () => {
     const addProgramsToClass =
       VALID_ADD_PROGRAMS_TO_CLASS[0].addProgramsToClass.setProgramNamesList([
         'Some other program',
@@ -218,12 +200,10 @@ describe('add programs to class validation', () => {
 
 function setUpAddProgramsToClass(
   classId = true,
-  orgId = true,
   programs = true
 ): AddProgramsToClass {
   const addProgramToClass = new AddProgramsToClass();
   if (classId) addProgramToClass.setExternalClassUuid(uuidv4());
-  if (orgId) addProgramToClass.setExternalOrganizationUuid(uuidv4());
   if (programs) addProgramToClass.setProgramNamesList(['Test program']);
   return addProgramToClass;
 }

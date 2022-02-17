@@ -46,16 +46,18 @@ async function validate(r: IncomingData, log: Logger): Promise<IncomingData> {
   const classId = protobuf.getExternalClassUuid();
   const students = protobuf.getExternalStudentUuidList();
   const teachers = protobuf.getExternalTeacherUuidList();
-  const schoolId = (await Class.findOne(classId, log)).externalSchoolUuid;
-
-  if (!schoolId) {
+  const schoolIds = await Class.getExternalSchoolIds(classId, log);
+  if (schoolIds.size > 1)
     throw new OnboardingError(
-      MachineError.ENTITY_DOES_NOT_EXIST,
-      `School Id is empty`,
-      Category.REQUEST,
-      log
+      MachineError.APP_CONFIG,
+      `We currently don't support adding a class to more than 1 school`,
+      Category.APP,
+      log,
+      [],
+      {},
+      ['Talk to someone in the CSI team if you think we need to support this']
     );
-  }
+  const schoolId = schoolIds.values().next().value;
 
   const { invalid } = await Link.usersBelongToSchool(
     [...students, ...teachers],

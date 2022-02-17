@@ -37,9 +37,10 @@ describe('add users to class validation', () => {
   let linkStub: SinonStub;
   let classStub: SinonStub;
   let adminStub: SinonStub;
-  const ctx = Context.getInstance();
+  let classIdStub: SinonStub;
+  let userIdsStub: SinonStub;
 
-  beforeEach(async () => {
+  beforeEach(() => {
     process.env.ADMIN_SERVICE_API_KEY = uuidv4();
     adminStub = sinon.stub(AdminService, 'getInstance').resolves({
       addStudentsToClasses: sinon
@@ -49,25 +50,21 @@ describe('add users to class validation', () => {
         .stub()
         .resolves([{ id: uuidv4(), name: 'Test class' }]),
     } as unknown as AdminService);
-    classStub = sinon.stub(ClassDB, 'findOne').resolves({
-      externalUuid: uuidv4(),
-      externalOrgUuid: uuidv4(),
-      externalSchoolUuid: uuidv4(),
-      klUuid: uuidv4(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      deletedAt: new Date(),
-    });
+    const s = new Set<string>();
+    s.add(uuidv4());
+    classStub = sinon.stub(ClassDB, 'getExternalSchoolIds').resolves(s);
     linkStub = sinon
       .stub(LinkDB, 'usersBelongToSchool')
       .resolves({ valid: [uuidv4()], invalid: [] });
-    sinon.stub(ctx, 'getClassId').resolves(uuidv4());
+    classIdStub = sinon.stub().resolves(uuidv4());
+    userIdsStub = sinon.stub().resolves({ valid: new Map(), invalid: [] });
+    sinon.stub(Context, 'getInstance').resolves({
+      getClassId: classIdStub,
+      getUserIds: userIdsStub,
+    } as unknown as Context);
   });
 
   afterEach(() => {
-    linkStub.restore();
-    classStub.restore();
-    adminStub.restore();
     sinon.restore();
   });
 
@@ -79,7 +76,7 @@ describe('add users to class validation', () => {
         [studentExternalId, uuidv4()],
         [teacherExternalId, uuidv4()],
       ]);
-      sinon.stub(ctx, 'getUserIds').resolves({ valid, invalid: [] });
+      userIdsStub.resolves({ valid, invalid: [] });
       const req = wrapRequest(addUsersToClass);
       const resp = await processOnboardingRequest(req, LOG_STUB);
       const responses = resp.getResponsesList();

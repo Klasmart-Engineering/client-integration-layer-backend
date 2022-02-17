@@ -107,7 +107,7 @@ async function entityValidation(
   request: PbUser.AsObject,
   log: Logger
 ): Promise<string[]> {
-  const ctx = Context.getInstance();
+  const ctx = await Context.getInstance();
   await ctx.userDoesNotExist(request.externalUuid, log);
 
   // If the user does not exist then we validate the external org id & role names.

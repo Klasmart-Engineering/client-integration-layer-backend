@@ -5,14 +5,13 @@ import { Class, Organization, Program, Role, School, User } from '../database';
 import {
   Category,
   ENTITY_ALREADY_EXISTS,
-  ENTITY_NOT_FOUND_FOR,
   MachineError,
   OnboardingError,
 } from '../errors';
-import { IdNameMapper } from '../services/adminService';
-import { Entity as AppEntity, Entity } from '../types';
+import { AdminService, IdNameMapper } from '../services/adminService';
+import { Entity as AppEntity } from '../types';
 
-import { ExternalUuid, Uuid } from '.';
+import { ExternalUuid, log, Uuid } from '.';
 export class Context {
   private static _instance: Context;
 
@@ -52,11 +51,29 @@ export class Context {
     updateAgeOnGet: true,
   });
 
+  private systemRoles = new Map<string, Uuid>();
+  private systemPrograms = new Map<string, Uuid>();
+
   private constructor() {
-    // Handled in Context.getInstance();
+    // Handled in await Context.getInstance();
   }
 
-  public static getInstance(): Context {
+  public static async getInstance(
+    fetchSystemData = false,
+    logger: Logger = log
+  ): Promise<Context> {
+    if (fetchSystemData) {
+      log.info(`Attempting to fetch system roles and programs`);
+      const ctx = this._instance ? this._instance : new Context();
+      const admin = await AdminService.getInstance();
+      const roles = await admin.getSystemRoles(logger);
+      log.info(`Fetched ${roles.length} system roles`);
+      const programs = await admin.getSystemPrograms(logger);
+      log.info(`Fetched ${programs.length} system programs`);
+      for (const { id, name } of roles) ctx.systemRoles.set(name, id);
+      for (const { id, name } of programs) ctx.systemPrograms.set(name, id);
+      this._instance = ctx;
+    }
     if (this._instance) return this._instance;
     this._instance = new Context();
     return this._instance;
@@ -172,13 +189,17 @@ export class Context {
    * @param {ExternalUuid} id - The external uuid of the user
    * @errors if there's a database error or entity already exists
    */
-  public async userDoesNotExist(id: ExternalUuid, log: Logger): Promise<void> {
+  public async userDoesNotExist(
+    id: ExternalUuid,
+    log: Logger,
+    shouldLogNotFoundError = false
+  ): Promise<void> {
     {
       const cachedKlId = this.users.get(id);
       if (cachedKlId) throw ENTITY_ALREADY_EXISTS(id, AppEntity.USER, log);
     }
     try {
-      const klId = await User.getKidsloopId(id, log);
+      const klId = await User.getKidsloopId(id, log, shouldLogNotFoundError);
 
       if (klId) {
         this.users.set(id, klId);
@@ -225,29 +246,42 @@ export class Context {
    */
   public async programsAreValid(
     programs: string[],
-    orgId: ExternalUuid,
     log: Logger,
+    orgId?: ExternalUuid,
     schoolId?: ExternalUuid
   ): Promise<IdNameMapper[]> {
     // @TODO - Implement some form of caching on this
-    if (schoolId)
-      return await Program.getIdsByNamesForClass(programs, schoolId, log);
-    const p = this.programs.get(orgId);
-    if (!p) {
-      const ids = await Program.getIdsByNames(programs, orgId, log);
-      const map = new Map();
-      for (const { id, name } of ids) {
-        map.set(name, id);
+    if (!schoolId && !orgId)
+      throw new OnboardingError(
+        MachineError.APP_CONFIG,
+        'if no school id is provided, a valid org id must be provided',
+        Category.APP,
+        log
+      );
+
+    let entitySpecificPrograms = new Map<string, Uuid>();
+    if (schoolId) {
+      entitySpecificPrograms = await Program.getSchoolPrograms(schoolId, log);
+    } else if (orgId) {
+      if (!this.programs.has(orgId)) {
+        const orgPrograms = await Program.getForOrg(orgId, log);
+        this.programs.set(orgId, orgPrograms);
+        entitySpecificPrograms = orgPrograms;
       }
-      this.programs.set(orgId, map);
-      return ids;
+      entitySpecificPrograms = this.programs.get(orgId) || new Map();
     }
+
     const validNames = [];
     const invalidNames = [];
     for (const program of programs) {
-      const id = p.get(program);
-      if (id) {
-        validNames.push({ id, name: program });
+      const systemProgram = this.systemPrograms.get(program);
+      if (systemProgram) {
+        validNames.push({ id: systemProgram, name: program });
+        continue;
+      }
+      const orgProgram = entitySpecificPrograms.get(program);
+      if (orgProgram) {
+        validNames.push({ id: orgProgram, name: program });
         continue;
       }
       invalidNames.push(program);
@@ -273,27 +307,20 @@ export class Context {
   ): Promise<IdNameMapper[]> {
     if (!this.roles.has(orgId)) {
       const ids = await Role.getIdsForOrganization(orgId, log);
-      const map = new Map();
-      for (const { id, name } of ids) {
-        map.set(name, id);
-      }
-      this.roles.set(orgId, map);
+      this.roles.set(orgId, ids);
     }
-    const r = this.roles.get(orgId);
-    if (!r)
-      throw ENTITY_NOT_FOUND_FOR(
-        roles.join(', '),
-        Entity.ROLE,
-        orgId,
-        Entity.ORGANIZATION,
-        log
-      );
+    const orgRoles = this.roles.get(orgId) || new Map();
     const validNames = [];
     const invalidNames = [];
     for (const role of roles) {
-      const id = r.get(role);
-      if (id) {
-        validNames.push({ id, name: role });
+      const systemRole = this.systemRoles.get(role);
+      if (systemRole) {
+        validNames.push({ id: systemRole, name: role });
+        continue;
+      }
+      const orgRole = orgRoles.get(role);
+      if (orgRole) {
+        validNames.push({ id: orgRole, name: role });
         continue;
       }
       invalidNames.push(role);

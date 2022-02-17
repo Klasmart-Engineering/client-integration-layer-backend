@@ -1,6 +1,8 @@
 import { proto, grpc, Logger } from 'cil-lib';
 import sinon from 'sinon';
 
+export { populateAdminService } from './populateAdminService';
+
 export const onboard = async (
   req: proto.BatchOnboarding,
   client: proto.OnboardingClient

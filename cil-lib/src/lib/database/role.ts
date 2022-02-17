@@ -122,9 +122,9 @@ export class Role {
   public static async getIdsForOrganization(
     orgId: ExternalUuid,
     log: Logger
-  ): Promise<{ id: Uuid; name: string }[]> {
+  ): Promise<Map<string, Uuid>> {
     try {
-      const klUuids = await prisma.role.findMany({
+      const results = await prisma.role.findMany({
         where: {
           organization: {
             externalUuid: orgId,
@@ -135,14 +135,9 @@ export class Role {
           name: true,
         },
       });
-      if (!klUuids || klUuids.length === 0)
-        throw POSTGRES_GET_KIDSLOOP_ID_QUERY(
-          orgId,
-          this.entity,
-          `${this.entity} not found for organization ${orgId}`,
-          log
-        );
-      return klUuids.map((id) => ({ id: id.klUuid, name: id.name }));
+      const m = new Map();
+      for (const { klUuid, name } of results) m.set(name, klUuid);
+      return m;
     } catch (error) {
       const msg = returnMessageOrThrowOnboardingError(error);
       throw new OnboardingError(

@@ -25,21 +25,14 @@ export async function persist(
       .setEntityId(clazz.externalUuid!)
       .setRequestId(requestIdToProtobuf(requestId));
 
-    const classInput = {
-      externalUuid: clazz.externalUuid!,
-      klUuid: clazz.kidsloopClassUuid!,
-      organization: {
-        connect: { externalUuid: clazz.externalOrganizationUuid! },
-      },
-      school: {
-        connect: { externalUuid: clazz.externalSchoolUuid! },
-      },
-    };
-
     try {
-      await Class.insertOne(classInput, log);
+      await Class.insertOne(
+        clazz.externalUuid!,
+        clazz.kidsloopClassUuid!,
+        clazz.externalOrganizationUuid!,
+        log
+      );
       response.setSuccess(true);
-      responses.push(response);
     } catch (error) {
       response.setSuccess(false);
       if (error instanceof Errors || error instanceof OnboardingError) {
@@ -47,6 +40,7 @@ export async function persist(
       } else {
         response.setErrors(INTERNAL_SERVER_ERROR_PROTOBUF);
       }
+    } finally {
       responses.push(response);
     }
   }

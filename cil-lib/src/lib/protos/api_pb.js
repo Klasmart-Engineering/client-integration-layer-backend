@@ -1816,7 +1816,7 @@ proto.cil_onboarding.api.AddUsersToClass.prototype.clearExternalStudentUuidList 
  * @private {!Array<number>}
  * @const
  */
-proto.cil_onboarding.api.AddUsersToSchool.repeatedFields_ = [1];
+proto.cil_onboarding.api.AddUsersToSchool.repeatedFields_ = [2];
 
 
 
@@ -1849,8 +1849,8 @@ proto.cil_onboarding.api.AddUsersToSchool.prototype.toObject = function(opt_incl
  */
 proto.cil_onboarding.api.AddUsersToSchool.toObject = function(includeInstance, msg) {
   var f, obj = {
-    externalUserUuidsList: (f = jspb.Message.getRepeatedField(msg, 1)) == null ? undefined : f,
-    externalSchoolUuid: jspb.Message.getFieldWithDefault(msg, 2, "")
+    externalSchoolUuid: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    externalUserUuidsList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f
   };
 
   if (includeInstance) {
@@ -1889,11 +1889,11 @@ proto.cil_onboarding.api.AddUsersToSchool.deserializeBinaryFromReader = function
     switch (field) {
     case 1:
       var value = /** @type {string} */ (reader.readString());
-      msg.addExternalUserUuids(value);
+      msg.setExternalSchoolUuid(value);
       break;
     case 2:
       var value = /** @type {string} */ (reader.readString());
-      msg.setExternalSchoolUuid(value);
+      msg.addExternalUserUuids(value);
       break;
     default:
       reader.skipField();
@@ -1924,16 +1924,16 @@ proto.cil_onboarding.api.AddUsersToSchool.prototype.serializeBinary = function()
  */
 proto.cil_onboarding.api.AddUsersToSchool.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getExternalUserUuidsList();
+  f = message.getExternalSchoolUuid();
   if (f.length > 0) {
-    writer.writeRepeatedString(
+    writer.writeString(
       1,
       f
     );
   }
-  f = message.getExternalSchoolUuid();
+  f = message.getExternalUserUuidsList();
   if (f.length > 0) {
-    writer.writeString(
+    writer.writeRepeatedString(
       2,
       f
     );
@@ -1942,11 +1942,29 @@ proto.cil_onboarding.api.AddUsersToSchool.serializeBinaryToWriter = function(mes
 
 
 /**
- * repeated string external_user_uuids = 1;
+ * optional string external_school_uuid = 1;
+ * @return {string}
+ */
+proto.cil_onboarding.api.AddUsersToSchool.prototype.getExternalSchoolUuid = function() {
+  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
+};
+
+
+/**
+ * @param {string} value
+ * @return {!proto.cil_onboarding.api.AddUsersToSchool} returns this
+ */
+proto.cil_onboarding.api.AddUsersToSchool.prototype.setExternalSchoolUuid = function(value) {
+  return jspb.Message.setProto3StringField(this, 1, value);
+};
+
+
+/**
+ * repeated string external_user_uuids = 2;
  * @return {!Array<string>}
  */
 proto.cil_onboarding.api.AddUsersToSchool.prototype.getExternalUserUuidsList = function() {
-  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 1));
+  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 2));
 };
 
 
@@ -1955,7 +1973,7 @@ proto.cil_onboarding.api.AddUsersToSchool.prototype.getExternalUserUuidsList = f
  * @return {!proto.cil_onboarding.api.AddUsersToSchool} returns this
  */
 proto.cil_onboarding.api.AddUsersToSchool.prototype.setExternalUserUuidsList = function(value) {
-  return jspb.Message.setField(this, 1, value || []);
+  return jspb.Message.setField(this, 2, value || []);
 };
 
 
@@ -1965,7 +1983,7 @@ proto.cil_onboarding.api.AddUsersToSchool.prototype.setExternalUserUuidsList = f
  * @return {!proto.cil_onboarding.api.AddUsersToSchool} returns this
  */
 proto.cil_onboarding.api.AddUsersToSchool.prototype.addExternalUserUuids = function(value, opt_index) {
-  return jspb.Message.addToRepeatedField(this, 1, value, opt_index);
+  return jspb.Message.addToRepeatedField(this, 2, value, opt_index);
 };
 
 
@@ -1978,31 +1996,13 @@ proto.cil_onboarding.api.AddUsersToSchool.prototype.clearExternalUserUuidsList =
 };
 
 
-/**
- * optional string external_school_uuid = 2;
- * @return {string}
- */
-proto.cil_onboarding.api.AddUsersToSchool.prototype.getExternalSchoolUuid = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
-};
-
-
-/**
- * @param {string} value
- * @return {!proto.cil_onboarding.api.AddUsersToSchool} returns this
- */
-proto.cil_onboarding.api.AddUsersToSchool.prototype.setExternalSchoolUuid = function(value) {
-  return jspb.Message.setProto3StringField(this, 2, value);
-};
-
-
 
 /**
  * List of repeated fields within this message type.
  * @private {!Array<number>}
  * @const
  */
-proto.cil_onboarding.api.AddProgramsToSchool.repeatedFields_ = [3];
+proto.cil_onboarding.api.AddProgramsToSchool.repeatedFields_ = [2];
 
 
 
@@ -2035,9 +2035,8 @@ proto.cil_onboarding.api.AddProgramsToSchool.prototype.toObject = function(opt_i
  */
 proto.cil_onboarding.api.AddProgramsToSchool.toObject = function(includeInstance, msg) {
   var f, obj = {
-    externalOrganizationUuid: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    externalSchoolUuid: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    programNamesList: (f = jspb.Message.getRepeatedField(msg, 3)) == null ? undefined : f
+    externalSchoolUuid: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    programNamesList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f
   };
 
   if (includeInstance) {
@@ -2076,13 +2075,9 @@ proto.cil_onboarding.api.AddProgramsToSchool.deserializeBinaryFromReader = funct
     switch (field) {
     case 1:
       var value = /** @type {string} */ (reader.readString());
-      msg.setExternalOrganizationUuid(value);
-      break;
-    case 2:
-      var value = /** @type {string} */ (reader.readString());
       msg.setExternalSchoolUuid(value);
       break;
-    case 3:
+    case 2:
       var value = /** @type {string} */ (reader.readString());
       msg.addProgramNames(value);
       break;
@@ -2115,24 +2110,17 @@ proto.cil_onboarding.api.AddProgramsToSchool.prototype.serializeBinary = functio
  */
 proto.cil_onboarding.api.AddProgramsToSchool.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getExternalOrganizationUuid();
+  f = message.getExternalSchoolUuid();
   if (f.length > 0) {
     writer.writeString(
       1,
       f
     );
   }
-  f = message.getExternalSchoolUuid();
-  if (f.length > 0) {
-    writer.writeString(
-      2,
-      f
-    );
-  }
   f = message.getProgramNamesList();
   if (f.length > 0) {
     writer.writeRepeatedString(
-      3,
+      2,
       f
     );
   }
@@ -2140,10 +2128,10 @@ proto.cil_onboarding.api.AddProgramsToSchool.serializeBinaryToWriter = function(
 
 
 /**
- * optional string external_organization_uuid = 1;
+ * optional string external_school_uuid = 1;
  * @return {string}
  */
-proto.cil_onboarding.api.AddProgramsToSchool.prototype.getExternalOrganizationUuid = function() {
+proto.cil_onboarding.api.AddProgramsToSchool.prototype.getExternalSchoolUuid = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
@@ -2152,35 +2140,17 @@ proto.cil_onboarding.api.AddProgramsToSchool.prototype.getExternalOrganizationUu
  * @param {string} value
  * @return {!proto.cil_onboarding.api.AddProgramsToSchool} returns this
  */
-proto.cil_onboarding.api.AddProgramsToSchool.prototype.setExternalOrganizationUuid = function(value) {
+proto.cil_onboarding.api.AddProgramsToSchool.prototype.setExternalSchoolUuid = function(value) {
   return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
 /**
- * optional string external_school_uuid = 2;
- * @return {string}
- */
-proto.cil_onboarding.api.AddProgramsToSchool.prototype.getExternalSchoolUuid = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
-};
-
-
-/**
- * @param {string} value
- * @return {!proto.cil_onboarding.api.AddProgramsToSchool} returns this
- */
-proto.cil_onboarding.api.AddProgramsToSchool.prototype.setExternalSchoolUuid = function(value) {
-  return jspb.Message.setProto3StringField(this, 2, value);
-};
-
-
-/**
- * repeated string program_names = 3;
+ * repeated string program_names = 2;
  * @return {!Array<string>}
  */
 proto.cil_onboarding.api.AddProgramsToSchool.prototype.getProgramNamesList = function() {
-  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 3));
+  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 2));
 };
 
 
@@ -2189,7 +2159,7 @@ proto.cil_onboarding.api.AddProgramsToSchool.prototype.getProgramNamesList = fun
  * @return {!proto.cil_onboarding.api.AddProgramsToSchool} returns this
  */
 proto.cil_onboarding.api.AddProgramsToSchool.prototype.setProgramNamesList = function(value) {
-  return jspb.Message.setField(this, 3, value || []);
+  return jspb.Message.setField(this, 2, value || []);
 };
 
 
@@ -2199,7 +2169,7 @@ proto.cil_onboarding.api.AddProgramsToSchool.prototype.setProgramNamesList = fun
  * @return {!proto.cil_onboarding.api.AddProgramsToSchool} returns this
  */
 proto.cil_onboarding.api.AddProgramsToSchool.prototype.addProgramNames = function(value, opt_index) {
-  return jspb.Message.addToRepeatedField(this, 3, value, opt_index);
+  return jspb.Message.addToRepeatedField(this, 2, value, opt_index);
 };
 
 
@@ -2218,7 +2188,7 @@ proto.cil_onboarding.api.AddProgramsToSchool.prototype.clearProgramNamesList = f
  * @private {!Array<number>}
  * @const
  */
-proto.cil_onboarding.api.AddProgramsToClass.repeatedFields_ = [3];
+proto.cil_onboarding.api.AddProgramsToClass.repeatedFields_ = [2];
 
 
 
@@ -2251,9 +2221,8 @@ proto.cil_onboarding.api.AddProgramsToClass.prototype.toObject = function(opt_in
  */
 proto.cil_onboarding.api.AddProgramsToClass.toObject = function(includeInstance, msg) {
   var f, obj = {
-    externalOrganizationUuid: jspb.Message.getFieldWithDefault(msg, 1, ""),
-    externalClassUuid: jspb.Message.getFieldWithDefault(msg, 2, ""),
-    programNamesList: (f = jspb.Message.getRepeatedField(msg, 3)) == null ? undefined : f
+    externalClassUuid: jspb.Message.getFieldWithDefault(msg, 1, ""),
+    programNamesList: (f = jspb.Message.getRepeatedField(msg, 2)) == null ? undefined : f
   };
 
   if (includeInstance) {
@@ -2292,13 +2261,9 @@ proto.cil_onboarding.api.AddProgramsToClass.deserializeBinaryFromReader = functi
     switch (field) {
     case 1:
       var value = /** @type {string} */ (reader.readString());
-      msg.setExternalOrganizationUuid(value);
-      break;
-    case 2:
-      var value = /** @type {string} */ (reader.readString());
       msg.setExternalClassUuid(value);
       break;
-    case 3:
+    case 2:
       var value = /** @type {string} */ (reader.readString());
       msg.addProgramNames(value);
       break;
@@ -2331,24 +2296,17 @@ proto.cil_onboarding.api.AddProgramsToClass.prototype.serializeBinary = function
  */
 proto.cil_onboarding.api.AddProgramsToClass.serializeBinaryToWriter = function(message, writer) {
   var f = undefined;
-  f = message.getExternalOrganizationUuid();
+  f = message.getExternalClassUuid();
   if (f.length > 0) {
     writer.writeString(
       1,
       f
     );
   }
-  f = message.getExternalClassUuid();
-  if (f.length > 0) {
-    writer.writeString(
-      2,
-      f
-    );
-  }
   f = message.getProgramNamesList();
   if (f.length > 0) {
     writer.writeRepeatedString(
-      3,
+      2,
       f
     );
   }
@@ -2356,10 +2314,10 @@ proto.cil_onboarding.api.AddProgramsToClass.serializeBinaryToWriter = function(m
 
 
 /**
- * optional string external_organization_uuid = 1;
+ * optional string external_class_uuid = 1;
  * @return {string}
  */
-proto.cil_onboarding.api.AddProgramsToClass.prototype.getExternalOrganizationUuid = function() {
+proto.cil_onboarding.api.AddProgramsToClass.prototype.getExternalClassUuid = function() {
   return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 1, ""));
 };
 
@@ -2368,35 +2326,17 @@ proto.cil_onboarding.api.AddProgramsToClass.prototype.getExternalOrganizationUui
  * @param {string} value
  * @return {!proto.cil_onboarding.api.AddProgramsToClass} returns this
  */
-proto.cil_onboarding.api.AddProgramsToClass.prototype.setExternalOrganizationUuid = function(value) {
+proto.cil_onboarding.api.AddProgramsToClass.prototype.setExternalClassUuid = function(value) {
   return jspb.Message.setProto3StringField(this, 1, value);
 };
 
 
 /**
- * optional string external_class_uuid = 2;
- * @return {string}
- */
-proto.cil_onboarding.api.AddProgramsToClass.prototype.getExternalClassUuid = function() {
-  return /** @type {string} */ (jspb.Message.getFieldWithDefault(this, 2, ""));
-};
-
-
-/**
- * @param {string} value
- * @return {!proto.cil_onboarding.api.AddProgramsToClass} returns this
- */
-proto.cil_onboarding.api.AddProgramsToClass.prototype.setExternalClassUuid = function(value) {
-  return jspb.Message.setProto3StringField(this, 2, value);
-};
-
-
-/**
- * repeated string program_names = 3;
+ * repeated string program_names = 2;
  * @return {!Array<string>}
  */
 proto.cil_onboarding.api.AddProgramsToClass.prototype.getProgramNamesList = function() {
-  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 3));
+  return /** @type {!Array<string>} */ (jspb.Message.getRepeatedField(this, 2));
 };
 
 
@@ -2405,7 +2345,7 @@ proto.cil_onboarding.api.AddProgramsToClass.prototype.getProgramNamesList = func
  * @return {!proto.cil_onboarding.api.AddProgramsToClass} returns this
  */
 proto.cil_onboarding.api.AddProgramsToClass.prototype.setProgramNamesList = function(value) {
-  return jspb.Message.setField(this, 3, value || []);
+  return jspb.Message.setField(this, 2, value || []);
 };
 
 
@@ -2415,7 +2355,7 @@ proto.cil_onboarding.api.AddProgramsToClass.prototype.setProgramNamesList = func
  * @return {!proto.cil_onboarding.api.AddProgramsToClass} returns this
  */
 proto.cil_onboarding.api.AddProgramsToClass.prototype.addProgramNames = function(value, opt_index) {
-  return jspb.Message.addToRepeatedField(this, 3, value, opt_index);
+  return jspb.Message.addToRepeatedField(this, 2, value, opt_index);
 };
 
 

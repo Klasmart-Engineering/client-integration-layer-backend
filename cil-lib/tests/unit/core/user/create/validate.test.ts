@@ -200,57 +200,58 @@ export const INVALID_USERS: UserTestCase[] = [
   },
 ];
 
-describe('user validation', () => {
+describe('create user', () => {
   let orgStub: SinonStub;
   let schoolStub: SinonStub;
   let userStub: SinonStub;
   let roleStub: SinonStub;
   let adminStub: SinonStub;
-  const ctx = Context.getInstance();
+  let createUsersStub: SinonStub;
 
   beforeEach(() => {
     process.env.ADMIN_SERVICE_API_KEY = uuidv4();
+    createUsersStub = sinon.stub().resolves([
+      {
+        id: uuidv4(),
+        givenName: 'Name',
+        familyName: 'Name',
+        phone: '+912212345678',
+        email: 'test@test.com',
+      },
+    ]);
     adminStub = sinon.stub(AdminService, 'getInstance').resolves({
-      createUsers: sinon.stub().resolves([
-        {
-          id: uuidv4(),
-          givenName: 'Name',
-          familyName: 'Name',
-          phone: '+912212345678',
-          email: 'test@test.com',
-        },
-      ]),
+      createUsers: createUsersStub,
     } as unknown as AdminService);
-    orgStub = sinon.stub(ctx, 'organizationIdIsValid');
-    schoolStub = sinon.stub(ctx, 'getSchoolId').resolves();
-    roleStub = sinon
-      .stub(ctx, 'rolesAreValid')
-      .resolves([{ id: uuidv4(), name: 'Role' }]);
-    userStub = sinon.stub(ctx, 'userDoesNotExist');
+    orgStub = sinon.stub().resolves();
+    schoolStub = sinon.stub().resolves();
+    roleStub = sinon.stub().resolves([{ id: uuidv4(), name: 'Role' }]);
+    userStub = sinon.stub().resolves();
+
+    sinon.stub(Context, 'getInstance').resolves({
+      organizationIdIsValid: orgStub,
+      getSchoolId: schoolStub,
+      rolesAreValid: roleStub,
+      userDoesNotExist: userStub,
+    } as unknown as Context);
     sinon.stub(UserDB, 'insertMany').resolves();
   });
 
   afterEach(() => {
-    schoolStub.restore();
-    adminStub.restore();
     sinon.restore();
   });
 
   VALID_USERS.forEach(({ scenario, user }) => {
     it(`should pass when a user ${scenario}`, async () => {
       const req = wrapRequest(user);
-      adminStub.restore();
-      adminStub = sinon.stub(AdminService, 'getInstance').resolves({
-        createUsers: sinon.stub().resolves([
-          {
-            id: uuidv4(),
-            givenName: 'Name',
-            familyName: 'Name',
-            phone: req.getRequestsList()[0].getUser()!.getPhone(),
-            email: req.getRequestsList()[0].getUser()!.getEmail(),
-          },
-        ]),
-      } as unknown as AdminService);
+      createUsersStub.resolves([
+        {
+          id: uuidv4(),
+          givenName: 'Name',
+          familyName: 'Name',
+          phone: req.getRequestsList()[0].getUser()!.getPhone(),
+          email: req.getRequestsList()[0].getUser()!.getEmail(),
+        },
+      ]);
       const resp = await processOnboardingRequest(req, LOG_STUB);
       const responses = resp.getResponsesList();
       expect(responses).to.have.length(1);

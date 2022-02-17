@@ -8,7 +8,7 @@ import {
   StatusObject,
 } from '@grpc/grpc-js';
 import { Status } from '@grpc/grpc-js/build/src/constants';
-import { log, Logger, processOnboardingRequest, proto } from 'cil-lib';
+import { Context, log, Logger, processOnboardingRequest, proto } from 'cil-lib';
 
 const logger = log.child({ api: 'cil-api' });
 
@@ -62,7 +62,9 @@ export class OnboardingServer implements proto.IOnboardingServer {
   }
 }
 
-export function serve(log: Logger = logger): Server {
+export async function serve(log: Logger = logger): Promise<Server> {
+  await Context.getInstance(true, log);
+  // This is to initialize system roles & programs
   const server = new Server();
   // eslint-disable-next-line @typescript-eslint/ban-ts-comment
   // @ts-ignore

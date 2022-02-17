@@ -17,7 +17,7 @@ export async function prepare(
   addClassesToSchools: IncomingData[],
   log: Logger
 ): Promise<[Result<IncomingData>, Logger]> {
-  const ctx = Context.getInstance();
+  const ctx = await Context.getInstance();
   const valid = [];
   const invalid: Response[] = [];
   for (const addClassesToSchool of addClassesToSchools) {

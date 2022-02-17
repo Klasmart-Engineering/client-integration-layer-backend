@@ -12,7 +12,6 @@ import {
 } from '../../errors';
 import {
   AddClassesToSchool,
-  Entity,
   EntityDoesNotExistError,
   Entity as PbEntity,
   Error as PbError,
@@ -82,13 +81,13 @@ async function validate(
   r: IncomingData,
   log: Logger
 ): Promise<{ valid: IncomingData; invalid: string[] }> {
-  const { protobuf: protobuf } = r;
+  const { protobuf } = r;
 
   schemaValidation(protobuf.toObject(), log);
   const schoolId = protobuf.getExternalSchoolUuid();
   const classIds = protobuf.getExternalClassUuidsList();
 
-  const { valid, invalid } = await Class.areValid(schoolId, classIds, log);
+  const { valid, invalid } = await Class.areValid(classIds, log);
 
   protobuf.setExternalClassUuidsList(valid);
   r.data.externalClassUuidsList = valid;
@@ -104,7 +103,7 @@ function schemaValidation(
   log: Logger
 ): void {
   const errors = new Map();
-  const { error } = AddClassesToSchoolSchema.validate(
+  const { error } = addClassesToSchoolSchema.validate(
     entity,
     JOI_VALIDATION_SETTINGS
   );
@@ -114,7 +113,7 @@ function schemaValidation(
         errors.get(p) ||
         new OnboardingError(
           MachineError.VALIDATION,
-          `${Entity.SCHOOL} failed validation`,
+          `Adding classes to school failed validation`,
           Category.REQUEST,
           log,
           [...BASE_PATH, 'addClassesToSchool', ...p.map((s) => `${s}`)]
@@ -126,7 +125,7 @@ function schemaValidation(
   if (errors.size > 0) throw new Errors(Array.from(errors.values()));
 }
 
-export const AddClassesToSchoolSchema = Joi.object({
+export const addClassesToSchoolSchema = Joi.object({
   externalSchoolUuid: Joi.string()
     .guid({ version: ['uuidv4'] })
     .required(),

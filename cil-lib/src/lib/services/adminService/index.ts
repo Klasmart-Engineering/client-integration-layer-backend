@@ -61,7 +61,7 @@ import {
 type SupportedConnections =
   | 'programsConnection'
   | 'rolesConnection'
-  | 'organizationConnection';
+  | 'organizationsConnection';
 
 type MutationAccessor =
   | 'createOrganizations'
@@ -216,7 +216,7 @@ export class AdminService {
     const org = await this.traversePaginatedQuery(
       GET_ORGANIZATION,
       transformer,
-      'organizationConnection',
+      'organizationsConnection',
       log,
       { orgName }
     );
@@ -504,7 +504,7 @@ export class AdminService {
       if (!responseData || !responseData.pageInfo) {
         let entity = Entity.UNKNOWN;
         switch (connectionName) {
-          case 'organizationConnection':
+          case 'organizationsConnection':
             entity = Entity.ORGANIZATION;
             break;
           case 'rolesConnection':

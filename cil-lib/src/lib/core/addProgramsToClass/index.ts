@@ -2,7 +2,7 @@ import { Logger } from 'pino';
 
 import { AddProgramsToClass, Response } from '../../protos';
 import { Operation } from '../../types';
-import { Uuid } from '../../utils';
+import { ExternalUuid, Uuid } from '../../utils';
 import { IdTracked } from '../batchRequest';
 import { compose } from '../process';
 
@@ -12,7 +12,7 @@ import { prepare } from './prepare';
 import { validateMany } from './validate';
 
 export interface PAddProgramsToClass {
-  kidsloopOrganizationUuid: Uuid;
+  externalSchoolUuid: ExternalUuid;
   kidsloopClassUuid: Uuid;
   programIds: { id: Uuid; name: string }[];
 }

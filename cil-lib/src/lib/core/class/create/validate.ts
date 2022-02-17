@@ -89,7 +89,7 @@ async function entityValidation(
   e: PbClass.AsObject,
   log: Logger
 ): Promise<void> {
-  const ctx = Context.getInstance();
+  const ctx = await Context.getInstance();
   let alreadyExists = false;
   try {
     await ctx.getClassId(e.externalUuid, log, false);

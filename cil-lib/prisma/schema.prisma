@@ -1,5 +1,5 @@
 generator external {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   binaryTargets = ["native", "linux-musl"]
 }
 
@@ -33,7 +33,7 @@ model School {
   externalOrgUuid String       @map("external_org_uuid") @db.Uuid
   organization    Organization @relation(fields: [externalOrgUuid], references: [externalUuid])
 
-  classes  Class[]
+  classes  ClassLinkSchool[]
   users    UserLinkSchool[]
   programs ProgramLink[]
 
@@ -50,13 +50,12 @@ model School {
 model Class {
   externalUuid String @id @map("external_uuid") @db.Uuid
 
+  klUuid String @unique @map("kl_uuid") @db.Uuid
+
   externalOrgUuid String       @map("external_org_uuid") @db.Uuid
   organization    Organization @relation(fields: [externalOrgUuid], references: [externalUuid])
 
-  externalSchoolUuid String? @map("external_school_uuid") @db.Uuid
-  school             School? @relation(fields: [externalSchoolUuid], references: [externalUuid])
-
-  klUuid String @unique @map("kl_uuid") @db.Uuid
+  schools ClassLinkSchool[]
 
   // Metadata
   createdAt DateTime  @default(now()) @map("created_at")
@@ -64,8 +63,27 @@ model Class {
   deletedAt DateTime? @map("deleted_at")
 
 
+
   @@index(klUuid)
   @@map("validation_classes")
+}
+
+model ClassLinkSchool {
+  id String @id @default(uuid()) @db.Uuid
+
+  externalClassUuid String @map("external_class_uuid") @db.Uuid
+  class             Class  @relation(fields: [externalClassUuid], references: [externalUuid])
+
+  externalSchoolUuid String @map("external_school_uuid") @db.Uuid
+  school             School @relation(fields: [externalSchoolUuid], references: [externalUuid])
+
+  // Metadata
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@unique([externalClassUuid, externalSchoolUuid])
+  @@map("validation_classes_schools")
 }
 
 model User {

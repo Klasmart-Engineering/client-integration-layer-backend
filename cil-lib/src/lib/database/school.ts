@@ -86,20 +86,20 @@ export class School {
     }
   }
 
-  public static async getOrgIdForSchool(
+  public static async getExternalOrgId(
     id: ExternalUuid,
     log: Logger
-  ): Promise<Uuid> {
+  ): Promise<ExternalUuid> {
     try {
       const klUuid = await prisma.school.findUnique({
         where: {
           externalUuid: id,
         },
         select: {
-          klUuid: true,
+          externalOrgUuid: true,
         },
       });
-      if (klUuid && klUuid.klUuid) return klUuid.klUuid;
+      if (klUuid && klUuid.externalOrgUuid) return klUuid.externalOrgUuid;
       throw ENTITY_NOT_FOUND(id, this.entity, log);
     } catch (error) {
       const msg = returnMessageOrThrowOnboardingError(error);
