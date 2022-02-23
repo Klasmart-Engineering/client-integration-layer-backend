@@ -26,4 +26,4 @@ WORKDIR /usr/src/app/cil-api
 
 ENV PORT=8080
 EXPOSE 8080
-CMD ["npm", "run", "migrate:prod", "&&", "npm", "run", "start"]
+CMD ["npm", "run", "run:prod"]
