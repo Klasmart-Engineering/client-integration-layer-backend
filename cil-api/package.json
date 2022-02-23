@@ -39,7 +39,8 @@
     "doc:json": "typedoc src/ --exclude **/*.spec.ts --target ES6 --mode file --json dist/docs/typedoc.json",
     "version": "standard-version",
     "reset-hard": "git clean -dfx && git reset --hard && npm i",
-    "prepare-release": "run-s reset-hard test cov:check doc:html version doc:publish"
+    "prepare-release": "run-s reset-hard test cov:check doc:html version doc:publish",
+    "migrate:prod": "prisma migrate deploy --schema=../cil-lib/prisma/schema.prisma"
   },
   "engines": {
     "node": ">=10"
@@ -49,7 +50,8 @@
     "cil-lib": "file:../cil-lib",
     "dotenv": "^11.0.0",
     "newrelic": "8.4.0",
-    "uuid": "8.3.2"
+    "uuid": "8.3.2",
+    "prisma": "3.9.2"
   },
   "devDependencies": {
     "@apollo/client": "^3.5.8",

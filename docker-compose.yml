@@ -25,7 +25,7 @@ services:
 
   kidsloop-user-service:
     build:
-      context: ../kidsloop-user-service
+      context: ../user-service
       dockerfile: Dockerfile
     container_name: user-service
     environment:

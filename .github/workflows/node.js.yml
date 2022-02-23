@@ -10,6 +10,7 @@ env:
   ECR_REPOSITORY: csi-service
 
 jobs:
+
   test:
     runs-on: ubuntu-latest
     steps:
