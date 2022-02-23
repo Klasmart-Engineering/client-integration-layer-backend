@@ -1,4 +1,4 @@
-FROM node:lts AS build
+FROM node:16.14.0-bullseye-slim AS build
 RUN echo "Node version $(node -v)"
 
 WORKDIR /usr/src/app
@@ -12,7 +12,7 @@ WORKDIR /usr/src/app/cil-api
 RUN npm ci
 RUN npm run build
 
-FROM node:lts as release
+FROM node:16.14.0-bullseye-slim as release
 WORKDIR /usr/src/app
 COPY --from=build /usr/src/app/cil-lib/dist ./cil-lib/dist
 COPY --from=build /usr/src/app/cil-lib/node_modules ./cil-lib/node_modules
