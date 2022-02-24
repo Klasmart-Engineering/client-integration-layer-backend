@@ -48,7 +48,7 @@ function createOrgInputs(userIds: string[]) {
     },
     {
       userId: userIds[2],
-      organizationName: 'Chrysalis BLP Digital',
+      organizationName: 'Chrysalis Digital',
     },
   ];
   return orgs;
@@ -66,8 +66,15 @@ const PROGRAMS = [
   'BLP Grade 2',
   'BLP Grade 3',
   'BLP Grade 4',
+  'BLP Grade 5',
   'BLP PP1',
   'BLP PP2',
+  'BLP Nursery',
+  'BLP Upper Primary',
+  'Primary',
+  'KG Level 1',
+  'KG Level 2',
+  'Nursery Level',
 ];
 
 const ADD_ROLES = gql`
