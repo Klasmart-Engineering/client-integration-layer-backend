@@ -43,3 +43,10 @@ docker build --tag cil-api:latest .
 ## New Relic
 
 Set `NEW_RELIC_LICENSE_KEY` and `NEW_RELIC_APP_NAME` in your `.env` file. If you don't have the information, register at https://newrelic.com and create one.
+
+## Publish to npm registry
+
+```
+cd cil-lib
+npm publish
+```
