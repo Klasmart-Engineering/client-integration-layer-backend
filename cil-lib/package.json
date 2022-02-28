@@ -1,5 +1,5 @@
 {
-  "name": "cil-lib",
+  "name": "@kl-engineering/cil-lib",
   "version": "1.0.1",
   "description": "KidsLoop Client Integration Layer shared library",
   "main": "dist/main/index.js",
