@@ -1,6 +1,6 @@
 {
-  "name": "@kl-engineering/cil-lib",
-  "version": "1.0.0",
+  "name": "cil-lib",
+  "version": "1.0.1",
   "description": "KidsLoop Client Integration Layer shared library",
   "main": "dist/main/index.js",
   "typings": "dist/main/index.d.ts",
@@ -108,6 +108,7 @@
   "files": [
     "dist/main",
     "dist/module",
+    "prisma/schema.prisma",
     "!**/*.test.*",
     "!**/*.json",
     "CHANGELOG.md",
