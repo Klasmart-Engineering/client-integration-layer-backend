@@ -44,9 +44,39 @@ docker build --tag cil-api:latest .
 
 Set `NEW_RELIC_LICENSE_KEY` and `NEW_RELIC_APP_NAME` in your `.env` file. If you don't have the information, register at https://newrelic.com and create one.
 
-## Publish to npm registry
+## Publish cil-lib to private npm registry
+
+### Access token & login to npm registry
+
+[instructions](https://calmisland.atlassian.net/wiki/spaces/ED/pages/2537193585/GH+Storing+libraries+and+containers+in+Github+Packages#Getting-access)
+
+1. Create an Github Access Token (authorized with sso) if you don't already have one.
+
+2. Login to the private npm registry
+
+Enter your username, Github Access token for password and work email
 
 ```
-cd cil-lib
-npm publish
+npm login --scope=@kl-engineering --registry=https://npm.pkg.github.com
+```
+
+### Publishing cil-lib
+
+For this project we are only publishing external libs.
+cil-lib which is used by other projects e.g. [c1 transformation api](https://github.com/KL-Engineering/mcb-integration-layer)
+
+1. Increment the version in the major or minor version of cil-lib/package.json. e.g. 1.0.1 -> 1.02.
+2. Then publish changes
+
+```
+cd cil-lib && npm publish
+```
+
+### Usage of cil-lib (prisma)
+
+1. Include prisma in their [dev dependencies](https://github.com/KL-Engineering/client-integration-layer-backend/blob/main/cil-lib/package.json#L100) (match the version if possible)
+2. Create a postinstall script that has:
+
+```
+`npx prisma generate --schema='./node_modules/@kl-engineering/cil-lib/prisma/schema.prisma'`
 ```
