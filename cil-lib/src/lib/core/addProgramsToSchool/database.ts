@@ -27,7 +27,7 @@ export async function persist(
       const response = new Response()
         .setEntity(Entity.SCHOOL)
         .setSuccess(true)
-        .setEntityId(schoolId ?? '')
+        .setEntityId(incomingData.data.externalSchoolUuid ?? '')
         .setRequestId(requestIdToProtobuf(requestId));
 
       responses.push(response);
@@ -35,7 +35,7 @@ export async function persist(
       const resp = new Response()
         .setEntity(Entity.SCHOOL)
         .setSuccess(false)
-        .setEntityId(incomingData.data.kidsloopSchoolUuid ?? '')
+        .setEntityId(incomingData.data.externalSchoolUuid ?? '')
         .setRequestId(requestIdToProtobuf(incomingData.requestId));
       if (error instanceof Errors || error instanceof OnboardingError) {
         resp.setErrors(error.toProtobufError());
