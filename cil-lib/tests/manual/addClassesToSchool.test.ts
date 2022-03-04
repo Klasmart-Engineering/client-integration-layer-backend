@@ -27,7 +27,7 @@ function setUpAddClassesToSchool(
     .setExternalSchoolUuid(schoolId);
 }
 
-describe.only('Adding classes to school', () => {
+describe('Adding classes to school', () => {
   let orgId: ExternalUuid;
 
   before(async () => {

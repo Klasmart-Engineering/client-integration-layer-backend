@@ -19,7 +19,8 @@ import { IncomingData } from '.';
 
 export async function sendRequest(
   incomingData: IncomingData[],
-  log: Logger
+  log: Logger,
+  retry = true
 ): Promise<[Result<IncomingData>, Logger]> {
   let invalid: Response[] = [];
 
@@ -59,7 +60,7 @@ export async function sendRequest(
     }
     return [{ valid: Array.from(addClasses.values()), invalid: [] }, log];
   } catch (error) {
-    if (error instanceof AdminDupeError) {
+    if (error instanceof AdminDupeError && retry) {
       const retryResult = await retryDupes(
         incomingData,
         error,
