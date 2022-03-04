@@ -64,7 +64,7 @@ export function random(): string {
 export function addUsersToOrgReq(
   orgId: ExternalUuid,
   users: Set<ExternalUuid>
-) {
+): OnboardingRequest {
   const addUsersToOrg = new OnboardingRequest();
   addUsersToOrg.setRequestId(
     new RequestMetadata().setId(uuidv4()).setN(uuidv4())
@@ -78,6 +78,16 @@ export function addUsersToOrgReq(
     )
   );
   return addUsersToOrg;
+}
+
+export function addUserToOrgReq(
+  orgId: ExternalUuid,
+  userId: ExternalUuid
+): OnboardingRequest {
+  const userSet = new Set<ExternalUuid>();
+  userSet.add(userId);
+  const req = addUsersToOrgReq(orgId, userSet);
+  return req;
 }
 
 export function userReq(
