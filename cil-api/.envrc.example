@@ -1,0 +1,15 @@
+export NODE_ENV="development"
+export PORT="4200"
+
+export API_KEY="abc"
+export GENERIC_BACKEND_URL="0.0.0.0:4200"
+export DATABASE_URL="postgresql://postgres:kidsloop@localhost:5432/cil-validation"
+
+# Admin service
+export ADMIN_SERVICE_URL="http://localhost:8080/user"
+export ADMIN_SERVICE_API_KEY="abcd"
+
+# Logging
+export LOG_LEVEL="info"
+export SERVICE_LABEL="cil-generic-backend"
+export LOG_ENABLED="true"
