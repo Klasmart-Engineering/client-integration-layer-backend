@@ -23,14 +23,26 @@ The backend itself exposes a _protobuf gRPC_ api. There are two main directories
 | `Postgres`      | Primarily used to store _mappings_ between external UUIDs and internal UUIDs      | Third Party |
 | `Admin Service` | _(aka User Service)_ used to actually insert entities into the KidsLoop Ecosystem | Internal    |
 
+## Set up environment variables with direnv
+
+Direnv will automatically scope your local environment variables to the directory you are currently in
+
+1. Install direnv (e.g using `brew install direnv`)
+2. Hook direnv into your shell (command varies according to your shell type: refer to https://github.com/direnv/direnv/blob/master/docs/hook.md)
+3. Create and populate a `.envrc` file in the `cil-api` directory, _(based off the `.envrc.example` file in the same directory)_
+4. Run `direnv allow`
+5. Now create and populate a `.envrc` file in the `cil-lib` directory, _(based off the `.envrc.example` file in the same directory)_
+6. Again, run `direnv allow`
+
 ## Installation & Running Locally
 
-1. Run the project dependencies, the easiest way of doing this is to use the `docker-compose.yml` file located in the project root.
-2. Copy and populate a `.env` file in the `cil-api` repository _(based off the `.env.example` file)_
+1. You should have already set up your environment variables using direnv (refer to previous section)
+2. Run the project dependencies, the easiest way of doing this is to use the `docker-compose.yml` file located in the project root. (E.g `docker-compose up -d` to run detached)
 3. `cd cil-lib` and run `npm install && npm run build` in order to build the library
-4. Run the database migrations with `npm run migrate:dev` _(you will need to either set the `DATABASE_URL` environment variable to point to the postgres instance, or alternatively create a `.env` file in the directory with that environment variable set)_
+4. Run the database migrations with `npm run migrate:dev` _(The `DATABASE_URL` environment variable should be pointing to the postgres instance, in your .envrc files)_
 5. `cd ../cil-api` and run `npm install && npm run build` in order to build the api
 6. You can then decide whether you want to run the compiled javascript - `npm run start` or the typescript - `npm run start:dev`
+7. Test everything works by running `cd cil-lib` and `npm run manual:test`
 
 ## Building the docker image
 
