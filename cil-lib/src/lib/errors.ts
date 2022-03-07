@@ -1,6 +1,6 @@
 import { Logger } from 'pino';
 
-import { Entity, ExternalUuid, log } from '..';
+import { Entity, ExternalUuid, log, Prisma } from '..';
 
 import {
   EntityAlreadyExistsError,
@@ -353,6 +353,9 @@ export function tryGetMember<T>(
 
 export const returnMessageOrThrowOnboardingError = (e: unknown): string => {
   if (e instanceof OnboardingError || e instanceof Errors) throw e;
+  if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2002') {
+    return 'There is a unique constraint violation for this entity.';
+  }
   return e instanceof Error ? e.message : `${e}`;
 };
 
