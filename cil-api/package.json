@@ -50,9 +50,10 @@
     "@grpc/grpc-js": "1.5.4",
     "cil-lib": "file:../cil-lib",
     "dotenv": "^11.0.0",
+    "grpc-tools": "^1.11.2",
     "newrelic": "8.4.0",
-    "uuid": "8.3.2",
-    "prisma": "3.9.2"
+    "prisma": "3.9.2",
+    "uuid": "8.3.2"
   },
   "devDependencies": {
     "@apollo/client": "^3.5.8",

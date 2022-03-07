@@ -188,6 +188,24 @@ export function addClassesToSchoolReq(
     .setLinkEntities(new Link().setAddClassesToSchool(addClassesToSchool));
 }
 
+export function createInvalidRequestNoLink(): OnboardingRequest {
+  const requestMetadata = new RequestMetadata();
+  requestMetadata.setId(uuidv4());
+  requestMetadata.setN(uuidv4());
+
+  return new OnboardingRequest().setRequestId(requestMetadata);
+}
+
+export function createInvalidRequestNotStated(): OnboardingRequest {
+  const requestMetadata = new RequestMetadata();
+  requestMetadata.setId(uuidv4());
+  requestMetadata.setN(uuidv4());
+
+  return new OnboardingRequest()
+    .setRequestId(requestMetadata)
+    .setLinkEntities(new Link());
+}
+
 export async function persistPrograms(orgId: string) {
   const admin = await AdminService.getInstance();
   const { data } = await admin.client.query({

@@ -248,4 +248,3 @@ function setUpAddClassesToSchool(
   if (classIds) addClassesToSchool.setExternalClassUuidsList([uuidv4()]);
   return addClassesToSchool;
 }
-

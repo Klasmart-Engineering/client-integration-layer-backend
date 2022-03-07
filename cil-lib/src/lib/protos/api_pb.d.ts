@@ -577,10 +577,10 @@ export class Error extends jspb.Message {
     getValidation(): ValidationError | undefined;
     setValidation(value?: ValidationError): Error;
 
-    hasRequest(): boolean;
-    clearRequest(): void;
-    getRequest(): InvalidRequestError | undefined;
-    setRequest(value?: InvalidRequestError): Error;
+    hasInvalidRequest(): boolean;
+    clearInvalidRequest(): void;
+    getInvalidRequest(): InvalidRequestError | undefined;
+    setInvalidRequest(value?: InvalidRequestError): Error;
 
     hasInternalServer(): boolean;
     clearInternalServer(): void;
@@ -612,7 +612,7 @@ export class Error extends jspb.Message {
 export namespace Error {
     export type AsObject = {
         validation?: ValidationError.AsObject,
-        request?: InvalidRequestError.AsObject,
+        invalidRequest?: InvalidRequestError.AsObject,
         internalServer?: InternalServerError.AsObject,
         entityAlreadyExists?: EntityAlreadyExistsError.AsObject,
         entityDoesNotExist?: EntityDoesNotExistError.AsObject,
@@ -621,7 +621,7 @@ export namespace Error {
     export enum ErrorTypeCase {
         ERROR_TYPE_NOT_SET = 0,
         VALIDATION = 1,
-        REQUEST = 2,
+        INVALID_REQUEST = 2,
         INTERNAL_SERVER = 3,
         ENTITY_ALREADY_EXISTS = 4,
         ENTITY_DOES_NOT_EXIST = 5,
@@ -786,6 +786,7 @@ export enum Entity {
     USER = 3,
     ROLE = 4,
     PROGRAM = 5,
+    UNKNOWN = 15,
 }
 
 export enum Action {

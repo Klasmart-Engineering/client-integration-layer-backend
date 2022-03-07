@@ -1,13 +1,7 @@
 import { Message } from 'google-protobuf';
 import { Logger } from 'pino';
 
-import {
-  BAD_REQUEST,
-  BASE_PATH,
-  Category,
-  MachineError,
-  OnboardingError,
-} from '../errors';
+import { Category, MachineError, OnboardingError } from '../errors';
 import {
   AddClassesToSchool,
   AddOrganizationRolesToUser,
@@ -57,11 +51,18 @@ export class RequestBatch {
   private index = 0;
 
   private constructor(
-    private readonly requests: Map<Operation, OnboardingData[]>
+    private readonly requests: Map<Operation, OnboardingData[]>,
+    private invalidRequests: Array<{
+      request: OnboardingRequest;
+      errorMessage: string;
+    }>
   ) {}
 
   public static fromBatch(reqs: BatchOnboarding, log: Logger): RequestBatch {
     const map = new Map<Operation, OnboardingData[]>();
+    const invalidRequests = [];
+    let errorMsg = '';
+
     for (const req of reqs.getRequestsList()) {
       let key = Operation.UNKNOWN;
       let request: OnboardingOperation | undefined = undefined;
@@ -88,12 +89,11 @@ export class RequestBatch {
         }
         case OnboardingRequest.PayloadCase.LINK_ENTITIES: {
           const r = req.getLinkEntities();
-          if (!r)
-            throw BAD_REQUEST(
-              `Expected valid 'Link' payload`,
-              [...BASE_PATH, 'linkEntities'],
-              log
-            );
+          if (!r) {
+            errorMsg = `Expected valid 'Link' payload. `;
+            log.error(errorMsg);
+            break;
+          }
           switch (r.getLinkCase()) {
             case Link.LinkCase.ADD_USERS_TO_ORGANIZATION: {
               key = Operation.ADD_USERS_TO_ORGANIZATION;
@@ -131,28 +131,28 @@ export class RequestBatch {
               break;
             }
             default:
-              throw BAD_REQUEST(
-                `Expected to find valid 'Link' request however the protobuf payload
-              was not found`,
-                [...BASE_PATH, 'linkEntities'],
-                log
-              );
+              errorMsg = `Expected to find valid 'Link' request however the protobuf payload
+              was not found. `;
+              log.error(errorMsg);
+              break;
           }
           break;
         }
         default:
-          throw BAD_REQUEST(
-            `Expected to find a valid request type as the payload however found nothing`,
-            [...BASE_PATH],
-            log
-          );
+          errorMsg = `Expected to find a valid request type as the payload however found nothing. `;
+          log.error(errorMsg);
+          break;
       }
-      if (request === undefined)
-        throw BAD_REQUEST(
-          'Expected the onboarding request to be defined, however when parsing we were unable to find a valid request',
-          [...BASE_PATH],
-          log
-        );
+
+      if (request === undefined) {
+        const addMsg =
+          'The onboarding request to be defined, however when parsing we were unable to find a valid request.';
+        log.error(addMsg);
+        errorMsg = errorMsg + addMsg;
+        invalidRequests.push({ request: req, errorMessage: errorMsg });
+        continue;
+      }
+
       const arr = map.get(key) || [];
       const tempId = req.getRequestId();
       let reqId;
@@ -181,7 +181,7 @@ export class RequestBatch {
       { operationCounts: details },
       'received incoming batch of requests'
     );
-    return new RequestBatch(map);
+    return new RequestBatch(map, invalidRequests);
   }
 
   get createOrganizations() {
@@ -248,6 +248,13 @@ export class RequestBatch {
     const entity = this.requests.get(Operation.ADD_CLASSES_TO_SCHOOL);
     if (entity) return entity as IAddClassesToSchool[];
     return [];
+  }
+
+  public getInvalidReqs(): Array<{
+    request: OnboardingRequest;
+    errorMessage: string;
+  }> {
+    return this.invalidRequests;
   }
 
   public getOperation(op: Operation) {

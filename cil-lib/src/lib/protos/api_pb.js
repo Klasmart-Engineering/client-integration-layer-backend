@@ -4747,7 +4747,7 @@ proto.cil_onboarding.api.Error.oneofGroups_ = [[1,2,3,4,5]];
 proto.cil_onboarding.api.Error.ErrorTypeCase = {
   ERROR_TYPE_NOT_SET: 0,
   VALIDATION: 1,
-  REQUEST: 2,
+  INVALID_REQUEST: 2,
   INTERNAL_SERVER: 3,
   ENTITY_ALREADY_EXISTS: 4,
   ENTITY_DOES_NOT_EXIST: 5
@@ -4792,7 +4792,7 @@ proto.cil_onboarding.api.Error.prototype.toObject = function(opt_includeInstance
 proto.cil_onboarding.api.Error.toObject = function(includeInstance, msg) {
   var f, obj = {
     validation: (f = msg.getValidation()) && proto.cil_onboarding.api.ValidationError.toObject(includeInstance, f),
-    request: (f = msg.getRequest()) && proto.cil_onboarding.api.InvalidRequestError.toObject(includeInstance, f),
+    invalidRequest: (f = msg.getInvalidRequest()) && proto.cil_onboarding.api.InvalidRequestError.toObject(includeInstance, f),
     internalServer: (f = msg.getInternalServer()) && proto.cil_onboarding.api.InternalServerError.toObject(includeInstance, f),
     entityAlreadyExists: (f = msg.getEntityAlreadyExists()) && proto.cil_onboarding.api.EntityAlreadyExistsError.toObject(includeInstance, f),
     entityDoesNotExist: (f = msg.getEntityDoesNotExist()) && proto.cil_onboarding.api.EntityDoesNotExistError.toObject(includeInstance, f)
@@ -4840,7 +4840,7 @@ proto.cil_onboarding.api.Error.deserializeBinaryFromReader = function(msg, reade
     case 2:
       var value = new proto.cil_onboarding.api.InvalidRequestError;
       reader.readMessage(value,proto.cil_onboarding.api.InvalidRequestError.deserializeBinaryFromReader);
-      msg.setRequest(value);
+      msg.setInvalidRequest(value);
       break;
     case 3:
       var value = new proto.cil_onboarding.api.InternalServerError;
@@ -4894,7 +4894,7 @@ proto.cil_onboarding.api.Error.serializeBinaryToWriter = function(message, write
       proto.cil_onboarding.api.ValidationError.serializeBinaryToWriter
     );
   }
-  f = message.getRequest();
+  f = message.getInvalidRequest();
   if (f != null) {
     writer.writeMessage(
       2,
@@ -4967,10 +4967,10 @@ proto.cil_onboarding.api.Error.prototype.hasValidation = function() {
 
 
 /**
- * optional InvalidRequestError request = 2;
+ * optional InvalidRequestError invalid_request = 2;
  * @return {?proto.cil_onboarding.api.InvalidRequestError}
  */
-proto.cil_onboarding.api.Error.prototype.getRequest = function() {
+proto.cil_onboarding.api.Error.prototype.getInvalidRequest = function() {
   return /** @type{?proto.cil_onboarding.api.InvalidRequestError} */ (
     jspb.Message.getWrapperField(this, proto.cil_onboarding.api.InvalidRequestError, 2));
 };
@@ -4980,7 +4980,7 @@ proto.cil_onboarding.api.Error.prototype.getRequest = function() {
  * @param {?proto.cil_onboarding.api.InvalidRequestError|undefined} value
  * @return {!proto.cil_onboarding.api.Error} returns this
 */
-proto.cil_onboarding.api.Error.prototype.setRequest = function(value) {
+proto.cil_onboarding.api.Error.prototype.setInvalidRequest = function(value) {
   return jspb.Message.setOneofWrapperField(this, 2, proto.cil_onboarding.api.Error.oneofGroups_[0], value);
 };
 
@@ -4989,8 +4989,8 @@ proto.cil_onboarding.api.Error.prototype.setRequest = function(value) {
  * Clears the message field making it undefined.
  * @return {!proto.cil_onboarding.api.Error} returns this
  */
-proto.cil_onboarding.api.Error.prototype.clearRequest = function() {
-  return this.setRequest(undefined);
+proto.cil_onboarding.api.Error.prototype.clearInvalidRequest = function() {
+  return this.setInvalidRequest(undefined);
 };
 
 
@@ -4998,7 +4998,7 @@ proto.cil_onboarding.api.Error.prototype.clearRequest = function() {
  * Returns whether this field is set.
  * @return {boolean}
  */
-proto.cil_onboarding.api.Error.prototype.hasRequest = function() {
+proto.cil_onboarding.api.Error.prototype.hasInvalidRequest = function() {
   return jspb.Message.getField(this, 2) != null;
 };
 
@@ -6203,7 +6203,8 @@ proto.cil_onboarding.api.Entity = {
   CLASS: 2,
   USER: 3,
   ROLE: 4,
-  PROGRAM: 5
+  PROGRAM: 5,
+  UNKNOWN: 15
 };
 
 /**

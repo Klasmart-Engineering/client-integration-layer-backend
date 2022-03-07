@@ -157,7 +157,7 @@ export class OnboardingError {
         pathBased.setPath(this.path.join('.'));
         pathBased.setDetailsList(errorMessages);
         error.setErrorsList([pathBased]);
-        e.setValidation(error);
+        e.setInvalidRequest(error);
         break;
       }
       case MachineError.VALIDATION: {

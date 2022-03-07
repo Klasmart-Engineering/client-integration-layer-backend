@@ -45,6 +45,7 @@ enum Entity {
   USER = 3;
   ROLE = 4;
   PROGRAM = 5;
+  UNKNOWN = 15;
 }
 
 enum Action {
@@ -137,7 +138,7 @@ message Response {
 message Error {
   oneof error_type {
     ValidationError validation = 1;
-    InvalidRequestError request = 2;
+    InvalidRequestError invalid_request = 2;
     InternalServerError internal_server = 3;
     EntityAlreadyExistsError entity_already_exists = 4;
     EntityDoesNotExistError entity_does_not_exist = 5;

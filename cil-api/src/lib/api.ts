@@ -28,8 +28,18 @@ export class OnboardingServer implements proto.IOnboardingServer {
       return;
     }
 
-    const resp = await processOnboardingRequest(call.request, log);
-    callback(null, resp);
+    try {
+      const resp = await processOnboardingRequest(call.request, log);
+      callback(null, resp);
+    } catch (error) {
+      logger.error(`There is an error which should be caught earlier`);
+      const e = new StatusBuilder();
+      e.withCode(Status.INTERNAL);
+      e.withDetails(
+        `The app got unexpected error. Please contact someone from the team`
+      );
+      callback(e.build());
+    }
   }
 
   public async onboardStream(

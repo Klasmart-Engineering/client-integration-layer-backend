@@ -15,7 +15,14 @@ import {
   processCreateUsers,
 } from '..';
 import { Category, MachineError, OnboardingError } from '../../errors';
-import { BatchOnboarding, Response, Responses } from '../../protos/api_pb';
+import { Error as PbError } from '../../protos';
+import {
+  BatchOnboarding,
+  Entity,
+  InvalidRequestError,
+  Response,
+  Responses,
+} from '../../protos/api_pb';
 import { Operation } from '../../types';
 import { IdTracked, RequestBatch } from '../batchRequest';
 
@@ -103,6 +110,22 @@ export async function processOnboardingRequest(
     }
     currentOperation = reqs.getNextOperation();
   }
+
+  const invalidReqs = reqs.getInvalidReqs();
+  for (const r of invalidReqs) {
+    const resp = new Response()
+      .setSuccess(false)
+      .setEntity(Entity.UNKNOWN)
+      .setEntityId('NOT PROVIDED')
+      .setRequestId(r.request.getRequestId())
+      .setErrors(
+        new PbError().setInvalidRequest(
+          new InvalidRequestError().setAdditionalDetailsList([r.errorMessage])
+        )
+      );
+    responses = responses.concat(resp);
+  }
+
   return new Responses().setResponsesList(responses);
 }
 
