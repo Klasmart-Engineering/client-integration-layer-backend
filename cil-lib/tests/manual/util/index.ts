@@ -17,7 +17,13 @@ import {
   School,
   User,
 } from '../../../src/lib/protos';
-import { AdminService, ExternalUuid, log, PrismaClient } from '../../../src';
+import {
+  AdminService,
+  ExternalUuid,
+  log,
+  PrismaClient,
+  Uuid,
+} from '../../../src';
 import { v4 as uuidv4 } from 'uuid';
 import { gql } from '@apollo/client/core';
 
@@ -28,6 +34,20 @@ const GET_PROGRAMS = gql`
         node {
           id
           name
+        }
+      }
+    }
+  }
+`;
+
+const GET_USER = gql`
+  query users($userFilter: UserFilter) {
+    usersConnection(direction: FORWARD, filter: $userFilter) {
+      edges {
+        node {
+          id
+          username
+          dateOfBirth
         }
       }
     }
@@ -305,4 +325,37 @@ export async function deleteSchools(
   });
 
   return deleteClasses.count === schoolIds.length;
+}
+
+export async function getUser(
+  externalUuid: ExternalUuid
+): Promise<{ id: Uuid; username: string; dateOfBirth: string } | undefined> {
+  const user = await prisma.user.findFirst({
+    where: { externalUuid: externalUuid },
+  });
+
+  if (!user) {
+    return undefined;
+  }
+  const admin = await AdminService.getInstance();
+  const { data } = await admin.client.query({
+    query: GET_USER,
+    variables: {
+      input: { userId: user.klUuid },
+    },
+    context: admin.context,
+  });
+  const users = data['usersConnection']['edges'] as Array<{
+    node: { id: string; username: string; dateOfBirth: string };
+  }>;
+
+  return users
+    .map((user) => {
+      return {
+        id: user.node.id,
+        username: user.node.username,
+        dateOfBirth: user.node.dateOfBirth,
+      };
+    })
+    .find((user) => user != undefined);
 }

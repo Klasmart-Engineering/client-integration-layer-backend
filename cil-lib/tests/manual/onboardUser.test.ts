@@ -2,13 +2,13 @@ import { expect } from 'chai';
 import { v4 as uuidv4 } from 'uuid';
 
 import { Gender, Responses, User } from '../../../cil-lib/src/lib/protos';
+import { ExternalUuid } from '../../src';
 import { wrapRequest } from '../util';
 
-import { onboard } from './util';
+import { createOrg, getUser, onboard, setUpUser as createUser } from './util';
 
 const USER = Object.freeze({
   externalUuid: true,
-  externalOrganizationUuid: true,
   email: true,
   phone: true,
   username: true,
@@ -78,8 +78,6 @@ export const INVALID_USER_ENTITY_DOES_NOT_EXISTS: UserTestCase[] = [
 
 function setUpUser(user = USER): User {
   const {
-    externalUuid,
-    externalOrganizationUuid,
     email,
     phone,
     username,
@@ -87,13 +85,11 @@ function setUpUser(user = USER): User {
     familyName,
     gender,
     dateOfBirth,
-    shortCode,
     roleIdentifiers,
   } = user;
   const u = new User();
-  if (externalUuid) u.setExternalUuid(uuidv4());
-  if (externalOrganizationUuid)
-    u.setExternalOrganizationUuid('47a0c632-5c08-4b2e-ac91-9f798219203a');
+  u.setExternalUuid(uuidv4());
+  u.setExternalOrganizationUuid('47a0c632-5c08-4b2e-ac91-9f798219203a');
   if (email) u.setEmail('testtest@example.com');
   if (phone) u.setPhone('+912212345678');
   if (username) u.setUsername('USERNAME');
@@ -104,6 +100,29 @@ function setUpUser(user = USER): User {
   if (roleIdentifiers) u.addRoleIdentifiers('Student');
   return u;
 }
+
+describe('Onboard user missing optional fields', () => {
+  let orgId: ExternalUuid;
+
+  before(async () => {
+    orgId = await createOrg();
+  });
+
+  it('should be success', async () => {
+    const user = createUser(orgId, uuidv4()).setUsername('').setDateOfBirth('');
+    const req = wrapRequest(user);
+    const response = await onboard(req);
+
+    expect(response.getResponsesList()).to.be.length(1);
+    const resp = response.getResponsesList()[0];
+    expect(resp.getSuccess()).to.be.true;
+    expect(resp.getEntityId()).to.be.equal(user.getExternalUuid());
+    const adminUser = await getUser(user.getExternalUuid());
+    expect(adminUser).to.be.not.undefined;
+    expect(adminUser!.id).to.be.not.undefined;
+    expect(adminUser!.username).to.be.not.undefined;
+  });
+});
 
 describe.skip('User Onboard Validation', () => {
   INVALID_USERS.forEach(({ scenario, user }) => {

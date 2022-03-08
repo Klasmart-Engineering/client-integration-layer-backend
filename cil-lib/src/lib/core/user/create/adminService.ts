@@ -9,6 +9,7 @@ import {
 } from '../../../errors';
 import { Entity, Response } from '../../../protos';
 import { AdminService } from '../../../services';
+import { CreateUserInput } from '../../../services/adminService/users';
 import { protoGenderToString } from '../../../types/gender';
 import { requestIdToProtobuf } from '../../batchRequest';
 import { Result } from '../../process';
@@ -24,17 +25,27 @@ export async function sendRequest(
   try {
     const admin = await AdminService.getInstance();
     const result = await admin.createUsers(
-      users.map(({ data }) => ({
-        givenName: data.givenName!,
-        familyName: data.familyName!,
-        contactInfo: {
-          phone: data.phone,
-          email: data.email,
-        },
-        username: data.username,
-        dateOfBirth: data.dateOfBirth,
-        gender: protoGenderToString(data.gender!, log),
-      })),
+      users.map(({ data }) => {
+        const user: CreateUserInput = {
+          givenName: data.givenName!,
+          familyName: data.familyName!,
+          contactInfo: {
+            phone: data.phone,
+            email: data.email,
+          },
+          gender: protoGenderToString(data.gender!, log),
+        };
+
+        if (data.username && data.username.length > 0) {
+          user.username = data.username;
+        }
+
+        if (data.dateOfBirth && data.dateOfBirth.length > 0) {
+          user.dateOfBirth = data.dateOfBirth;
+        }
+
+        return user;
+      }),
       log
     );
 

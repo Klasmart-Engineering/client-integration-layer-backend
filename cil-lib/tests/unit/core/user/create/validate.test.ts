@@ -52,6 +52,18 @@ export const VALID_USERS: UserTestCase[] = [
     scenario: 'contains everything but an email',
     user: setUpUser({ ...USER, email: false }),
   },
+  {
+    scenario: 'contains everything but username',
+    user: setUpUser({ ...USER, username: false }),
+  },
+  {
+    scenario: 'contains everything but dateOfBirth',
+    user: setUpUser({ ...USER, dateOfBirth: false }),
+  },
+  {
+    scenario: 'contains everything but short code',
+    user: setUpUser({ ...USER, shortCode: false }),
+  },
 ];
 
 export const INVALID_USERS: UserTestCase[] = [
@@ -110,13 +122,6 @@ export const INVALID_USERS: UserTestCase[] = [
     scenario: 'the family name is missing',
     user: (() => {
       const s = setUpUser({ ...USER, familyName: false });
-      return s;
-    })(),
-  },
-  {
-    scenario: 'the username is missing',
-    user: (() => {
-      const s = setUpUser({ ...USER, username: false });
       return s;
     })(),
   },
@@ -330,7 +335,6 @@ function setUpUser(user = USER): User {
     familyName,
     gender,
     dateOfBirth,
-    shortCode,
     roleIdentifiers,
   } = user;
   const u = new User();

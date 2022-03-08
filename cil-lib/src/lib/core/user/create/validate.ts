@@ -147,7 +147,7 @@ export const userSchema = Joi.object({
     .required(),
 
   username: Joi.string()
-    .min(VALIDATION_RULES.USERNAME_MIN_LENGTH)
+    .allow('')
     .max(VALIDATION_RULES.USERNAME_MAX_LENGTH)
     .alphanum()
     .required(),
@@ -155,14 +155,13 @@ export const userSchema = Joi.object({
   email: Joi.any(),
   phone: Joi.any(),
 
-  dateOfBirth: Joi.string().regex(VALIDATION_RULES.DOB_REGEX),
+  dateOfBirth: Joi.string().allow('').regex(VALIDATION_RULES.DOB_REGEX),
 
   // 0 = Male, 1 = Female
   gender: Joi.number().min(0).max(1).required(),
 
   shortCode: Joi.string()
-    .optional()
-    .min(VALIDATION_RULES.SHORTCODE_MIN_LENGTH)
+    .allow('')
     .max(VALIDATION_RULES.SHORTCODE_MAX_LENGTH)
     .alphanum(),
 
