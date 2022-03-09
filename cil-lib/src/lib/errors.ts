@@ -123,7 +123,7 @@ export class OnboardingError {
       ...this.properties,
       category: this.category,
       error: this.error,
-      path: this.path.join('.'),
+      ...(this.path.length > 0 ? { path: this.path.join('.') } : {}),
     };
     if (this.details.length > 0) props['details'] = this.details;
     switch (this.logLevel) {
