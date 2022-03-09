@@ -167,14 +167,14 @@ export async function sendRequest(
       invalid = invalid.concat(
         invalidIds.map((external) => {
           return new Response()
-            .setEntity(Entity.SCHOOL)
+            .setEntity(Entity.USER)
             .setEntityId(external)
             .setRequestId(requestIdToProtobuf(incoming.requestId))
             .setErrors(
               new OnboardingError(
                 MachineError.ENTITY_ALREADY_EXISTS,
-                `user with id ${external!} already added to ${incoming.data
-                  .externalOrganizationUuid!}`,
+                `user with id ${external!} already added to organization with id ${incoming
+                  .data.externalOrganizationUuid!}`,
                 Category.REQUEST,
                 log
               ).toProtobufError()
