@@ -72,11 +72,19 @@ describe('add users to class validation', () => {
     it(`should pass when add users to class is ${scenario}`, async () => {
       const studentExternalId = addUsersToClass.getExternalStudentUuidList()[0];
       const teacherExternalId = addUsersToClass.getExternalTeacherUuidList()[0];
-      const valid = new Map<string, string>([
-        [studentExternalId, uuidv4()],
-        [teacherExternalId, uuidv4()],
-      ]);
-      userIdsStub.resolves({ valid, invalid: [] });
+      userIdsStub.resolves({
+        valid: new Map([
+          [studentExternalId, uuidv4()],
+          [teacherExternalId, uuidv4()],
+        ]),
+        invalid: [],
+      });
+      linkStub
+        .onFirstCall()
+        .resolves({ valid: [studentExternalId], invalid: [] });
+      linkStub
+        .onSecondCall()
+        .resolves({ valid: [teacherExternalId], invalid: [] });
       const req = wrapRequest(addUsersToClass);
       const resp = await processOnboardingRequest(req, LOG_STUB);
       const responses = resp.getResponsesList();

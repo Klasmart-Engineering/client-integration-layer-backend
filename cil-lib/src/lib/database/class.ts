@@ -36,7 +36,6 @@ export class Class {
         data: c,
       });
     } catch (error) {
-      console.error(error);
       const msg = returnMessageOrThrowOnboardingError(error);
       throw new OnboardingError(
         MachineError.WRITE,

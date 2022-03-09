@@ -1,4 +1,4 @@
-import { proto } from 'cil-lib';
+import { Gender, proto } from 'cil-lib';
 import { v4 as uuidv4 } from 'uuid';
 import { IdName } from './populateAdminService';
 
@@ -25,7 +25,8 @@ export class TestCaseBuilder {
   private studentsInClasses = new Map<string, Set<string>>();
   private teachersInClasses = new Map<string, Set<string>>();
 
-  private invalidSchoolIds: Set<string> = new Set();
+  private invalidOrgIds: Set<string> = new Set();
+  private invalidSchoolIds: Map<string, Set<string>> = new Map();
   private invalidClassIds: Set<string> = new Set();
   private invalidUserIds: Set<string> = new Set();
 
@@ -69,8 +70,29 @@ export class TestCaseBuilder {
     return Array.from(this.validOrgMappings.keys());
   }
 
+  get allOrgIds(): string[] {
+    return Array.from(
+      new Set(this.validOrgIds.concat(Array.from(this.invalidOrgIds)))
+    );
+  }
+
   get invalidSchools(): string[] {
     return Array.from(this.invalidSchools);
+  }
+
+  get allSchoolIds(): { org: string; schools: string[] }[] {
+    const m = new Map();
+    for (const [o, s] of this.validSchoolIds) {
+      const se = m.get(o) || new Set();
+      for (const sch of s) se.add(sch);
+      m.set(o, se);
+    }
+    for (const [o, s] of this.invalidSchoolIds) {
+      const se = m.get(o) || new Set();
+      for (const sch of s) se.add(sch);
+      m.set(o, se);
+    }
+    return Array.from(m).map(([o, s]) => ({ org: o, schools: Array.from(s) }));
   }
 
   get invalidClasses(): string[] {
@@ -124,7 +146,7 @@ export class TestCaseBuilder {
   }
 
   public addValidSchoolsToEachOrg(numberOfSchools = 5): TestCaseBuilder {
-    for (const orgId of this.validOrgIds) {
+    for (const orgId of this.allOrgIds) {
       for (let i = 0; i < numberOfSchools; i += 1) {
         const createEntityRequest = new proto.School();
         // Generate the school request
@@ -175,6 +197,7 @@ export class TestCaseBuilder {
       entity && entity.externalOrganizationUuid
         ? entity.externalOrganizationUuid
         : this.getRandomElement(this.validOrgIds);
+    if (!this.validOrgMappings.has(orgId)) this.invalidOrgIds.add(orgId);
 
     // Generate the school request
     const data = {
@@ -210,7 +233,11 @@ export class TestCaseBuilder {
       validSchoolMap.add(data.externalUuid);
       this.validSchoolIds.set(orgId, validSchoolMap);
     }
-    if (!isValid) this.invalidSchoolIds.add(data.externalUuid);
+    if (!isValid) {
+      const invalidSchools = this.invalidSchoolIds.get(orgId) || new Set();
+      invalidSchools.add(data.externalUuid);
+      this.invalidSchoolIds.set(orgId, invalidSchools);
+    }
     return this;
   }
 
@@ -224,7 +251,7 @@ export class TestCaseBuilder {
   public addValidClassesToEachSchool(
     classesPerSchool: number = 5
   ): TestCaseBuilder {
-    for (const [org, schools] of this.validSchoolIds) {
+    for (const { org, schools } of this.allSchoolIds) {
       for (const school of schools) {
         for (let i = 0; i < classesPerSchool; i += 1) {
           const createEntityRequest = new proto.Class();
@@ -261,7 +288,7 @@ export class TestCaseBuilder {
           this.classesForSchool.get(school).add(classId);
 
           // Add programs to the class
-          const programs = [...this.programsForSchool.get(school)];
+          const programs = [...(this.programsForSchool.get(school) || [])];
 
           const linkPrograms = new proto.AddProgramsToClass()
             .setExternalClassUuid(data.externalUuid)
@@ -289,6 +316,7 @@ export class TestCaseBuilder {
       entity && entity.externalOrganizationUuid
         ? entity.externalOrganizationUuid
         : this.getRandomElement(this.validOrgIds);
+    if (!this.validOrgMappings.has(orgId)) this.invalidOrgIds.add(orgId);
     const schoolId =
       entity && entity.externalSchoolUuid
         ? entity.externalSchoolUuid
@@ -325,21 +353,23 @@ export class TestCaseBuilder {
     this.classesForSchool.get(schoolId).add(data.externalUuid);
 
     // Add programs to the class
-    const programs =
-      entity && entity.programs
-        ? entity.programs
-        : [...this.programsForSchool.get(schoolId)];
+    if (this.programsForSchool.get(schoolId)) {
+      const programs =
+        entity && entity.programs
+          ? entity.programs
+          : [...this.programsForSchool.get(schoolId)];
 
-    const linkPrograms = new proto.AddProgramsToClass()
-      .setExternalClassUuid(data.externalUuid)
-      .setProgramNamesList(programs);
-    this.requests.push(
-      new OnboardingRequest().setLinkEntities(
-        new Link().setAddProgramsToClass(linkPrograms)
-      )
-    );
+      const linkPrograms = new proto.AddProgramsToClass()
+        .setExternalClassUuid(data.externalUuid)
+        .setProgramNamesList(programs);
+      this.requests.push(
+        new OnboardingRequest().setLinkEntities(
+          new Link().setAddProgramsToClass(linkPrograms)
+        )
+      );
 
-    this.programsForClass.set(data.externalUuid, programs);
+      this.programsForClass.set(data.externalUuid, programs);
+    }
 
     isValid
       ? this.validClassIds.add(data.externalUuid)
@@ -372,7 +402,7 @@ export class TestCaseBuilder {
     numberOfTeachersPerSchool = 10,
     addEachUserToNClasses = 5
   ): TestCaseBuilder {
-    for (const [org, schools] of this.validSchoolIds) {
+    for (const { org, schools } of this.allSchoolIds) {
       for (const school of schools) {
         let teachersToAdd = numberOfTeachersPerSchool;
         let studentsToAdd = numberOfStudentsPerSchool;
@@ -434,7 +464,6 @@ export class TestCaseBuilder {
           if (!this.usersInSchool.has(school))
             this.usersInSchool.set(school, new Set());
           this.usersInSchool.get(school).add(data.externalUuid);
-
           const classes = new Set<string>();
           const potentialClasses =
             this.classesForSchool.get(school) || new Set();
@@ -471,12 +500,12 @@ export class TestCaseBuilder {
             }
             if (isTeacher) {
               this.teachersInClasses.get(cla).add(data.externalUuid);
-              teachersToAdd -= 1;
             } else {
               this.studentsInClasses.get(cla).add(data.externalUuid);
-              studentsToAdd -= 1;
             }
           }
+
+          teachersToAdd > 0 ? (teachersToAdd -= 1) : (studentsToAdd -= 1);
 
           this.validUserIds.add(data.externalUuid);
         }
@@ -577,8 +606,11 @@ export class TestCaseBuilder {
       ...baseUser,
       externalOrganizationUuid: tempValidOrgId,
       roleIdentifiersList:
-        opts.roles.get(tempValidOrgId) ||
-        Array.from(this.validRoleIds.get(tempValidOrgId)),
+        undefined !== opts.roleIdentifiersList &&
+        opts.roleIdentifiersList.length > 0
+          ? opts.roleIdentifiersList
+          : opts.roles.get(tempValidOrgId) ||
+            Array.from(this.validRoleIds.get(tempValidOrgId)),
       ...opts,
     };
     createEntityRequest
@@ -600,7 +632,235 @@ export class TestCaseBuilder {
         const linkEntity = new proto.AddUsersToOrganization()
           .setExternalOrganizationUuid(org)
           .setRoleIdentifiersList(
-            opts.roles.get(org) || Array.from(this.validRoleIds.get(org))
+            undefined !== opts.roleIdentifiersList &&
+              opts.roleIdentifiersList.length > 0
+              ? opts.roleIdentifiersList
+              : opts.roles.get(org) || Array.from(this.validRoleIds.get(org))
+          )
+          .setExternalUserUuidsList([data.externalUuid]);
+
+        this.requests.push(
+          new OnboardingRequest().setLinkEntities(
+            new Link().setAddUsersToOrganization(linkEntity)
+          )
+        );
+      }
+
+      if (!this.usersInOrg.has(org)) this.usersInOrg.set(org, new Set());
+      this.usersInOrg.get(org).add(data.externalUuid);
+    }
+
+    for (const sch of schools) {
+      if (!this.shouldOptimizeLinks) {
+        // Add the user to an organization
+        const linkEntity = new proto.AddUsersToSchool()
+          .setExternalSchoolUuid(sch)
+          .setExternalUserUuidsList([data.externalUuid]);
+
+        this.requests.push(
+          new OnboardingRequest().setLinkEntities(
+            new Link().setAddUsersToSchool(linkEntity)
+          )
+        );
+      }
+
+      if (!this.usersInSchool.has(sch)) this.usersInSchool.set(sch, new Set());
+      this.usersInSchool.get(sch).add(data.externalUuid);
+    }
+
+    for (const cla of classes) {
+      const isTeacher = opts.isTeacher || false;
+      if (!this.shouldOptimizeLinks) {
+        // Add the user to an organization
+        const linkEntity = new proto.AddUsersToClass().setExternalClassUuid(
+          cla
+        );
+        isTeacher
+          ? linkEntity.setExternalTeacherUuidList([data.externalUuid])
+          : linkEntity.setExternalStudentUuidList([data.externalUuid]);
+
+        if (
+          linkEntity.getExternalStudentUuidList().length > 0 ||
+          linkEntity.getExternalTeacherUuidList().length > 0
+        )
+          this.requests.push(
+            new OnboardingRequest().setLinkEntities(
+              new Link().setAddUsersToClass(linkEntity)
+            )
+          );
+      }
+
+      if (!this.studentsInClasses.has(cla)) {
+        this.studentsInClasses.set(cla, new Set());
+        this.teachersInClasses.set(cla, new Set());
+      }
+      isTeacher
+        ? this.teachersInClasses.get(cla).add(data.externalUuid)
+        : this.studentsInClasses.get(cla).add(data.externalUuid);
+    }
+
+    isValid
+      ? this.validUserIds.add(data.externalUuid)
+      : this.invalidUserIds.add(data.externalUuid);
+    return this;
+  }
+
+  // Customizablle User
+  public addCustomizableUser(
+    entity: Partial<proto.User.AsObject> & {
+      addToValidOrgs?: number;
+      addToValidSchools?: number;
+      addToValidClasses?: number;
+      orgs?: string[];
+      schools?: string[];
+      classes?: string[];
+      isTeacher?: boolean;
+      // K: Org ID
+      roles?: Map<string, string[]>;
+      externalUuid?: string;
+      email?: string;
+      phone?: string;
+      username?: string;
+      givenName?: string;
+      familyName?: string;
+      gender?: Gender;
+      dateOfBirth?: string;
+      isDuplicate?: boolean;
+      userID?: string;
+    } = {},
+    isValid: boolean = true
+  ): TestCaseBuilder {
+    const suffix = uuidv4().slice(0, 7);
+    const opts = {
+      addToValidOrgs: 1,
+      addToValidSchools: 1,
+      addToValidClasses: 2,
+      isTeacher: false,
+      orgs: [],
+      schools: [],
+      classes: [],
+      roles: new Map(),
+      externalUuid: uuidv4(),
+      email: `test${suffix}@test.com`,
+      phone: `+9123456789`,
+      username: `User${suffix}`,
+      givenName: `First${suffix}`,
+      familyName: `Last${suffix}`,
+      gender: proto.Gender.MALE,
+      dateOfBirth: '01-2017',
+      isDuplicate: false,
+      userID: uuidv4(),
+      ...entity,
+    };
+    const { addToValidOrgs, addToValidSchools, addToValidClasses } = opts;
+
+    const createEntityRequest = new proto.User();
+    let baseUser;
+    if (opts.isDuplicate) {
+      baseUser = generateDuplicateUser(opts.userID);
+    } else {
+      baseUser = generateCustomUser({
+        externalUuid: opts.externalUuid,
+        email: opts.email,
+        phone: opts.phone,
+        username: opts.username,
+        givenName: opts.givenName,
+        familyName: opts.familyName,
+      });
+    }
+    const orgs = new Set<string>();
+    if (addToValidOrgs) {
+      if (addToValidOrgs > this.validOrgIds.length)
+        throw new Error(
+          'Cannot add a user to more valid organizations than are currently configured'
+        );
+      while (orgs.size < addToValidOrgs) {
+        for (const o of this.getRandomElements(
+          this.validOrgIds,
+          addToValidOrgs
+        )) {
+          orgs.add(o);
+        }
+      }
+    }
+    if (opts.externalOrganizationUuid) orgs.add(opts.externalOrganizationUuid);
+    for (const o of opts.orgs) orgs.add(o);
+
+    const schools = new Set<string>();
+    if (addToValidSchools) {
+      let potentialSchools = [];
+      for (const o of orgs) {
+        const schs = this.validSchoolIds.get(o);
+        if (schs) potentialSchools = potentialSchools.concat(Array.from(schs));
+      }
+      if (addToValidSchools > potentialSchools.length)
+        throw new Error(
+          'Cannot add a user to more valid schools than are currently configured'
+        );
+      for (const s of this.getRandomElements(
+        potentialSchools,
+        addToValidSchools
+      ))
+        schools.add(s);
+    }
+    for (const s of opts.schools) schools.add(s);
+
+    const classes = new Set<string>();
+    if (addToValidClasses) {
+      let potentialClasses = [];
+      for (const s of schools) {
+        const classes = this.classesForSchool.get(s);
+        if (classes)
+          potentialClasses = potentialClasses.concat(Array.from(classes));
+      }
+      if (addToValidClasses > potentialClasses.length)
+        throw new Error(
+          'Cannot add a user to more valid classes than are currently configured'
+        );
+      for (const c of this.getRandomElements(
+        potentialClasses,
+        addToValidClasses
+      ))
+        classes.add(c);
+    }
+    for (const c of opts.classes) classes.add(c);
+
+    const tempValidOrgId = Array.from(orgs)[0];
+    // Generate the request
+    const data = {
+      ...baseUser,
+      externalOrganizationUuid: tempValidOrgId,
+      roleIdentifiersList:
+        undefined !== opts.roleIdentifiersList &&
+        opts.roleIdentifiersList.length > 0
+          ? opts.roleIdentifiersList
+          : opts.roles.get(tempValidOrgId) ||
+            Array.from(this.validRoleIds.get(tempValidOrgId)),
+      ...opts,
+    };
+    createEntityRequest
+      .setExternalOrganizationUuid(data.externalOrganizationUuid)
+      .setExternalUuid(data.externalUuid)
+      .setGivenName(data.givenName)
+      .setFamilyName(data.familyName)
+      .setPhone(data.phone)
+      .setEmail(data.email)
+      .setDateOfBirth(data.dateOfBirth)
+      .setUsername(data.username)
+      .setGender(data.gender)
+      .setRoleIdentifiersList(data.roleIdentifiersList);
+    this.requests.push(new OnboardingRequest().setUser(createEntityRequest));
+
+    for (const org of orgs) {
+      if (!this.shouldOptimizeLinks) {
+        // Add the user to an organization
+        const linkEntity = new proto.AddUsersToOrganization()
+          .setExternalOrganizationUuid(org)
+          .setRoleIdentifiersList(
+            undefined !== opts.roleIdentifiersList &&
+              opts.roleIdentifiersList.length > 0
+              ? opts.roleIdentifiersList
+              : opts.roles.get(org) || Array.from(this.validRoleIds.get(org))
           )
           .setExternalUserUuidsList([data.externalUuid]);
 
@@ -807,6 +1067,46 @@ function generateUser(): Partial<proto.User.AsObject> {
   const suffix = uuidv4().slice(0, 7);
   return {
     externalUuid: uuidv4(),
+    email: `test${suffix}@test.com`,
+    phone: `+9123456789`,
+    username: `User${suffix}`,
+    givenName: `First${suffix}`,
+    familyName: `Last${suffix}`,
+    gender: proto.Gender.MALE,
+    dateOfBirth: '01-2017',
+  };
+}
+
+function generateCustomUser(
+  entity: Partial<proto.User.AsObject> & {
+    externalUuid?: string;
+    email?: string;
+    phone?: string;
+    username?: string;
+    givenName?: string;
+    familyName?: string;
+    gender?: string;
+    dateOfBirth?: Date;
+  } = {}
+): Partial<proto.User.AsObject> {
+  const suffix = uuidv4().slice(0, 7);
+  const opts = {
+    externalUuid: uuidv4(),
+    email: `test${suffix}@test.com`,
+    phone: `+9123456789`,
+    username: `User${suffix}`,
+    givenName: `First${suffix}`,
+    familyName: `Last${suffix}`,
+    gender: proto.Gender.MALE,
+    dateOfBirth: '01-2017',
+    ...entity,
+  };
+  return opts;
+}
+
+function generateDuplicateUser(suffix): Partial<proto.User.AsObject> {
+  return {
+    externalUuid: suffix,
     email: `test${suffix}@test.com`,
     phone: `+9123456789`,
     username: `User${suffix}`,

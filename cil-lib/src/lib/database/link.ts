@@ -256,7 +256,7 @@ export class Link {
       });
       if (schools.length !== schoolIds.length)
         throw new OnboardingError(
-          MachineError.READ,
+          MachineError.VALIDATION,
           `Expected to find ${schoolIds.length} valid schools when looking up school ids, however only found ${schools.length}`,
           Category.REQUEST,
           log

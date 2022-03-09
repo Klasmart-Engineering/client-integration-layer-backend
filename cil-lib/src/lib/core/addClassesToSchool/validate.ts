@@ -88,6 +88,13 @@ async function validate(
   const classIds = protobuf.getExternalClassUuidsList();
 
   const { valid, invalid } = await Class.areValid(classIds, log);
+  if (valid.length === 0)
+    throw new OnboardingError(
+      MachineError.VALIDATION,
+      `None of the provided class ids were valid`,
+      Category.REQUEST,
+      log
+    );
 
   protobuf.setExternalClassUuidsList(valid);
   r.data.externalClassUuidsList = valid;

@@ -17,11 +17,13 @@ export async function validateMany(
   data: IncomingData[],
   log: Logger
 ): Promise<[Result<IncomingData>, Logger]> {
-  const valid = [];
-  const invalid = [];
+  const validRequests = [];
+  let invalidRequests: Response[] = [];
   for (const d of data) {
     try {
-      valid.push(await validate(d, log));
+      const { valid, invalid } = await validate(d, log);
+      if (valid !== null) validRequests.push(valid);
+      invalidRequests = invalidRequests.concat(invalid);
     } catch (error) {
       const e = convertErrorToProtobuf(error, log);
       for (const userId of [
@@ -34,14 +36,17 @@ export async function validateMany(
           .setEntity(PbEntity.USER)
           .setEntityId(userId)
           .setErrors(e);
-        invalid.push(resp);
+        invalidRequests.push(resp);
       }
     }
   }
-  return [{ valid, invalid }, log];
+  return [{ valid: validRequests, invalid: invalidRequests }, log];
 }
 
-async function validate(r: IncomingData, log: Logger): Promise<IncomingData> {
+async function validate(
+  r: IncomingData,
+  log: Logger
+): Promise<{ valid: IncomingData | null; invalid: Response[] }> {
   const { protobuf } = r;
   const classId = protobuf.getExternalClassUuid();
   const students = protobuf.getExternalStudentUuidList();
@@ -57,20 +62,68 @@ async function validate(r: IncomingData, log: Logger): Promise<IncomingData> {
       {},
       ['Talk to someone in the CSI team if you think we need to support this']
     );
+
+  const invalidResponses = [];
   const schoolId = schoolIds.values().next().value;
 
-  const { invalid } = await Link.usersBelongToSchool(
-    [...students, ...teachers],
-    schoolId,
-    log
-  );
-  if (invalid.length === 0) return r;
-  throw new OnboardingError(
-    MachineError.VALIDATION,
-    `Users: ${invalid.join(
-      ', '
-    )} do not belong to the same parent school as the class ${classId}. When attempting to add users to a class they must share the same parent school`,
-    Category.REQUEST,
-    log
-  );
+  // Process Students
+  {
+    const { valid, invalid } = await Link.usersBelongToSchool(
+      students,
+      schoolId,
+      log
+    );
+    r.protobuf.setExternalStudentUuidList(valid);
+    r.data.externalStudentUuidList = valid;
+    for (const id of invalid) {
+      const resp = new Response()
+        .setSuccess(false)
+        .setRequestId(requestIdToProtobuf(r.requestId))
+        .setEntity(PbEntity.USER)
+        .setEntityId(id)
+        .setErrors(
+          new OnboardingError(
+            MachineError.VALIDATION,
+            `Student: ${id} can not be added to class ${classId} as they do not share the same parent school`,
+            Category.REQUEST,
+            log
+          ).toProtobufError()
+        );
+      invalidResponses.push(resp);
+    }
+  }
+
+  // Process Teachers
+  {
+    const { valid, invalid } = await Link.usersBelongToSchool(
+      teachers,
+      schoolId,
+      log
+    );
+    r.protobuf.setExternalTeacherUuidList(valid);
+    r.data.externalTeacherUuidList = valid;
+    for (const id of invalid) {
+      const resp = new Response()
+        .setSuccess(false)
+        .setRequestId(requestIdToProtobuf(r.requestId))
+        .setEntity(PbEntity.USER)
+        .setEntityId(id)
+        .setErrors(
+          new OnboardingError(
+            MachineError.VALIDATION,
+            `Teacher: ${id} can not be added to class ${classId} as they do not share the same parent school`,
+            Category.REQUEST,
+            log
+          ).toProtobufError()
+        );
+      invalidResponses.push(resp);
+    }
+  }
+  const valid =
+    r.data.externalStudentUuidList.length === 0 &&
+    r.data.externalTeacherUuidList.length === 0
+      ? null
+      : r;
+
+  return { valid, invalid: invalidResponses };
 }
