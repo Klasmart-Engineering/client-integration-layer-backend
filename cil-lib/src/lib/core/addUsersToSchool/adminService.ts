@@ -35,9 +35,13 @@ export async function sendRequest(
 
   // This is some nastiness needed because the admin service requires
   // that the school ID is unique within any given batch array
-  const requestData: Map<string, AddUsersToSchool>[] = [new Map()];
+  const requestBucket: Map<string, AddUsersToSchool>[] = [new Map()];
+  const indexChecker = new Map();
   for (const op of operations) {
     const kidsloopSchoolId = op.data.kidsloopSchoolUuid!;
+    const data = op.data.userIds!;
+    addChunkToRequests(kidsloopSchoolId, data, requestBucket, indexChecker);
+
     for (const user of op.data.userIds || []) {
       if (!usersMapping.has(kidsloopSchoolId))
         usersMapping.set(kidsloopSchoolId, new Map());
@@ -47,30 +51,10 @@ export async function sendRequest(
         external: user.external,
       });
     }
-
-    const data = { ...op.data };
-    let haveAdded = false;
-    const schoolId = data.kidsloopSchoolUuid!;
-    for (let i = 0; i < requestData.length; i += 1) {
-      if (requestData[i].has(schoolId)) continue;
-      requestData[i].set(schoolId, {
-        userIds: data.userIds!.map(({ kidsloop }) => kidsloop),
-        schoolId,
-      });
-      haveAdded = true;
-      break;
-    }
-    if (!haveAdded) {
-      const m = new Map();
-      m.set(schoolId, {
-        userIds: data.userIds!.map(({ kidsloop }) => kidsloop),
-        schoolId,
-      });
-      requestData.push(m);
-    }
   }
-  for (const requestBatch of requestData) {
+  for (const requestBatch of requestBucket) {
     const request = Array.from(requestBatch.values());
+    if (request.length === 0) continue;
     try {
       await admin.addUsersToSchools(request, log);
     } catch (error) {
@@ -211,4 +195,38 @@ function dupeErrors(
     }
   });
   return { valid: retries, invalid: invalidMapping };
+}
+
+const MAX_PER_ARRAY_CAP = 50;
+
+export function addChunkToRequests(
+  schoolId: Uuid,
+  data: { kidsloop: string; external: string }[],
+  requestBucket: Map<Uuid, AddUsersToSchool>[],
+  indexChecker: Map<Uuid, number>
+) {
+  if (data.length === 0) return;
+
+  let dataToAdd = [...data];
+  while (dataToAdd.length > 0) {
+    const requestData = dataToAdd.slice(0, MAX_PER_ARRAY_CAP);
+
+    const idx = indexChecker.get(schoolId) || 0;
+    while (requestBucket.length < idx + 1) requestBucket.push(new Map());
+    if (requestBucket[idx].size >= MAX_PER_ARRAY_CAP) {
+      indexChecker.set(schoolId, idx + 1);
+      addChunkToRequests(schoolId, dataToAdd, requestBucket, indexChecker);
+      return;
+    }
+
+    const payload = {
+      schoolId,
+      userIds: requestData.map(({ kidsloop }) => kidsloop),
+    };
+
+    requestBucket[idx].set(schoolId, payload);
+
+    dataToAdd = dataToAdd.slice(MAX_PER_ARRAY_CAP);
+    indexChecker.set(schoolId, idx + 1);
+  }
 }

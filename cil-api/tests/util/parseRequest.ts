@@ -96,7 +96,9 @@ export const parseResponsesForErrorMessages = (
       const e = res.errors;
       errorDetails = [
         ...errorDetails,
-        ...(e.request?.errorsList?.map((err) => err.detailsList).flat() || []),
+        ...(e.invalidRequest?.errorsList
+          ?.map((err) => err.detailsList)
+          .flat() || []),
         ...(e.validation?.errorsList?.map((err) => err.detailsList).flat() ||
           []),
         ...(e.internalServer?.detailsList || []),
