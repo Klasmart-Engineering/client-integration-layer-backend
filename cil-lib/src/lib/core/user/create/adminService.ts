@@ -51,12 +51,14 @@ export async function sendRequest(
 
     const m = new Map<string, IncomingData>();
     for (const s of users) {
-      const key = `${s.data.givenName}|${s.data.familyName}|${s.data.email}|${s.data.phone}`;
+      const key = `${s.data.givenName}|${s.data.familyName}|${s.data.email}|${s.data.phone}|${s.data.username}`;
       m.set(key, s);
     }
 
     for (const s of result) {
-      const key = `${s.givenName}|${s.familyName}|${s.email}|${s.phone}`;
+      const key = `${s.givenName}|${s.familyName}|${s.email ?? ''}|${
+        s.phone ?? ''
+      }|${s.username ?? ''}`;
       const user = m.get(key);
       if (!user)
         throw new OnboardingError(

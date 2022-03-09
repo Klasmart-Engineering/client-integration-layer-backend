@@ -385,6 +385,23 @@ describe('When receiving requests over the web the server should', () => {
     expect(allSuccess).to.be.false;
   }).timeout(50000);
 
+  it('onboarding users with optional fields', async () => {
+    const res = await populateAdminService();
+    const reqs = new TestCaseBuilder()
+      .addValidOrgs(res)
+      .addValidSchoolsToEachOrg(1)
+      .addValidClassesToEachSchool(2)
+      .addUser({ username: '' })
+      .addUser({ email: '' })
+      .addUser({ phone: '' })
+      .finalize();
+    const result = await onboard(reqs, client);
+    const allSuccess = result
+      .toObject()
+      .responsesList.every((r) => r.success === true);
+    expect(allSuccess).to.be.true;
+  }).timeout(50000);
+
   it('fail the user onboarding if none of the fields email or phone was provided', async () => {
     const res = await populateAdminService();
     const reqs = new TestCaseBuilder()

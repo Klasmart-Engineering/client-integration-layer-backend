@@ -29,6 +29,7 @@ export const CREATE_USERS = gql`
           email
           phone
         }
+        username
       }
     }
   }

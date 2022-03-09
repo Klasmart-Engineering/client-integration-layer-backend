@@ -341,6 +341,7 @@ export class AdminService {
       familyName: string;
       email?: string;
       phone?: string;
+      username?: string;
     }[]
   > {
     const transformer = (responses: {
@@ -349,15 +350,19 @@ export class AdminService {
         givenName: string;
         familyName: string;
         contactInfo: ContactInfo;
+        username: string;
       }[];
     }) =>
-      responses.users.map(({ id, givenName, familyName, contactInfo }) => ({
-        id,
-        givenName,
-        familyName,
-        phone: contactInfo.phone,
-        email: contactInfo.email,
-      }));
+      responses.users.map(
+        ({ id, givenName, familyName, contactInfo, username }) => ({
+          id,
+          givenName,
+          familyName,
+          phone: contactInfo.phone,
+          email: contactInfo.email,
+          username,
+        })
+      );
     const u = await this.sendMutation(
       CREATE_USERS,
       { users },
