@@ -134,7 +134,7 @@ export class User {
           klUuid: true,
         },
       });
-      const invalidSet = new Set(ids.map(id => id.toLowerCase()));
+      const invalidSet = new Set(ids.map((id) => id.toLowerCase()));
       for (const { externalUuid } of users) {
         invalidSet.delete(externalUuid);
       }
