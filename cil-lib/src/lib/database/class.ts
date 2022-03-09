@@ -199,7 +199,7 @@ export class Class {
         })
       ).map((c) => c.externalUuid);
 
-      const invalidSet = new Set(ids.map((id) => id.toLowerCase()));
+      const invalidSet = new Set(ids);
       for (const id of validSet) invalidSet.delete(id);
       const invalid = Array.from(invalidSet);
       if (invalid.length > 0) {

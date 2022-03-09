@@ -36,6 +36,8 @@ import {
   ICreateUser,
 } from '.';
 
+const dedupeArray = <T>(arr: T[]) => Array.from(new Set(arr));
+
 export interface IdTracked<T extends Message, U> {
   requestId: RequestId;
   protobuf: T;
@@ -69,22 +71,43 @@ export class RequestBatch {
       switch (req.getPayloadCase()) {
         case OnboardingRequest.PayloadCase.ORGANIZATION: {
           key = Operation.CREATE_ORGANIZATION;
-          request = req.getOrganization();
+          const temp = req.getOrganization()!;
+          temp.setExternalUuid(temp.getExternalUuid().toLowerCase());
+          request = temp;
           break;
         }
         case OnboardingRequest.PayloadCase.SCHOOL: {
           key = Operation.CREATE_SCHOOL;
-          request = req.getSchool();
+          const temp = req.getSchool()!;
+          temp
+            .setExternalUuid(temp.getExternalUuid().toLowerCase())
+            .setExternalOrganizationUuid(
+              temp.getExternalOrganizationUuid().toLowerCase()
+            );
+          request = temp;
           break;
         }
         case OnboardingRequest.PayloadCase.CLASS: {
           key = Operation.CREATE_CLASS;
-          request = req.getClass();
+          const temp = req.getClass()!;
+          temp
+            .setExternalUuid(temp.getExternalUuid().toLowerCase())
+            .setExternalSchoolUuid(temp.getExternalSchoolUuid().toLowerCase())
+            .setExternalOrganizationUuid(
+              temp.getExternalOrganizationUuid().toLowerCase()
+            );
+          request = temp;
           break;
         }
         case OnboardingRequest.PayloadCase.USER: {
           key = Operation.CREATE_USER;
-          request = req.getUser();
+          const temp = req.getUser()!;
+          temp
+            .setExternalUuid(temp.getExternalUuid().toLowerCase())
+            .setExternalOrganizationUuid(
+              temp.getExternalOrganizationUuid().toLowerCase()
+            );
+          request = temp;
           break;
         }
         case OnboardingRequest.PayloadCase.LINK_ENTITIES: {
@@ -97,37 +120,112 @@ export class RequestBatch {
           switch (r.getLinkCase()) {
             case Link.LinkCase.ADD_USERS_TO_ORGANIZATION: {
               key = Operation.ADD_USERS_TO_ORGANIZATION;
-              request = r.getAddUsersToOrganization();
+              const temp = r.getAddUsersToOrganization()!;
+              temp
+                .setExternalOrganizationUuid(
+                  temp.getExternalOrganizationUuid().toLowerCase()
+                )
+                .setExternalUserUuidsList(
+                  dedupeArray(
+                    temp
+                      .getExternalUserUuidsList()
+                      .map((id) => id.toLowerCase())
+                  )
+                )
+                .setRoleIdentifiersList(
+                  dedupeArray(temp.getRoleIdentifiersList())
+                );
+              request = temp;
               break;
             }
             case Link.LinkCase.ADD_ORGANIZATION_ROLES_TO_USER: {
               key = Operation.ADD_ORGANIZATION_ROLES_TO_USER;
-              request = r.getAddOrganizationRolesToUser();
+              const temp = r.getAddOrganizationRolesToUser()!;
+              temp
+                .setExternalOrganizationUuid(
+                  temp.getExternalOrganizationUuid().toLowerCase()
+                )
+                .setExternalUserUuid(temp.getExternalUserUuid().toLowerCase())
+                .setRoleIdentifiersList(
+                  dedupeArray(temp.getRoleIdentifiersList())
+                );
+              request = temp;
               break;
             }
             case Link.LinkCase.ADD_PROGRAMS_TO_SCHOOL: {
               key = Operation.ADD_PROGRAMS_TO_SCHOOL;
-              request = r.getAddProgramsToSchool();
+              const temp = r.getAddProgramsToSchool()!;
+              temp
+                .setExternalSchoolUuid(
+                  temp.getExternalSchoolUuid().toLowerCase()
+                )
+                .setProgramNamesList(dedupeArray(temp.getProgramNamesList()));
+              request = temp;
               break;
             }
             case Link.LinkCase.ADD_CLASSES_TO_SCHOOL: {
               key = Operation.ADD_CLASSES_TO_SCHOOL;
-              request = r.getAddClassesToSchool();
+              const temp = r.getAddClassesToSchool()!;
+              temp
+                .setExternalSchoolUuid(
+                  temp.getExternalSchoolUuid().toLowerCase()
+                )
+                .setExternalClassUuidsList(
+                  dedupeArray(
+                    temp
+                      .getExternalClassUuidsList()
+                      .map((id) => id.toLowerCase())
+                  )
+                );
+              request = temp;
               break;
             }
             case Link.LinkCase.ADD_USERS_TO_SCHOOL: {
               key = Operation.ADD_USERS_TO_SCHOOL;
-              request = r.getAddUsersToSchool();
+              const temp = r.getAddUsersToSchool()!;
+              temp
+                .setExternalSchoolUuid(
+                  temp.getExternalSchoolUuid().toLowerCase()
+                )
+                .setExternalUserUuidsList(
+                  dedupeArray(
+                    temp
+                      .getExternalUserUuidsList()
+                      .map((id) => id.toLowerCase())
+                  )
+                );
+              request = temp;
               break;
             }
             case Link.LinkCase.ADD_PROGRAMS_TO_CLASS: {
               key = Operation.ADD_PROGRAMS_TO_CLASS;
-              request = r.getAddProgramsToClass();
+              const temp = r.getAddProgramsToClass()!;
+              temp
+                .setExternalClassUuid(temp.getExternalClassUuid().toLowerCase())
+                .setProgramNamesList(dedupeArray(temp.getProgramNamesList()));
+              request = temp;
               break;
             }
             case Link.LinkCase.ADD_USERS_TO_CLASS: {
               key = Operation.ADD_USERS_TO_CLASS;
-              request = r.getAddUsersToClass();
+              const temp = r.getAddUsersToClass()!;
+              temp
+                .setExternalClassUuid(temp.getExternalClassUuid().toLowerCase())
+                .setExternalStudentUuidList(
+                  dedupeArray(
+                    temp
+                      .getExternalStudentUuidList()
+                      .map((id) => id.toLowerCase())
+                  )
+                )
+                .setExternalTeacherUuidList(
+                  dedupeArray(
+                    temp
+                      .getExternalTeacherUuidList()
+                      .map((id) => id.toLowerCase())
+                  )
+                );
+              request = temp;
               break;
             }
             default:
@@ -164,7 +262,7 @@ export class RequestBatch {
       } else {
         reqId = {
           id: 'NOT PROVIDED',
-          n: -1,
+          n: 'NOT PROVIDED',
         };
       }
       arr.push({
