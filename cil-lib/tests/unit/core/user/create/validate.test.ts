@@ -255,6 +255,7 @@ describe('create user', () => {
           familyName: 'Name',
           phone: req.getRequestsList()[0].getUser()!.getPhone(),
           email: req.getRequestsList()[0].getUser()!.getEmail(),
+          username: req.getRequestsList()[0].getUser()!.getUsername(),
         },
       ]);
       const resp = await processOnboardingRequest(req, LOG_STUB);
