@@ -1,13 +1,16 @@
+import Joi from 'joi';
 import { Logger } from 'pino';
 
-import { Class, Link } from '../../..';
+import { Class, Entity, JOI_VALIDATION_SETTINGS, Link } from '../../..';
 import {
+  BASE_PATH,
   Category,
   convertErrorToProtobuf,
+  Errors,
   MachineError,
   OnboardingError,
 } from '../../errors';
-import { Entity as PbEntity, Response } from '../../protos';
+import { AddUsersToClass, Entity as PbEntity, Response } from '../../protos';
 import { requestIdToProtobuf } from '../batchRequest';
 import { Result } from '../process';
 
@@ -48,6 +51,8 @@ async function validate(
   log: Logger
 ): Promise<{ valid: IncomingData | null; invalid: Response[] }> {
   const { protobuf } = r;
+  schemaValidation(protobuf.toObject(), log);
+
   const classId = protobuf.getExternalClassUuid();
   const students = protobuf.getExternalStudentUuidList();
   const teachers = protobuf.getExternalTeacherUuidList();
@@ -127,3 +132,34 @@ async function validate(
 
   return { valid, invalid: invalidResponses };
 }
+
+function schemaValidation(entity: AddUsersToClass.AsObject, log: Logger): void {
+  const errors = new Map();
+  const { error } = schema.validate(entity, JOI_VALIDATION_SETTINGS);
+  if (error) {
+    for (const { path: p, message } of error.details) {
+      const e =
+        errors.get(p) ||
+        new OnboardingError(
+          MachineError.VALIDATION,
+          `${Entity.USER} failed validation`,
+          Category.REQUEST,
+          log,
+          [...BASE_PATH, 'addUsersToClass', ...p.map((s) => `${s}`)]
+        );
+      e.details.push(message);
+      errors.set(p, e);
+    }
+  }
+  if (errors.size > 0) throw new Errors(Array.from(errors.values()));
+}
+
+export const schema = Joi.object({
+  externalClassUuid: Joi.string()
+    .guid({ version: ['uuidv4'] })
+    .required(),
+
+  externalTeacherUuidList: Joi.any(),
+
+  externalStudentUuidList: Joi.any(),
+});

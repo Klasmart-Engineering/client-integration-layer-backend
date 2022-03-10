@@ -33,6 +33,14 @@ export const VALID_ADD_USERS_TO_CLASS: AddUsersToClassTestCase[] = [
   },
 ];
 
+export const INVALID_ADD_USERS_TO_CLASS: AddUsersToClassTestCase[] = [
+  {
+    scenario: 'the class uuid is empty',
+    addUsersToClass: setUpAddUsersToClass(false, true, true),
+    message: '"externalClassUuid" is not allowed to be empty'
+  },
+];
+
 describe('add users to class validation', () => {
   let linkStub: SinonStub;
   let classStub: SinonStub;
@@ -127,6 +135,17 @@ describe('add users to class validation', () => {
   });
 });
 
+describe.only('should fail when ', () => {
+  INVALID_ADD_USERS_TO_CLASS.forEach(({ scenario, addUsersToClass, message }) => {
+    it(scenario, async () => {
+      const req = wrapRequest(addUsersToClass);
+      const resp = await makeCommonAssertions(req, message);
+      const response = resp.toObject().responsesList[0];
+      expect(response.errors?.validation).not.to.be.undefined;
+    });
+  });
+});
+
 function setUpAddUsersToClass(
   classId = true,
   students = true,
@@ -141,7 +160,7 @@ function setUpAddUsersToClass(
 
 async function makeCommonAssertions(
   req: BatchOnboarding,
-  expectedMessage: string
+  expectedMessage?: string
 ): Promise<Responses> {
   try {
     const resp = await processOnboardingRequest(req, LOG_STUB);
@@ -175,7 +194,7 @@ function assertValidationError(
   response: Response.AsObject,
   expectedEntityId: string,
   req: BatchOnboarding,
-  expectedMessage: string
+  expectedMessage?: string
 ) {
   expect(response.success).to.be.false;
   expect(response.requestId).to.eql(
@@ -184,9 +203,11 @@ function assertValidationError(
   expect(response.entityId).to.equal(expectedEntityId);
   expect(response.entity).to.equal(Entity.USER);
   expect(response.errors?.validation).not.to.be.undefined;
-  expect(response.errors?.validation?.errorsList[0].detailsList).to.include(
-    expectedMessage
-  );
+  if (expectedMessage) {
+    expect(response.errors?.validation?.errorsList[0].detailsList).to.include(
+      expectedMessage
+    );
+  }
 }
 
 function assertValid(response: Response, expectedEntityId: string) {
