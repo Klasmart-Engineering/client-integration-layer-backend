@@ -388,8 +388,7 @@ describe('When receiving requests over the web the server should', () => {
     }
   ).timeout(50000);
 
-  // Needs to be re-visited
-  it.skip('onboarding users with optional fields', async () => {
+  it('onboarding users with optional fields', async () => {
     const res = await populateAdminService();
     const reqs = new TestCaseBuilder()
       .addValidOrgs(res)

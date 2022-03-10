@@ -64,6 +64,23 @@ export const VALID_USERS: UserTestCase[] = [
     scenario: 'contains everything but short code',
     user: setUpUser({ ...USER, shortCode: false }),
   },
+  {
+    scenario: 'the given name is a single character',
+    user: (() => {
+      const user = setUpUser();
+      user.setGivenName(uuidv4().substring(0, 1));
+      console.log('given name', user.getGivenName());
+      return user;
+    })(),
+  },
+  {
+    scenario: 'the family name is a single character',
+    user: (() => {
+      const user = setUpUser();
+      user.setFamilyName(uuidv4().substring(0, 1));
+      return user;
+    })(),
+  },
 ];
 
 export const INVALID_USERS: UserTestCase[] = [
@@ -79,7 +96,7 @@ export const INVALID_USERS: UserTestCase[] = [
     scenario: 'the given name is less than the minimum character limit',
     user: (() => {
       const s = setUpUser();
-      s.setGivenName('A');
+      s.setGivenName('');
       return s;
     })(),
   },
@@ -97,7 +114,7 @@ export const INVALID_USERS: UserTestCase[] = [
     scenario: 'the family name is less than the minimum character limit',
     user: (() => {
       const s = setUpUser();
-      s.setFamilyName('A');
+      s.setFamilyName('');
       return s;
     })(),
   },
@@ -251,8 +268,8 @@ describe('create user', () => {
       createUsersStub.resolves([
         {
           id: uuidv4(),
-          givenName: 'Name',
-          familyName: 'Name',
+          givenName: req.getRequestsList()[0].getUser()!.getGivenName(),
+          familyName: req.getRequestsList()[0].getUser()!.getFamilyName(),
           phone: req.getRequestsList()[0].getUser()!.getPhone(),
           email: req.getRequestsList()[0].getUser()!.getEmail(),
           username: req.getRequestsList()[0].getUser()!.getUsername(),
@@ -262,6 +279,7 @@ describe('create user', () => {
       const responses = resp.getResponsesList();
       expect(responses).to.have.length(1);
       expect(responses[0]).not.to.be.undefined;
+      console.log('responses', JSON.stringify(responses[0].getErrors()));
       expect(responses[0].getSuccess()).to.be.true;
     });
   });
