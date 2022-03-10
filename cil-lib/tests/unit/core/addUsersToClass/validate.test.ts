@@ -135,7 +135,7 @@ describe('add users to class validation', () => {
   });
 });
 
-describe.only('should fail when ', () => {
+describe('should fail when ', () => {
   INVALID_ADD_USERS_TO_CLASS.forEach(({ scenario, addUsersToClass, message }) => {
     it(scenario, async () => {
       const req = wrapRequest(addUsersToClass);
