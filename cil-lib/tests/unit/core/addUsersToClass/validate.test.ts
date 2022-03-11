@@ -102,6 +102,15 @@ describe('add users to class validation', () => {
     });
   });
 
+  INVALID_ADD_USERS_TO_CLASS.forEach(({ scenario, addUsersToClass, message }) => {
+    it(`fail when ${scenario}`, async () => {
+      const req = wrapRequest(addUsersToClass);
+      const resp = await makeCommonAssertions(req, message);
+      const response = resp.toObject().responsesList[0];
+      expect(response.errors?.validation).not.to.be.undefined;
+    });
+  });
+
   it('should fail if the link does not exist', async () => {
     const req = wrapRequest(VALID_ADD_USERS_TO_CLASS[0].addUsersToClass);
     linkStub.rejects(
@@ -132,17 +141,6 @@ describe('add users to class validation', () => {
       )
     );
     await makeCommonAssertions(req, 'Invalid Class');
-  });
-});
-
-describe('should fail when ', () => {
-  INVALID_ADD_USERS_TO_CLASS.forEach(({ scenario, addUsersToClass, message }) => {
-    it(scenario, async () => {
-      const req = wrapRequest(addUsersToClass);
-      const resp = await makeCommonAssertions(req, message);
-      const response = resp.toObject().responsesList[0];
-      expect(response.errors?.validation).not.to.be.undefined;
-    });
   });
 });
 
