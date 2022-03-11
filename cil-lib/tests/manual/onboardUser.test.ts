@@ -2,10 +2,9 @@ import { expect } from 'chai';
 import { v4 as uuidv4 } from 'uuid';
 
 import { Gender, Responses, User } from '../../../cil-lib/src/lib/protos';
-import { ExternalUuid } from '../../src';
 import { wrapRequest } from '../util';
 
-import { createOrg, getUser, onboard, setUpUser as createUser } from './util';
+import { onboard } from './util';
 
 const USER = Object.freeze({
   externalUuid: true,
@@ -100,29 +99,6 @@ function setUpUser(user = USER): User {
   if (roleIdentifiers) u.addRoleIdentifiers('Student');
   return u;
 }
-
-describe('Onboard user missing optional fields', () => {
-  let orgId: ExternalUuid;
-
-  before(async () => {
-    orgId = await createOrg();
-  });
-
-  it('should be success', async () => {
-    const user = createUser(orgId, uuidv4()).setUsername('').setDateOfBirth('');
-    const req = wrapRequest(user);
-    const response = await onboard(req);
-
-    expect(response.getResponsesList()).to.be.length(1);
-    const resp = response.getResponsesList()[0];
-    expect(resp.getSuccess()).to.be.true;
-    expect(resp.getEntityId()).to.be.equal(user.getExternalUuid());
-    const adminUser = await getUser(user.getExternalUuid());
-    expect(adminUser).to.be.not.undefined;
-    expect(adminUser!.id).to.be.not.undefined;
-    expect(adminUser!.username).to.be.not.undefined;
-  });
-});
 
 describe.skip('User Onboard Validation', () => {
   INVALID_USERS.forEach(({ scenario, user }) => {

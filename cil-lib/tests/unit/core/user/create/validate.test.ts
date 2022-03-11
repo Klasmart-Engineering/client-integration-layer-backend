@@ -69,7 +69,6 @@ export const VALID_USERS: UserTestCase[] = [
     user: (() => {
       const user = setUpUser();
       user.setGivenName(uuidv4().substring(0, 1));
-      console.log('given name', user.getGivenName());
       return user;
     })(),
   },
@@ -231,7 +230,6 @@ describe('create user', () => {
   let createUsersStub: SinonStub;
 
   beforeEach(() => {
-    process.env.ADMIN_SERVICE_API_KEY = uuidv4();
     createUsersStub = sinon.stub().resolves([
       {
         id: uuidv4(),
@@ -279,7 +277,6 @@ describe('create user', () => {
       const responses = resp.getResponsesList();
       expect(responses).to.have.length(1);
       expect(responses[0]).not.to.be.undefined;
-      console.log('responses', JSON.stringify(responses[0].getErrors()));
       expect(responses[0].getSuccess()).to.be.true;
     });
   });

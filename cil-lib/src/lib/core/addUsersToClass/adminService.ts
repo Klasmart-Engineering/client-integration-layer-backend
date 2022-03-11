@@ -2,12 +2,15 @@ import { Logger } from 'pino';
 
 import { ExternalUuid, Uuid } from '../../..';
 import {
+  Category,
   Errors,
   INTERNAL_SERVER_ERROR_PROTOBUF,
+  MachineError,
   OnboardingError,
 } from '../../errors';
-import { Entity, Response } from '../../protos';
+import { Entity, Error, Response } from '../../protos';
 import { AdminService } from '../../services';
+import { AdminDupeError } from '../../services/adminService';
 import {
   AddStudentsToClassInput,
   AddTeachersToClassInput,
@@ -55,7 +58,8 @@ async function processWhileChunking(
   data: IncomingData[],
   log: Logger
 ): Promise<{ valid: IncomingData[]; invalid: Response[] }> {
-  const invalid: Response[] = [];
+  let invalidTeachers: Response[] = [];
+  let invalidStudents: Response[] = [];
   const studentsRequests: Map<string, AddStudentsToClassInput>[] = [new Map()];
   const teachersRequests: Map<string, AddTeachersToClassInput>[] = [new Map()];
   const studentsIndexChecker = new Map<string, number>();
@@ -100,79 +104,226 @@ async function processWhileChunking(
 
   const admin = await AdminService.getInstance();
 
-  for (const r of studentsRequests) {
-    const req = Array.from(r.values());
-    if (req.length === 0) continue;
+  for (const studentRequest of studentsRequests) {
+    const addStudentsToClasses = Array.from(studentRequest.values());
+    if (addStudentsToClasses.length === 0) continue;
     try {
-      await admin.addStudentsToClasses(req, log);
-    } catch (e) {
-      log.error(
-        `Failed when attempting to add a chunked batch of students to a class in the admin service`
-      );
-      for (const request of req) {
-        for (const id of request.studentIds) {
-          const metadata = internalToExternal.get(id);
-          if (!metadata) continue;
-          const op = ops.get(metadata.requestId);
-          if (!op) continue;
-          const resp = new Response()
-            .setSuccess(false)
-            .setRequestId(requestIdToProtobuf(op.requestId))
-            .setEntity(Entity.USER)
-            .setEntityId(metadata.external)
-            .setErrors(INTERNAL_SERVER_ERROR_PROTOBUF);
-          invalid.push(resp);
-          const updatedData = (op.data.externalStudentUuidList || []).filter(
-            (existingId) => existingId !== metadata.external
-          );
-          op.data.externalStudentUuidList = updatedData;
-          op.protobuf.setExternalStudentUuidList(updatedData);
+      await admin.addStudentsToClasses(addStudentsToClasses, log);
+    } catch (error) {
+      if (error instanceof AdminDupeError) {
+        const retries = studentDupeErrors(error, addStudentsToClasses);
+
+        invalidStudents = invalidStudents.concat(
+          toStudentDupeErrorResponses(
+            retries.invalidIds,
+            internalToExternal,
+            ops,
+            log
+          )
+        );
+
+        if (retries.valid.length > 0) {
+          try {
+            await admin.addStudentsToClasses(retries.valid, log);
+          } catch (error) {
+            log.error(
+              `Failed when attempting to retry de-duped add students to a class in the admin service`
+            );
+            invalidStudents.concat(
+              studentsToClassesInternalErrors(
+                retries.valid,
+                internalToExternal,
+                ops
+              )
+            );
+          }
         }
+      } else {
+        log.error(
+          `Failed when attempting to add a chunked batch of students to a class in the admin service`
+        );
+        invalidStudents.concat(
+          studentsToClassesInternalErrors(
+            addStudentsToClasses,
+            internalToExternal,
+            ops
+          )
+        );
       }
     }
   }
-  for (const r of teachersRequests) {
-    const req = Array.from(r.values());
-    if (req.length === 0) continue;
+  for (const teacherRequest of teachersRequests) {
+    const addTeachersToClasses = Array.from(teacherRequest.values());
+    if (addTeachersToClasses.length === 0) continue;
     try {
-      await admin.addTeachersToClasses(req, log);
-    } catch (e) {
-      log.error(
-        `Failed when attempting to add a chunked batch of teachers to a class in the admin service`
-      );
-      for (const request of req) {
-        for (const id of request.teacherIds) {
-          const metadata = internalToExternal.get(id);
-          if (!metadata) continue;
-          const op = ops.get(metadata.requestId);
-          if (!op) continue;
-          const resp = new Response()
-            .setSuccess(false)
-            .setRequestId(requestIdToProtobuf(op.requestId))
-            .setEntity(Entity.USER)
-            .setEntityId(metadata.external)
-            .setErrors(INTERNAL_SERVER_ERROR_PROTOBUF);
-          invalid.push(resp);
-          const updatedData = (op.data.externalTeacherUuidList || []).filter(
-            (existingId) => existingId !== metadata.external
-          );
-          op.data.externalTeacherUuidList = updatedData;
-          op.protobuf.setExternalTeacherUuidList(updatedData);
+      await admin.addTeachersToClasses(addTeachersToClasses, log);
+    } catch (error) {
+      if (error instanceof AdminDupeError) {
+        const retries = teacherDupeErrors(error, addTeachersToClasses);
+
+        invalidTeachers = invalidTeachers.concat(
+          toTeacherDupeErrorResponses(
+            retries.invalidIds,
+            internalToExternal,
+            ops,
+            log
+          )
+        );
+
+        if (retries.valid.length > 0) {
+          try {
+            await admin.addTeachersToClasses(retries.valid, log);
+          } catch (error) {
+            log.error(
+              `Failed when attempting to retry de-duped add teachers to a class in the admin service`
+            );
+            invalidTeachers = invalidTeachers.concat(
+              teachersToClassesInternalErrors(
+                retries.valid,
+                internalToExternal,
+                ops
+              )
+            );
+          }
         }
+      } else {
+        log.error(
+          `Failed when attempting to add a chunked batch of teachers to a class in the admin service`
+        );
+        invalidTeachers = invalidTeachers.concat(
+          teachersToClassesInternalErrors(
+            addTeachersToClasses,
+            internalToExternal,
+            ops
+          )
+        );
       }
     }
   }
+  const invalidTeacherExternalUserIds = new Set(
+    invalidTeachers.map((resp) => resp.getEntityId())
+  );
+  const invalidStudentExternalUserIds = new Set(
+    invalidStudents.map((resp) => resp.getEntityId())
+  );
 
-  const newOps = Array.from(ops.values()).filter((op) => {
-    if (
-      op.protobuf.getExternalStudentUuidList().length === 0 &&
-      op.protobuf.getExternalTeacherUuidList().length === 0
-    )
-      return false;
-    return true;
-  });
+  return {
+    valid: validOps(
+      ops,
+      invalidTeacherExternalUserIds,
+      invalidStudentExternalUserIds
+    ),
+    invalid: invalidTeachers.concat(invalidStudents),
+  };
+}
 
-  return { valid: newOps, invalid };
+function toTeacherDupeErrorResponses(
+  invalidIds: Set<Uuid>,
+  internalToExternal: Map<
+    string,
+    { requestId: string; external: ExternalUuid }
+  >,
+  ops: Map<string, IncomingData>,
+  log: Logger
+): Response[] {
+  return toDupeErrorResponses(
+    invalidIds,
+    internalToExternal,
+    ops,
+    'teacher',
+    log
+  );
+}
+
+function toStudentDupeErrorResponses(
+  invalidIds: Set<Uuid>,
+  internalToExternal: Map<
+    string,
+    { requestId: string; external: ExternalUuid }
+  >,
+  ops: Map<string, IncomingData>,
+  log: Logger
+): Response[] {
+  return toDupeErrorResponses(
+    invalidIds,
+    internalToExternal,
+    ops,
+    'student',
+    log
+  );
+}
+
+function toDupeErrorResponses(
+  invalidIds: Set<Uuid>,
+  internalToExternal: Map<
+    string,
+    { requestId: string; external: ExternalUuid }
+  >,
+  ops: Map<string, IncomingData>,
+  user: 'teacher' | 'student',
+  log: Logger
+): Response[] {
+  return Array.from(invalidIds)
+    .filter((teacherId) => internalToExternal.has(teacherId))
+    .filter((teacherId) => {
+      const mapping = internalToExternal.get(teacherId);
+      return ops.has(mapping!.requestId);
+    })
+    .map((id) => {
+      const mapping = internalToExternal.get(id)!;
+      const op = ops.get(mapping!.requestId)!;
+
+      return entityAlreadyExistsError(
+        op.requestId,
+        mapping.external,
+        op.protobuf.getExternalClassUuid(),
+        user,
+        log
+      );
+    });
+}
+
+function validOps(
+  ops: Map<string, IncomingData>,
+  invalidTeacherExternalUserIds: Set<string>,
+  invalidStudentExternalUserIds: Set<string>
+) {
+  return Array.from(ops.values())
+    .filter((op) => {
+      if (
+        op.protobuf.getExternalStudentUuidList().length === 0 &&
+        op.protobuf.getExternalTeacherUuidList().length === 0
+      )
+        return false;
+      return true;
+    })
+    .map((op) => {
+      if (invalidTeacherExternalUserIds.size > 0) {
+        const valid =
+          op.data.externalTeacherUuidList?.filter(
+            (id) => !invalidTeacherExternalUserIds.has(id)
+          ) ?? [];
+        op.data.externalTeacherUuidList = valid;
+        op.data.teacherUuids = op.data.teacherUuids?.filter(
+          (id) => !invalidTeacherExternalUserIds.has(id.external)
+        );
+        op.protobuf.setExternalTeacherUuidList(valid);
+      }
+
+      if (invalidStudentExternalUserIds.size > 0) {
+        const valid =
+          op.data.externalStudentUuidList?.filter(
+            (id) => !invalidStudentExternalUserIds.has(id)
+          ) ?? [];
+        op.data.externalStudentUuidList = valid;
+        op.data.studentUuids = op.data.studentUuids?.filter(
+          (id) => !invalidStudentExternalUserIds.has(id.external)
+        );
+        op.protobuf.setExternalStudentUuidList(valid);
+      }
+
+      return op;
+    });
 }
 
 export function addChunkToRequests<T>(
@@ -206,4 +357,177 @@ export function addChunkToRequests<T>(
     dataToAdd = dataToAdd.slice(MAX_PER_ARRAY_CAP);
     indexChecker.set(classId, idx + 1);
   }
+}
+
+export function dupeErrors<T>(
+  error: AdminDupeError,
+  addUsersToClasses: { classId: string; userIds: string[] }[],
+  transformer: (addUsersToClasses: { classId: string; userIds: string[] }) => T
+): { valid: T[]; invalidIds: Set<Uuid> } {
+  const errorNames: Map<Uuid, Set<string>> = error.getDupes();
+
+  const retries: T[] = [];
+  let invalid: Set<Uuid> = new Set();
+  addUsersToClasses.forEach((addTeachersToClass) => {
+    const entityNames = errorNames.get(addTeachersToClass.classId) ?? new Set();
+
+    const invalidIds = new Set(
+      addTeachersToClass.userIds.filter((teacherId) => {
+        return entityNames.has(teacherId);
+      })
+    );
+
+    const validIds = addTeachersToClass.userIds.filter((teacherId) => {
+      return !invalidIds.has(teacherId);
+    });
+
+    if (validIds.length > 0) {
+      retries.push(
+        transformer({
+          classId: addTeachersToClass.classId,
+          userIds: validIds,
+        })
+      );
+    }
+
+    if (invalidIds.size > 0) {
+      invalid = new Set([...invalid, ...invalidIds]);
+    }
+  });
+  return {
+    valid: retries,
+    invalidIds: invalid,
+  };
+}
+
+export function teacherDupeErrors(
+  error: AdminDupeError,
+  addTeachersToClasses: AddTeachersToClassInput[]
+): { valid: AddTeachersToClassInput[]; invalidIds: Set<Uuid> } {
+  const addUsersToClasses = addTeachersToClasses.map((addTeachersToClass) => {
+    return {
+      classId: addTeachersToClass.classId,
+      userIds: addTeachersToClass.teacherIds,
+    };
+  });
+
+  return dupeErrors<AddTeachersToClassInput>(
+    error,
+    addUsersToClasses,
+    (req) => {
+      return {
+        classId: req.classId,
+        teacherIds: req.userIds,
+      };
+    }
+  );
+}
+
+function studentDupeErrors(
+  error: AdminDupeError,
+  addStudentsToClasses: AddStudentsToClassInput[]
+): { valid: AddStudentsToClassInput[]; invalidIds: Set<Uuid> } {
+  const addUsersToClasses = addStudentsToClasses.map((addStudentsToClass) => {
+    return {
+      classId: addStudentsToClass.classId,
+      userIds: addStudentsToClass.studentIds,
+    };
+  });
+
+  return dupeErrors<AddStudentsToClassInput>(
+    error,
+    addUsersToClasses,
+    (req) => {
+      return {
+        classId: req.classId,
+        studentIds: req.userIds,
+      };
+    }
+  );
+}
+
+function studentsToClassesInternalErrors(
+  addStudentsToClasses: AddStudentsToClassInput[],
+  internalToExternal: Map<Uuid, { requestId: string; external: ExternalUuid }>,
+  ops: Map<string, IncomingData>
+): Response[] {
+  const invalid: Response[] = [];
+  for (const request of addStudentsToClasses) {
+    const errors = toInternalServerError(
+      request.studentIds,
+      internalToExternal,
+      ops
+    );
+    invalid.concat(errors);
+  }
+  return invalid;
+}
+
+function teachersToClassesInternalErrors(
+  addTeachersToClasses: AddTeachersToClassInput[],
+  internalToExternal: Map<Uuid, { requestId: string; external: ExternalUuid }>,
+  ops: Map<string, IncomingData>
+): Response[] {
+  const invalid: Response[] = [];
+  for (const request of addTeachersToClasses) {
+    const errors = toInternalServerError(
+      request.teacherIds,
+      internalToExternal,
+      ops
+    );
+    invalid.concat(errors);
+  }
+  return invalid;
+}
+
+function toInternalServerError(
+  ids: Uuid[],
+  internalToExternal: Map<Uuid, { requestId: string; external: ExternalUuid }>,
+  ops: Map<string, IncomingData>
+): Response[] {
+  const invalid = [];
+  for (const id of ids) {
+    const metadata = internalToExternal.get(id);
+    if (!metadata) continue;
+    const op = ops.get(metadata.requestId);
+    if (!op) continue;
+    invalid.push(internalServerError(op.requestId, metadata.external));
+  }
+  return invalid;
+}
+
+function internalServerError(requestId: RequestId, externalUuid: ExternalUuid) {
+  return userError(requestId, externalUuid, INTERNAL_SERVER_ERROR_PROTOBUF);
+}
+
+function entityAlreadyExistsError(
+  requestId: RequestId,
+  externalUuid: ExternalUuid,
+  externalClassUuid: ExternalUuid,
+  user: 'teacher' | 'student',
+  log: Logger
+) {
+  return userError(
+    requestId,
+    externalUuid,
+    new OnboardingError(
+      MachineError.ENTITY_ALREADY_EXISTS,
+      `${user} with external uuid ${externalUuid} has already added to class ${externalClassUuid}`,
+      Category.REQUEST,
+      log
+    ).toProtobufError()
+  );
+}
+
+function userError(
+  requestId: RequestId,
+  externalUuid: ExternalUuid,
+  error: Error
+) {
+  return new Response()
+    .setSuccess(false)
+    .setRequestId(requestIdToProtobuf(requestId))
+    .setEntity(Entity.USER)
+    .setEntityId(externalUuid)
+    .setErrors(error);
 }

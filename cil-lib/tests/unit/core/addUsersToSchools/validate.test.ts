@@ -69,7 +69,6 @@ describe('add users to school ', () => {
   let userDbStub: SinonStub;
 
   beforeEach(() => {
-    process.env.ADMIN_SERVICE_API_KEY = uuidv4();
     const userId = uuidv4();
     const schoolId = uuidv4();
     const validMap = new Map();

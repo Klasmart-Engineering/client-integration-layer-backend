@@ -71,10 +71,6 @@ describe('organization validation', () => {
   let orgStub: SinonStub;
   let orgIdValidStub: SinonStub;
 
-  before(() => {
-    process.env.ADMIN_SERVICE_API_KEY = 'abcdefg';
-  });
-
   beforeEach(() => {
     orgIdValidStub = sinon.stub().rejects();
     sinon.stub(Context, 'getInstance').resolves({

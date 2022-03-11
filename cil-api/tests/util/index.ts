@@ -1,5 +1,4 @@
 import { v4 as uuidv4 } from 'uuid';
-
 import { proto, grpc, Logger, PrismaClient, ExternalUuid } from 'cil-lib';
 import sinon from 'sinon';
 
@@ -38,6 +37,10 @@ export const LOG_STUB: Logger = {
 
 // @ts-ignore
 LOG_STUB.child = () => LOG_STUB as any as Logger;
+
+export function random(): string {
+  return (Math.random() + 1).toString(36).substring(7);
+}
 
 export function wrapRequest(
   requests: proto.OnboardingRequest[]

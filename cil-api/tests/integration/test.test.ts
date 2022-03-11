@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from 'uuid';
 
-import { proto, grpc, Context, protobufToEntity } from 'cil-lib';
+import { proto, grpc, Context, protobufToEntity, ExternalUuid } from 'cil-lib';
 import { expect } from 'chai';
 import { OnboardingServer } from '../../src/lib/api';
 import {
@@ -18,12 +18,18 @@ import {
   parseResponsesForErrorMessages,
   parseResponsesForSuccesses,
 } from '../util/parseRequest';
-import { OnboardingRequest } from 'cil-lib/dist/main/lib/protos';
 import {
   createOrg as createOrgInAdminService,
   createProgramsAndRoles as createRolesAndProgramsInAdminService,
 } from '../util/populateAdminService';
 import { getSchool } from '../util/school';
+import { deleteUsers, getUser, setUpUser } from '../util/user';
+import { IdNameMapper } from 'cil-lib/dist/main/lib/services/adminService';
+import {
+  AddUsersToClass,
+  OnboardingRequest,
+} from 'cil-lib/dist/main/lib/protos';
+import { getClassConnections } from '../util/class';
 
 const { OnboardingClient } = proto;
 
@@ -376,46 +382,81 @@ describe('When receiving requests over the web the server should', () => {
     // Invalid phone number
   }).timeout(50000);
 
-  // Needs to be re-visited
   it.skip(
     'fail onboarding a user which already exists in the system',
     async () => {
       const res = await populateAdminService();
-      const userID = uuidv4();
-      const reqs = new TestCaseBuilder()
-        .addValidOrgs(res)
-        .addValidSchoolsToEachOrg(2)
-        .addValidClassesToEachSchool(2)
-        .addCustomizableUser({ isDuplicate: true, userID: userID })
-        .addCustomizableUser({ isDuplicate: true, userID: userID })
-        // .addCustomizableUser({isDuplicate: true, userID: userID})
-        .finalize();
-      const result = await onboard(reqs, client);
-      // console.log(result.toObject())
-      // Entity already exists
-      // 32 responses
-      const allSuccess = result
-        .toObject()
-        .responsesList.every((r) => r.success === true);
-      expect(allSuccess).to.be.false;
+      const externalUuid = uuidv4();
+      const org = res.keys().next().value;
+
+      const user = setUpUser(org.id, externalUuid);
+      const result = await (
+        await onboard(
+          wrapRequest([
+            new proto.OnboardingRequest().setOrganization(
+              new proto.Organization().setExternalUuid(org.id).setName(org.name)
+            ),
+            new proto.OnboardingRequest().setUser(user),
+          ]),
+          client
+        )
+      ).toObject().responsesList;
+      const allSuccess = result.every((r) => r.success === true);
+      expect(allSuccess).to.be.true;
+
+      const returnedUser = await getUser(externalUuid);
+      expect(returnedUser).to.be.not.undefined;
+
+      await deleteUsers([externalUuid]);
+
+      const dupe = await (
+        await onboard(
+          wrapRequest([new proto.OnboardingRequest().setUser(user)]),
+          client
+        )
+      ).toObject().responsesList;
+
+      expect(dupe).to.be.length(1);
+      expect(dupe.every((r) => r.success === true)).to.be.false;
+      expect(dupe.every((r) => r.errors)).to.be.true;
+      expect(dupe.every((r) => r.errors.entityAlreadyExists)).to.be.true;
     }
   ).timeout(50000);
 
   it('onboarding users with optional fields', async () => {
     const res = await populateAdminService();
+    const externalUuid1 = uuidv4();
+    const externalUuid2 = uuidv4();
+    const externalUuid3 = uuidv4();
+    const externalUuid4 = uuidv4();
     const reqs = new TestCaseBuilder()
       .addValidOrgs(res)
       .addValidSchoolsToEachOrg(1)
       .addValidClassesToEachSchool(2)
-      .addUser({ username: '' })
-      .addUser({ email: '' })
-      .addUser({ phone: '' })
+      .addUser({ username: '', externalUuid: externalUuid1 })
+      .addUser({ email: '', externalUuid: externalUuid2 })
+      .addUser({ phone: '', externalUuid: externalUuid3 })
+      .addUser({ dateOfBirth: '', externalUuid: externalUuid4 })
       .finalize();
     const result = await onboard(reqs, client);
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
     expect(allSuccess).to.be.true;
+
+    const returnedUser1 = await getUser(externalUuid1);
+    const returnedUser2 = await getUser(externalUuid2);
+    const returnedUser3 = await getUser(externalUuid3);
+    const returnedUser4 = await getUser(externalUuid4);
+
+    expect(returnedUser1).to.be.not.undefined;
+    expect(returnedUser1.username).to.be.null;
+    expect(returnedUser2).to.be.not.undefined;
+    expect(returnedUser2.email).to.be.null;
+    expect(returnedUser3).to.be.not.undefined;
+    expect(returnedUser3.phone).to.be.null;
+    expect(returnedUser4).to.be.not.undefined;
+    expect(returnedUser4.dateOfBirth).to.be.null;
   }).timeout(50000);
 
   it('fail the user onboarding if none of the fields email or phone was provided', async () => {
@@ -536,6 +577,317 @@ describe('When receiving requests over the web the server should', () => {
     expect(school.externalOrgUuid).to.be.equal(org.id);
   }).timeout(50000);
 
+  it('handle dupe adding users to classes that already exists', async () => {
+    const res = await populateAdminService();
+    const org: IdNameMapper = res.keys().next().value;
+    const classId = uuidv4();
+    const teacherId1 = uuidv4();
+    const teacherId2 = uuidv4();
+    const teacherId3 = uuidv4();
+    const studentId1 = uuidv4();
+    const studentId2 = uuidv4();
+    const reqs = new TestCaseBuilder()
+      .addValidOrgs(res)
+      .addSchool({ externalOrganizationUuid: org.id })
+      .addClass({ externalOrganizationUuid: org.id, externalUuid: classId })
+      .addUser({
+        addToValidClasses: 1,
+        externalOrganizationUuid: org.id,
+        externalUuid: teacherId1,
+        isTeacher: true,
+      })
+      .addUser({
+        addToValidClasses: 1,
+        externalOrganizationUuid: org.id,
+        externalUuid: teacherId2,
+        isTeacher: true,
+      })
+      .addUser({
+        addToValidClasses: 0,
+        externalOrganizationUuid: org.id,
+        externalUuid: teacherId3,
+        isTeacher: true,
+      })
+      .addUser({
+        addToValidClasses: 1,
+        externalOrganizationUuid: org.id,
+        externalUuid: studentId1,
+        isTeacher: false,
+      })
+      .addUser({
+        addToValidClasses: 0,
+        externalOrganizationUuid: org.id,
+        externalUuid: studentId2,
+        isTeacher: false,
+      })
+      .finalize();
+    const setUp = await onboard(reqs, client);
+    const allSuccess = setUp
+      .toObject()
+      .responsesList.every((response) => response.success === true);
+    expect(allSuccess).to.be.true;
+
+    const request = new OnboardingRequest().setLinkEntities(
+      new proto.Link().setAddUsersToClass(
+        new AddUsersToClass()
+          .setExternalClassUuid(classId)
+          .setExternalTeacherUuidList([teacherId1, teacherId2, teacherId3])
+          .setExternalStudentUuidList([studentId1, studentId2])
+      )
+    );
+
+    const result = await (
+      await onboard(wrapRequest([request]), client)
+    ).toObject().responsesList;
+    expect(result.filter((resp) => resp.success === true)).to.be.length(2);
+    expect(result.filter((resp) => resp.success === false)).to.be.length(3);
+    expect(result.filter((r) => r.errors)).to.be.length(3);
+    expect(
+      result
+        .filter((resp) => resp.errors)
+        .filter((resp) => resp.errors.entityAlreadyExists)
+    ).to.be.length(3);
+    expect(result.map((resp) => resp.entityId)).to.includes.members([
+      teacherId1,
+      teacherId2,
+      teacherId3,
+      studentId1,
+      studentId2,
+    ]);
+
+    const classConnections = await getClassConnections(classId);
+    expect(
+      classConnections.students.map((a) => a.externalUuid)
+    ).to.includes.members([studentId1, studentId2]);
+    expect(
+      classConnections.teachers.map((a) => a.externalUuid)
+    ).to.includes.members([teacherId1, teacherId2, teacherId3]);
+  }).timeout(50000);
+
+  it('handle all dupe adding users to classes that already exists', async () => {
+    const res = await populateAdminService();
+    const org: IdNameMapper = res.keys().next().value;
+    const classId = uuidv4();
+    const teacherId1 = uuidv4();
+    const teacherId2 = uuidv4();
+    const studentId1 = uuidv4();
+    const studentId2 = uuidv4();
+    const reqs = new TestCaseBuilder()
+      .addValidOrgs(res)
+      .addSchool({ externalOrganizationUuid: org.id })
+      .addClass({ externalOrganizationUuid: org.id, externalUuid: classId })
+      .addUser({
+        addToValidClasses: 1,
+        externalOrganizationUuid: org.id,
+        externalUuid: teacherId1,
+        isTeacher: true,
+      })
+      .addUser({
+        addToValidClasses: 1,
+        externalOrganizationUuid: org.id,
+        externalUuid: teacherId2,
+        isTeacher: true,
+      })
+      .addUser({
+        addToValidClasses: 1,
+        externalOrganizationUuid: org.id,
+        externalUuid: studentId1,
+        isTeacher: false,
+      })
+      .addUser({
+        addToValidClasses: 1,
+        externalOrganizationUuid: org.id,
+        externalUuid: studentId2,
+        isTeacher: false,
+      })
+      .finalize();
+    const setUp = await onboard(reqs, client);
+    const allSuccess = setUp
+      .toObject()
+      .responsesList.every((response) => response.success === true);
+    expect(allSuccess).to.be.true;
+
+    const request = new OnboardingRequest().setLinkEntities(
+      new proto.Link().setAddUsersToClass(
+        new AddUsersToClass()
+          .setExternalClassUuid(classId)
+          .setExternalTeacherUuidList([teacherId1, teacherId2])
+          .setExternalStudentUuidList([studentId1, studentId2])
+      )
+    );
+
+    const result = await (
+      await onboard(wrapRequest([request]), client)
+    ).toObject().responsesList;
+    expect(result.filter((resp) => resp.success === false)).to.be.length(4);
+    expect(result.filter((r) => r.errors)).to.be.length(4);
+    expect(
+      result
+        .filter((resp) => resp.errors)
+        .filter((resp) => resp.errors.entityAlreadyExists)
+    ).to.be.length(4);
+    expect(result.map((resp) => resp.entityId)).to.includes.members([
+      teacherId1,
+      teacherId2,
+      studentId1,
+      studentId2,
+    ]);
+
+    const classConnections = await getClassConnections(classId);
+    expect(
+      classConnections.students.map((a) => a.externalUuid)
+    ).to.includes.members([studentId1, studentId2]);
+    expect(
+      classConnections.teachers.map((a) => a.externalUuid)
+    ).to.includes.members([teacherId1, teacherId2]);
+  }).timeout(50000);
+
+  it('handle teachers that have already been on-boarded, filter them out and attempt to onboard the new teacher', async () => {
+    const res = await populateAdminService();
+    const org: IdNameMapper = res.keys().next().value;
+    const classId = uuidv4();
+    const teacherId1 = uuidv4();
+    const teacherId2 = uuidv4();
+    const teacherId3 = uuidv4();
+    const setUpRequest = new TestCaseBuilder()
+      .addValidOrgs(res)
+      .addSchool({ externalOrganizationUuid: org.id })
+      .addClass({ externalOrganizationUuid: org.id, externalUuid: classId })
+      .addUser({
+        addToValidClasses: 1,
+        externalOrganizationUuid: org.id,
+        externalUuid: teacherId1,
+        isTeacher: true,
+      })
+      .addUser({
+        addToValidClasses: 1,
+        externalOrganizationUuid: org.id,
+        externalUuid: teacherId2,
+        isTeacher: true,
+      })
+      .addUser({
+        addToValidClasses: 0,
+        externalOrganizationUuid: org.id,
+        externalUuid: teacherId3,
+        isTeacher: true,
+      })
+      .finalize();
+    const setUpResult = await (
+      await onboard(setUpRequest, client)
+    ).getResponsesList();
+    expect(setUpResult.every((response) => response.getSuccess() === true)).to
+      .be.true;
+    expect(setUpResult.map((result) => result.getEntityId())).includes.members([
+      teacherId1,
+      teacherId2,
+      teacherId3,
+      classId,
+    ]);
+
+    const result = await (
+      await onboard(
+        wrapRequest([
+          addTeachersToClassReq(classId, [teacherId1]),
+          addTeachersToClassReq(classId, [teacherId2, teacherId3]),
+        ]),
+        client
+      )
+    ).getResponsesList();
+
+    expect(result).to.be.length(3);
+    expect(result.filter((resp) => resp.getSuccess() === true)).to.be.length(1);
+    expect(result.filter((resp) => resp.getErrors())).to.be.length(2);
+
+    expect(
+      result
+        .filter((resp) => resp.getErrors())
+        .filter((resp) => resp.getErrors().getEntityAlreadyExists())
+    ).to.be.length(2);
+    expect(result.map((resp) => resp.getEntityId())).to.includes.members([
+      teacherId1,
+      teacherId2,
+      teacherId3,
+    ]);
+
+    const classConnections = await getClassConnections(classId);
+    expect(
+      classConnections.teachers.map((teacher) => teacher.externalUuid)
+    ).to.includes.members([teacherId1, teacherId2, teacherId3]);
+  }).timeout(50000);
+
+  it('handle students that have already been on-boarded, filter them out and attempt to onboard the new teacher', async () => {
+    const res = await populateAdminService();
+    const org: IdNameMapper = res.keys().next().value;
+    const classId = uuidv4();
+    const student1 = uuidv4();
+    const student2 = uuidv4();
+    const student3 = uuidv4();
+    const setUpRequest = new TestCaseBuilder()
+      .addValidOrgs(res)
+      .addSchool({ externalOrganizationUuid: org.id })
+      .addClass({ externalOrganizationUuid: org.id, externalUuid: classId })
+      .addUser({
+        addToValidClasses: 1,
+        externalOrganizationUuid: org.id,
+        externalUuid: student1,
+        isTeacher: false,
+      })
+      .addUser({
+        addToValidClasses: 1,
+        externalOrganizationUuid: org.id,
+        externalUuid: student2,
+        isTeacher: false,
+      })
+      .addUser({
+        addToValidClasses: 0,
+        externalOrganizationUuid: org.id,
+        externalUuid: student3,
+        isTeacher: false,
+      })
+      .finalize();
+    const setUpResult = await (
+      await onboard(setUpRequest, client)
+    ).getResponsesList();
+    expect(setUpResult.every((response) => response.getSuccess() === true)).to
+      .be.true;
+    expect(setUpResult.map((result) => result.getEntityId())).includes.members([
+      student1,
+      student2,
+      student3,
+      classId,
+    ]);
+
+    const result = await (
+      await onboard(
+        wrapRequest([
+          addStudentsToClassReq(classId, [student1]),
+          addStudentsToClassReq(classId, [student2, student3]),
+        ]),
+        client
+      )
+    ).getResponsesList();
+
+    expect(result).to.be.length(3);
+    expect(result.filter((resp) => resp.getSuccess() === true)).to.be.length(1);
+    expect(result.filter((resp) => resp.getErrors())).to.be.length(2);
+
+    expect(
+      result
+        .filter((resp) => resp.getErrors())
+        .filter((resp) => resp.getErrors().getEntityAlreadyExists())
+    ).to.be.length(2);
+    expect(result.map((resp) => resp.getEntityId())).to.includes.members([
+      student1,
+      student2,
+      student3,
+    ]);
+
+    const classConnections = await getClassConnections(classId);
+    expect(
+      classConnections.students.map((student) => student.externalUuid)
+    ).to.includes.members([student1, student2, student3]);
+  }).timeout(50000);
+
   it('succeed onboarding class if the school already exists', async () => {
     const res = await populateAdminService();
     let orgId;
@@ -554,3 +906,23 @@ describe('When receiving requests over the web the server should', () => {
     expect(allSuccess).to.be.true;
   }).timeout(50000);
 }).timeout(50000);
+
+function addTeachersToClassReq(classId: string, teacherIds: ExternalUuid[]) {
+  return new OnboardingRequest().setLinkEntities(
+    new proto.Link().setAddUsersToClass(
+      new AddUsersToClass()
+        .setExternalClassUuid(classId)
+        .setExternalTeacherUuidList(teacherIds)
+    )
+  );
+}
+
+function addStudentsToClassReq(classId: string, studentIds: ExternalUuid[]) {
+  return new OnboardingRequest().setLinkEntities(
+    new proto.Link().setAddUsersToClass(
+      new AddUsersToClass()
+        .setExternalClassUuid(classId)
+        .setExternalStudentUuidList(studentIds)
+    )
+  );
+}

@@ -143,7 +143,6 @@ describe('create school', () => {
   let orgIdStub: SinonStub;
 
   beforeEach(() => {
-    process.env.ADMIN_SERVICE_API_KEY = uuidv4();
     adminStub = sinon.stub(AdminService, 'getInstance').resolves({
       createSchools: sinon
         .stub()

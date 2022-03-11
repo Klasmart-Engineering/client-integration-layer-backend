@@ -43,7 +43,6 @@ export async function getSchool(externalUuid: ExternalUuid): Promise<
     return undefined;
   }
 
-  console.log('school id', school.klUuid);
   const { data } = await admin.client.query({
     query: GET_SCHOOL,
     variables: {

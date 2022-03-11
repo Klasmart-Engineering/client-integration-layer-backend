@@ -140,7 +140,6 @@ describe('add users to organization', () => {
   let contextStub: SinonStub;
 
   beforeEach(() => {
-    process.env.ADMIN_SERVICE_API_KEY = uuidv4();
     const orgId = uuidv4();
     adminStub = sinon.stub(AdminService, 'getInstance').resolves({
       addUsersToOrganizations: sinon

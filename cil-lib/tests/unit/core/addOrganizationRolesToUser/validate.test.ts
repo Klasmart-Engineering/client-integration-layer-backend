@@ -116,7 +116,6 @@ describe('add organization roles to user', () => {
   let linkDbStub: SinonStub;
 
   beforeEach(() => {
-    process.env.ADMIN_SERVICE_API_KEY = uuidv4();
     const userId = uuidv4();
     adminStub = sinon.stub(AdminService, 'getInstance').resolves({
       addOrganizationRolesToUser: sinon.stub().resolves([{ id: userId }]),
