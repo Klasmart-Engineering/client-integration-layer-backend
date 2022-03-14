@@ -159,13 +159,11 @@ export const schema = Joi.object({
     .guid({ version: ['uuidv4'] })
     .required(),
 
-  externalTeacherUuidList: Joi.array()
-    .min(1)
-    .items(Joi.string().guid({ version: ['uuidv4'] }))
-    .required(),
+  externalTeacherUuidList: Joi.array().items(
+    Joi.string().guid({ version: ['uuidv4'] })
+  ),
 
-  externalStudentUuidList: Joi.array()
-    .min(1)
-    .items(Joi.string().guid({ version: ['uuidv4'] }))
-    .required(),
+  externalStudentUuidList: Joi.array().items(
+    Joi.string().guid({ version: ['uuidv4'] })
+  ),
 });
