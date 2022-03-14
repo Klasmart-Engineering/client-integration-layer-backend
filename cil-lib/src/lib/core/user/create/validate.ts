@@ -157,8 +157,8 @@ export const userSchema = Joi.object({
 
   dateOfBirth: Joi.string().allow('').regex(VALIDATION_RULES.DOB_REGEX),
 
-  // 0 = Male, 1 = Female
-  gender: Joi.number().min(0).max(1).required(),
+  // 1 = Male, 2 = Female
+  gender: Joi.number().min(1).max(2).required(),
 
   shortCode: Joi.string()
     .allow('')

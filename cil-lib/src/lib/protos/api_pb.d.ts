@@ -775,8 +775,9 @@ export namespace PathBasedError {
 }
 
 export enum Gender {
-    MALE = 0,
-    FEMALE = 1,
+    NULL = 0,
+    MALE = 1,
+    FEMALE = 2,
 }
 
 export enum Entity {

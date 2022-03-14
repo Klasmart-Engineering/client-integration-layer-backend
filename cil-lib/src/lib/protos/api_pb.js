@@ -6190,8 +6190,9 @@ proto.cil_onboarding.api.PathBasedError.prototype.clearDetailsList = function() 
  * @enum {number}
  */
 proto.cil_onboarding.api.Gender = {
-  MALE: 0,
-  FEMALE: 1
+  NULL: 0,
+  MALE: 1,
+  FEMALE: 2
 };
 
 /**
