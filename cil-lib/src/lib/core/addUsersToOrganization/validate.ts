@@ -112,7 +112,6 @@ async function validate(
         orgId,
         log
       );
-
     for (const id of invalid) {
       const resp = new Response()
         .setSuccess(false)
@@ -129,15 +128,17 @@ async function validate(
         );
       invalidResponses.push(resp);
     }
+
     // Re-make the initial request with only the valid users
     protobuf.setExternalUserUuidsList(valid);
-    r.data.externalUserUuidsList = Array.from(valid);
+    r.data.externalUserUuidsList = valid;
   }
 
   // Check the roles are valid
   await ctx.rolesAreValid(protobuf.getRoleIdentifiersList(), orgId, log);
 
-  return { valid: r, invalid: invalidResponses };
+  const valid = r.data.externalUserUuidsList.length === 0 ? null : r;
+  return { valid, invalid: invalidResponses };
 }
 
 function schemaValidation(

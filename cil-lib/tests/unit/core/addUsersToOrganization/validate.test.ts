@@ -1,4 +1,5 @@
 import { expect } from 'chai';
+import Sinon from 'sinon';
 import sinon, { SinonStub } from 'sinon';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -135,6 +136,8 @@ describe('add users to organization', () => {
   let userStub: SinonStub;
   let roleStub: SinonStub;
   let orgIdStub: SinonStub;
+  let linkStub: SinonStub;
+  let contextStub: SinonStub;
 
   beforeEach(() => {
     process.env.ADMIN_SERVICE_API_KEY = uuidv4();
@@ -151,8 +154,10 @@ describe('add users to organization', () => {
     });
     roleStub = sinon.stub().resolves([{ id: uuidv4(), name: 'Test role 1' }]);
     orgIdStub = sinon.stub().resolves(orgId);
-
-    sinon.stub(Context, 'getInstance').resolves({
+    linkStub = sinon
+      .stub(Link, 'usersBelongToOrganization')
+      .resolves({ valid: [], invalid: [uuidv4()] });
+    contextStub = sinon.stub(Context, 'getInstance').resolves({
       getOrganizationId: orgIdStub,
       organizationIdIsValid: orgStub,
       rolesAreValid: roleStub,
@@ -245,6 +250,80 @@ describe('add users to organization', () => {
     );
     await makeCommonAssertions(req, 'Invalid');
   });
+
+  it('should fail if the user already belongs to the org', async () => {
+    const req = wrapRequest(
+      VALID_ADD_USERS_TO_ORGANIZATION[0].addUsersToOrganization
+    );
+    linkStub.resolves({ valid: [uuidv4()], invalid: [] })
+    await makeCommonAssertions(req, 'already belongs to Organization');
+  });
+
+  it("if one user belongs to the org, but others don't, it should fail that user and pass the others", async () => {
+    const addUsers = setUpAddUsersToOrg();
+    const user1 = uuidv4()
+    const user2 = uuidv4()
+    const user3 = uuidv4()
+    addUsers.setExternalUserUuidsList([user1, user2, user3])
+        
+    const req = wrapRequest(
+      addUsers
+    );
+    userStub
+      .onFirstCall()
+      .resolves({
+        valid: new Map<string, string>([[uuidv4(), uuidv4()], [uuidv4(), uuidv4()], [uuidv4(), uuidv4()]]),
+        invalid: [],
+      });
+    userStub
+      .onSecondCall()
+      .resolves({
+        valid: new Map<string, string>([[uuidv4(), uuidv4()], [uuidv4(), uuidv4()]]),
+        invalid: [],
+      });
+    contextStub.resolves({
+      getOrganizationId: orgIdStub,
+      organizationIdIsValid: orgStub,
+      rolesAreValid: roleStub,
+      getUserIds: userStub,
+    } as unknown as Context);
+    linkStub.resolves({ valid: [user2], invalid: [user1, user3] });
+    
+      
+    try {
+      const resp = await processOnboardingRequest(req, LOG_STUB);
+      expect(resp).not.to.be.undefined;
+      const responses = resp.toObject().responsesList;
+      expect(responses).to.have.lengthOf(3);
+      
+      // Test valid responses are correct
+      const validResponse = responses[1];
+      expect(validResponse).not.to.be.undefined;
+      expect(validResponse.success).to.be.true;
+      
+      // Test invalid response is correct
+      const invalidResponse = responses[0];
+      expect(invalidResponse.success).to.be.false;
+      expect(invalidResponse.requestId).to.eql(
+        req.getRequestsList()[0].getRequestId()?.toObject()
+      );
+      expect(invalidResponse.entityId).to.contains(
+        user2
+      );
+      expect(invalidResponse.entity).to.equal(Entity.USER);
+      expect(invalidResponse.errors?.validation).not.to.be.undefined;
+      expect(
+        invalidResponse.errors?.validation?.errorsList[0].detailsList[0]
+      ).to.contains('already belongs to Organization');
+      
+      return resp;
+    } catch (error) {
+      expect(error, 'this api should not error').to.be.undefined;
+    }
+    throw new Error('Unexpected reached the end of the test');
+
+  });
+
 });
 
 function setUpAddUsersToOrg(
