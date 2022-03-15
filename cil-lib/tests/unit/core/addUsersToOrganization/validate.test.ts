@@ -255,16 +255,16 @@ describe('add users to organization', () => {
     const req = wrapRequest(
       VALID_ADD_USERS_TO_ORGANIZATION[0].addUsersToOrganization
     );
-    linkStub.resolves({ valid: [uuidv4()], invalid: [] })
+    linkStub.resolves({ valid: [uuidv4()], invalid: [] });
     await makeCommonAssertions(req, 'already belongs to Organization');
   });
 
-  it("if one user belongs to the org, but others don't, it should fail that user and pass the others", async () => {
+  it('if one user belongs to the org, but others dont, it should fail that user and pass the others', async () => {
     const addUsers = setUpAddUsersToOrg();
-    const user1 = uuidv4()
-    const user2 = uuidv4()
-    const user3 = uuidv4()
-    addUsers.setExternalUserUuidsList([user1, user2, user3])
+    const user1 = uuidv4();
+    const user2 = uuidv4();
+    const user3 = uuidv4();
+    addUsers.setExternalUserUuidsList([user1, user2, user3]);
         
     const req = wrapRequest(
       addUsers
@@ -272,13 +272,20 @@ describe('add users to organization', () => {
     userStub
       .onFirstCall()
       .resolves({
-        valid: new Map<string, string>([[uuidv4(), uuidv4()], [uuidv4(), uuidv4()], [uuidv4(), uuidv4()]]),
+        valid: new Map<string, string>([
+          [uuidv4(), uuidv4()],
+          [uuidv4(), uuidv4()],
+          [uuidv4(), uuidv4()]
+        ]),
         invalid: [],
       });
     userStub
       .onSecondCall()
       .resolves({
-        valid: new Map<string, string>([[uuidv4(), uuidv4()], [uuidv4(), uuidv4()]]),
+        valid: new Map<string, string>([
+          [uuidv4(), uuidv4()],
+          [uuidv4(), uuidv4()]
+        ]),
         invalid: [],
       });
     contextStub.resolves({
