@@ -124,6 +124,7 @@ async function validate(
       invalidResponses.push(resp);
     }
   }
+
   const valid =
     r.data.externalStudentUuidList.length === 0 &&
     r.data.externalTeacherUuidList.length === 0
