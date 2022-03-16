@@ -29,6 +29,7 @@ export async function prepare(
         tryGetMember(addUsersToClass.data.externalClassUuid, log),
         log
       );
+      
       const externalStudentIds = new Set(
         addUsersToClass.data.externalStudentUuidList!
       );
