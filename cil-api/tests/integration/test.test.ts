@@ -11,6 +11,7 @@ import {
   parseResponsesForErrorMessages,
   parseResponsesForSuccesses,
 } from '../util/parseRequest';
+import { getSchool } from '../util/school';
 
 const { OnboardingClient } = proto;
 
@@ -457,19 +458,30 @@ describe('When receiving requests over the web the server should', () => {
 
   it('succeed onboarding school if the organization already exists', async () => {
     const res = await populateAdminService();
-    let orgId;
-    for (let key of res.keys()) {
-      orgId = key.id;
-    }
+    const schoolId = uuidv4();
+    const schoolName = uuidv4().substring(0, 8);
+    const org = res.keys().next().value;
     const reqs = new TestCaseBuilder()
       .addValidOrgs(res)
-      .addSchool({ externalOrganizationUuid: orgId }, true)
+      .addSchool({
+        externalOrganizationUuid: org.id,
+        externalUuid: schoolId,
+        name: schoolName,
+      })
       .finalize();
     const result = await onboard(reqs, client);
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
     expect(allSuccess).to.be.true;
+    expect(
+      result.getResponsesList().map((response) => response.getEntityId())
+    ).includes.members([schoolId]);
+    const school = await getSchool(schoolId);
+    expect(school).to.be.not.undefined;
+    expect(school.externalUuid).to.be.equal(schoolId);
+    expect(school.name).to.be.equal(schoolName);
+    expect(school.externalOrgUuid).to.be.equal(org.id);
   }).timeout(50000);
 
   it('succeed onboarding class if the school already exists', async () => {
