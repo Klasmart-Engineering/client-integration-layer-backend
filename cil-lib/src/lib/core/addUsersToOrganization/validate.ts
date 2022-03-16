@@ -102,6 +102,7 @@ async function validate(
       invalidResponses.push(resp);
     }
     protobuf.setExternalUserUuidsList(Array.from(valid.keys()));
+    r.data.externalUserUuidsList = Array.from(valid.keys());
   }
 
   // Check that Users don't already belong to Organization
