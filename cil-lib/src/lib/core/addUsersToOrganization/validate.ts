@@ -1,7 +1,7 @@
 import Joi from 'joi';
 import { Logger } from 'pino';
 
-import { Context } from '../../..';
+import { Context, Link } from '../../..';
 import {
   BASE_PATH,
   Category,
@@ -18,7 +18,6 @@ import {
   Response,
 } from '../../protos';
 import { Entity } from '../../types';
-import { ExternalUuid } from '../../utils';
 import {
   JOI_VALIDATION_SETTINGS,
   VALIDATION_RULES,
@@ -32,29 +31,13 @@ export async function validateMany(
   data: IncomingData[],
   log: Logger
 ): Promise<[Result<IncomingData>, Logger]> {
-  const valid = [];
-  const invalid = [];
+  const validRequests = [];
+  let invalidRequests: Response[] = [];
   for (const d of data) {
     try {
-      const result = await validate(d, log);
-      if (result.valid) {
-        valid.push(result.valid);
-      }
-      for (const i of result.invalid) {
-        const resp = new Response()
-          .setSuccess(false)
-          .setRequestId(requestIdToProtobuf(d.requestId))
-          .setEntity(PbEntity.USER)
-          .setEntityId(i)
-          .setErrors(
-            new PbError().setEntityDoesNotExist(
-              new EntityDoesNotExistError().setDetailsList([
-                `Unable to find user with id ${i}`,
-              ])
-            )
-          );
-        invalid.push(resp);
-      }
+      const { valid, invalid } = await validate(d, log);
+      if (valid !== null) validRequests.push(valid);
+      invalidRequests = invalidRequests.concat(invalid);
     } catch (error) {
       const e = convertErrorToProtobuf(error, log);
 
@@ -64,7 +47,7 @@ export async function validateMany(
           .setRequestId(requestIdToProtobuf(d.requestId))
           .setEntity(PbEntity.USER)
           .setErrors(e);
-        invalid.push(resp);
+        invalidRequests.push(resp);
       }
 
       for (const userId of d.protobuf.getExternalUserUuidsList()) {
@@ -74,45 +57,89 @@ export async function validateMany(
           .setEntity(PbEntity.USER)
           .setEntityId(userId)
           .setErrors(e);
-        invalid.push(resp);
+        invalidRequests.push(resp);
       }
     }
   }
-  return [{ valid, invalid }, log];
+  return [{ valid: validRequests, invalid: invalidRequests }, log];
 }
 
 async function validate(
   r: IncomingData,
   log: Logger
-): Promise<{ valid: IncomingData | null; invalid: ExternalUuid[] }> {
+): Promise<{ valid: IncomingData | null; invalid: Response[] }> {
   const { protobuf } = r;
 
   schemaValidation(protobuf.toObject(), log);
   const orgId = protobuf.getExternalOrganizationUuid();
+
+  const invalidResponses = [];
+
   const ctx = await Context.getInstance();
   // Check the target organization is valid
   await ctx.organizationIdIsValid(orgId, log);
 
   // Check the target users are valid
-  // This is an all or nothing
-  // @TODO - do we want to make this more lienient
-  const { valid, invalid } = await ctx.getUserIds(
-    protobuf.getExternalUserUuidsList(),
-    log
-  );
+  {
+    const { valid, invalid } = await ctx.getUserIds(
+      protobuf.getExternalUserUuidsList(),
+      log
+    );
 
-  if (valid.size === 0) {
-    return { valid: null, invalid };
+    for (const id of invalid) {
+      const resp = new Response()
+        .setSuccess(false)
+        .setRequestId(requestIdToProtobuf(r.requestId))
+        .setEntity(PbEntity.USER)
+        .setEntityId(id)
+        .setErrors(
+          new PbError().setEntityDoesNotExist(
+            new EntityDoesNotExistError().setDetailsList([
+              `Unable to find user with id ${id}`,
+            ])
+          )
+        );
+      invalidResponses.push(resp);
+    }
+    protobuf.setExternalUserUuidsList(Array.from(valid.keys()));
+    r.data.externalUserUuidsList = Array.from(valid.keys());
   }
 
-  // Re-make the initial request with only the valid users
-  protobuf.setExternalUserUuidsList(Array.from(valid.keys()));
-  r.data.externalUserUuidsList = Array.from(valid.keys());
+  // Check that Users don't already belong to Organization
+  {
+    const { valid: invalid, invalid: valid } =
+      await Link.usersBelongToOrganization(
+        protobuf.getExternalUserUuidsList(),
+        orgId,
+        log
+      );
+    for (const id of invalid) {
+      const resp = new Response()
+        .setSuccess(false)
+        .setRequestId(requestIdToProtobuf(r.requestId))
+        .setEntity(PbEntity.USER)
+        .setEntityId(id)
+        .setErrors(
+          new OnboardingError(
+            MachineError.VALIDATION,
+            `User: ${id} already belongs to Organization: ${orgId}`,
+            Category.REQUEST,
+            log
+          ).toProtobufError()
+        );
+      invalidResponses.push(resp);
+    }
+
+    // Re-make the initial request with only the valid users
+    protobuf.setExternalUserUuidsList(valid);
+    r.data.externalUserUuidsList = valid;
+  }
 
   // Check the roles are valid
   await ctx.rolesAreValid(protobuf.getRoleIdentifiersList(), orgId, log);
 
-  return { valid: r, invalid };
+  const valid = r.data.externalUserUuidsList.length === 0 ? null : r;
+  return { valid, invalid: invalidResponses };
 }
 
 function schemaValidation(

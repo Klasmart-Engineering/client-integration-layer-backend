@@ -112,6 +112,46 @@ export class Link {
     }
   }
 
+  public static async usersBelongToOrganization(
+    userIds: ExternalUuid[],
+    organizationId: ExternalUuid,
+    log: Logger
+  ): Promise<{ valid: ExternalUuid[]; invalid: ExternalUuid[] }> {
+    try {
+      const validUsers = (
+        await prisma.userLinkOrganization.findMany({
+          where: {
+            externalUuid: {
+              in: userIds,
+            },
+            externalOrgUuid: organizationId,
+          },
+          select: {
+            externalUuid: true,
+          },
+        })
+      ).map((u) => u.externalUuid);
+
+      const toValidate = new Set(userIds);
+      const valid = [];
+      for (const externalUuid of validUsers) {
+        // delete returns true if the user was in the list
+        if (toValidate.delete(externalUuid)) valid.push(externalUuid);
+      }
+      return { valid: valid, invalid: Array.from(toValidate) };
+    } catch (error) {
+      const msg = returnMessageOrThrowOnboardingError(error);
+      throw new OnboardingError(
+        MachineError.READ,
+        msg,
+        Category.POSTGRES,
+        log,
+        [],
+        { entityIds: userIds, operation: 'users belong to organization' }
+      );
+    }
+  }
+
   /**
    * @returns the kidsloop id of the user in the UserLinkSchool table
    * @throws if the user is invalid for the given school
