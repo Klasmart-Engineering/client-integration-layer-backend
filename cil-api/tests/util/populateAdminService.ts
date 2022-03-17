@@ -1,5 +1,6 @@
 import { gql } from '@apollo/client/core';
-import { AdminService, log as logger, Logger } from 'cil-lib';
+import { AdminService, log as logger, Logger, Uuid } from 'cil-lib';
+import { IdNameMapper } from 'cil-lib/dist/main/lib/services/adminService';
 import { v4 as uuidv4 } from 'uuid';
 
 const ADD_ROLES = gql`
@@ -205,4 +206,56 @@ export async function populateAdminService(
 
   log.info(`=== Successfully completed setup ===`);
   return orgs;
+}
+
+export async function createProgramsAndRoles(
+  orgId: string,
+  roleNames: string[] = ['TEST ROLE 1', 'TEST ROLE 2', 'TEST ROLE 3'],
+  programNames: string[] = [
+    'TEST PROGRAM 1',
+    'TEST PROGRAM 2',
+    'TEST PROGRAM 3',
+    'TEST PROGRAM 4',
+  ]
+): Promise<{ roles: IdNameMapper[]; programs: IdNameMapper[] }> {
+  const admin = await AdminService.getInstance();
+
+  const roles = (await addRoles(orgId, roleNames, admin)) as {
+    id: string;
+    name: string;
+  }[];
+  const programs = (await addPrograms(orgId, programNames, admin)) as {
+    id: string;
+    name: string;
+  }[];
+  return { roles: roles, programs: programs };
+}
+
+export async function createOrg(orgName: string, log: Logger): Promise<Uuid> {
+  const admin = await AdminService.getInstance();
+  const suffix = uuidv4().slice(0, 5);
+  const users = await admin.createUsers(
+    [
+      {
+        givenName: suffix,
+        familyName: suffix,
+        gender: 'male',
+        contactInfo: {
+          email: `${suffix}@example.com`,
+        },
+      },
+    ],
+    log
+  );
+  const userId = users.find((user) => user)!.id;
+  const orgs = await admin.createOrganizations(
+    [
+      {
+        userId: userId,
+        organizationName: orgName,
+      },
+    ],
+    log
+  );
+  return orgs.find((o) => o)!.id;
 }

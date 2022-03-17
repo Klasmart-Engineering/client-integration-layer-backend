@@ -3,7 +3,14 @@ import { v4 as uuidv4 } from 'uuid';
 import { proto, grpc, Context, protobufToEntity } from 'cil-lib';
 import { expect } from 'chai';
 import { OnboardingServer } from '../../src/lib/api';
-import { LOG_STUB, onboard, populateAdminService } from '../util';
+import {
+  getDbProgram,
+  getDbRole,
+  LOG_STUB,
+  onboard,
+  populateAdminService,
+  wrapRequest,
+} from '../util';
 import { TestCaseBuilder } from '../util/testCases';
 import {
   parseRequests,
@@ -11,6 +18,11 @@ import {
   parseResponsesForErrorMessages,
   parseResponsesForSuccesses,
 } from '../util/parseRequest';
+import { OnboardingRequest } from 'cil-lib/dist/main/lib/protos';
+import {
+  createOrg as createOrgInAdminService,
+  createProgramsAndRoles as createRolesAndProgramsInAdminService,
+} from '../util/populateAdminService';
 import { getSchool } from '../util/school';
 
 const { OnboardingClient } = proto;
@@ -419,6 +431,46 @@ describe('When receiving requests over the web the server should', () => {
       .toObject()
       .responsesList.every((r) => r.success === true);
     expect(allSuccess).to.be.false;
+  }).timeout(50000);
+
+  it('succeed adding programs & roles after organization has already been onboarded', async () => {
+    const orgName = uuidv4().substring(0, 8);
+    const externalOrgId = uuidv4();
+
+    const orgId = await createOrgInAdminService(orgName, LOG_STUB);
+
+    const req = wrapRequest([
+      new OnboardingRequest().setOrganization(
+        new proto.Organization().setExternalUuid(externalOrgId).setName(orgName)
+      ),
+    ]);
+    const setUpResponse = await onboard(req, client);
+    expect(
+      setUpResponse.toObject().responsesList.every((r) => r.success === true)
+    ).to.be.true;
+
+    const roleName = uuidv4().substring(0, 8);
+    const programName = uuidv4().substring(0, 8);
+    await createRolesAndProgramsInAdminService(
+      orgId,
+      [roleName],
+      [programName]
+    );
+
+    const result = await onboard(req, client);
+
+    expect(result.toObject().responsesList.every((r) => r.success === true)).to
+      .be.true;
+
+    const role = await getDbRole(roleName, externalOrgId);
+    expect(role).to.be.not.undefined;
+    expect(role.name).to.be.equal(roleName);
+    expect(role.externalOrgUuid).to.be.equal(externalOrgId);
+
+    const program = await getDbProgram(programName, externalOrgId);
+    expect(program).to.be.not.undefined;
+    expect(program.name).to.be.equal(programName);
+    expect(program.externalOrgUuid).to.be.equal(externalOrgId);
   }).timeout(50000);
 
   it('fail the user onboarding if he does not have a role', async () => {

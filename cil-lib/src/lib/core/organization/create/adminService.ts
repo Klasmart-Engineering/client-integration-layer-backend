@@ -7,7 +7,6 @@ import {
   OnboardingError,
 } from '../../../errors';
 import { Entity, Response } from '../../../protos';
-import { Context } from '../../../utils';
 import { requestIdToProtobuf } from '../../batchRequest';
 import { Result } from '../../process';
 
@@ -19,22 +18,10 @@ export async function sendRequest(
 ): Promise<[Result<IncomingData>, Logger]> {
   const valid = [];
   const invalid: Response[] = [];
-  const ctx = await Context.getInstance();
 
   for (const org of orgs) {
     try {
-      try {
-        await ctx.organizationIdIsValid(
-          org.data.externalUuid || '',
-          log,
-          false
-        );
-      } catch (_) {
-        log.info(
-          `Attempting to initialize organization with name ${org.protobuf.getName()}`
-        );
-        await Organization.initializeOrganization(org.protobuf.toObject(), log);
-      }
+      await Organization.initializeOrganization(org.protobuf.toObject(), log);
       valid.push(org);
     } catch (error) {
       const r = new Response()

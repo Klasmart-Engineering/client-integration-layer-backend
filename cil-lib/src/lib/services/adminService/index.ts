@@ -196,6 +196,7 @@ export class AdminService {
       const client = new ApolloClient({
         link: from([errorLink, retryLink, httpLink]),
         cache: new InMemoryCache(),
+        defaultOptions: { query: { fetchPolicy: 'no-cache' } },
       });
 
       this._instance = new AdminService(client, apiKey);

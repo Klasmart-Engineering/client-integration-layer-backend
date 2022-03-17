@@ -234,13 +234,21 @@ export class Organization {
         pushErrorIntoArray(error, errors, log);
       }
       try {
-        log.info(`Attempting to write organization's programs to the database`);
+        log.info(
+          `Attempting to write organization's programs ${customPrograms.map(
+            (program) => program.name
+          )} to the database`
+        );
         await Program.insertMany(customPrograms, externalUuid, log);
       } catch (error) {
         pushErrorIntoArray(error, errors, log);
       }
       try {
-        log.info(`Attempting to write organization's roles to the database`);
+        log.info(
+          `Attempting to write organization's roles ${customRoles.map(
+            (role) => role.name
+          )} to the database`
+        );
         await Role.insertMany(customRoles, externalUuid, log);
       } catch (error) {
         pushErrorIntoArray(error, errors, log);
