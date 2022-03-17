@@ -44,7 +44,14 @@ type LogLevel = 'error' | 'warn' | 'info' | 'debug' | 'trace';
 export type Props = Record<string, string | string[] | number | boolean>;
 
 export class Errors {
-  constructor(public errors: OnboardingError[]) {}
+  public errors: OnboardingError[] = [];
+  constructor(e: (OnboardingError | Errors)[]) {
+    for (const error of e) {
+      if (error instanceof OnboardingError) this.errors.push(error);
+      if (error instanceof Errors)
+        this.errors = this.errors.concat(error.errors);
+    }
+  }
 
   // @TODO - Rework this, it's pretty gnarly
   public toProtobufError(): PbError {
@@ -287,7 +294,7 @@ export const POSTGRES_IS_VALID_QUERY = (
       Category.POSTGRES,
       log,
       [],
-      { operation: 'IS VALID', targetEntity, targetEntityIds: id.join(', ') }
+      { queryType: 'IS VALID', targetEntity, targetEntityIds: id.join(', ') }
     );
   }
 
@@ -297,7 +304,7 @@ export const POSTGRES_IS_VALID_QUERY = (
     Category.POSTGRES,
     log,
     [],
-    { operation: 'IS VALID', targetEntity, targetEntityId: id }
+    { queryType: 'IS VALID', targetEntity, targetEntityId: id }
   );
 };
 
@@ -315,7 +322,7 @@ export const POSTGRES_GET_KIDSLOOP_ID_QUERY = (
       log,
       [],
       {
-        operation: 'GET KIDSLOOP IDS',
+        queryType: 'GET KIDSLOOP IDS',
         targetEntity,
         targetEntityIds: id.join(', '),
       }
@@ -328,7 +335,7 @@ export const POSTGRES_GET_KIDSLOOP_ID_QUERY = (
     log,
     [],
     {
-      operation: 'GET KIDSLOOP ID',
+      queryType: 'GET KIDSLOOP ID',
       targetEntity,
       targetEntityId: id,
     }

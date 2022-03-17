@@ -45,7 +45,7 @@ export class Role {
         Category.POSTGRES,
         log,
         [],
-        { operation: 'INSERT ONE' }
+        { queryType: 'INSERT ONE' }
       );
     }
   }
@@ -58,6 +58,15 @@ export class Role {
     const errors = [];
     for (const { name, id } of programs) {
       try {
+        const alreadyExists = await prisma.role.findUnique({
+          where: {
+            klUuid: id,
+          },
+          select: {
+            klUuid: true,
+          },
+        });
+        if (alreadyExists && alreadyExists.klUuid) return;
         await Role.insertOne(name, id, externalOrgId, log);
       } catch (error) {
         if (error instanceof OnboardingError) {
@@ -71,7 +80,7 @@ export class Role {
               Category.POSTGRES,
               log,
               [],
-              { operation: 'INSERT MANY' }
+              { queryType: 'INSERT MANY' }
             )
           );
         }
@@ -114,7 +123,7 @@ export class Role {
         Category.POSTGRES,
         log,
         [],
-        { operation: 'FIND ONE' }
+        { queryType: 'FIND ONE' }
       );
     }
   }
@@ -146,7 +155,7 @@ export class Role {
         Category.POSTGRES,
         log,
         [],
-        { operation: 'find roles for organization' }
+        { queryType: 'find roles for organization' }
       );
     }
   }

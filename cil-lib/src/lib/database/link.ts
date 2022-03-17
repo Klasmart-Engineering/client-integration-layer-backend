@@ -41,7 +41,7 @@ export class Link {
           organizationId,
           Entity.ORGANIZATION,
           log,
-          { operation: 'school belongs to organization' }
+          { queryType: 'school belongs to organization' }
         );
       if (school.externalOrgUuid !== organizationId)
         throw new OnboardingError(
@@ -59,7 +59,7 @@ export class Link {
         Category.POSTGRES,
         log,
         [],
-        { entityId: schoolId, operation: 'school belongs to organization' }
+        { entityId: schoolId, queryType: 'school belongs to organization' }
       );
     }
   }
@@ -96,7 +96,7 @@ export class Link {
           organizationId,
           Entity.ORGANIZATION,
           log,
-          { operation: 'user belongs to organization' }
+          { queryType: 'user belongs to organization' }
         );
       return user.user.klUuid;
     } catch (error) {
@@ -107,7 +107,7 @@ export class Link {
         Category.POSTGRES,
         log,
         [],
-        { entityId: userId, operation: 'user belongs to organization' }
+        { entityId: userId, queryType: 'user belongs to organization' }
       );
     }
   }
@@ -144,7 +144,7 @@ export class Link {
           schoolId,
           Entity.SCHOOL,
           log,
-          { operation: 'user belongs to school' }
+          { queryType: 'user belongs to school' }
         );
       return user.user.klUuid;
     } catch (error) {
@@ -155,7 +155,7 @@ export class Link {
         Category.POSTGRES,
         log,
         [],
-        { entityId: userId, operation: 'user belongs to school' }
+        { entityId: userId, queryType: 'user belongs to school' }
       );
     }
   }
@@ -195,7 +195,7 @@ export class Link {
         Category.POSTGRES,
         log,
         [],
-        { entityIds: userIds, operation: 'users belong to school' }
+        { entityIds: userIds, queryType: 'users belong to school' }
       );
     }
   }
@@ -351,7 +351,7 @@ export class Link {
           schoolId,
           Entity.SCHOOL,
           log,
-          { operation: 'link program to school' }
+          { queryType: 'link program to school' }
         );
       return result.klUuid;
     } catch (error) {
@@ -363,7 +363,7 @@ export class Link {
         log,
         [],
         {
-          operation: 'link program to school',
+          queryType: 'link program to school',
           targetEntityId: schoolId,
         }
       );
@@ -395,7 +395,7 @@ export class Link {
           orgId,
           Entity.ORGANIZATION,
           log,
-          { operation: 'link user to organization' }
+          { queryType: 'link user to organization' }
         );
       return result.id;
     } catch (error) {
@@ -407,7 +407,7 @@ export class Link {
         log,
         [],
         {
-          operation: 'link user to organization',
+          queryType: 'link user to organization',
           entity: userId,
           targetEntityId: orgId,
         }

@@ -4,6 +4,7 @@ import { Logger } from 'pino';
 import {
   Category,
   ENTITY_NOT_FOUND,
+  Errors,
   MachineError,
   OnboardingError,
   POSTGRES_GET_KIDSLOOP_ID_QUERY,
@@ -28,6 +29,15 @@ export class Organization {
     log: Logger
   ): Promise<void> {
     try {
+      const alreadyExists = await prisma.organization.findUnique({
+        where: {
+          klUuid: organization.klUuid,
+        },
+        select: {
+          klUuid: true,
+        },
+      });
+      if (alreadyExists && alreadyExists.klUuid) return;
       await prisma.organization.create({
         data: organization,
       });
@@ -39,7 +49,7 @@ export class Organization {
         Category.POSTGRES,
         log,
         [],
-        { entityId: organization.externalUuid, operation: 'INSERT ONE' }
+        { entityId: organization.externalUuid, queryType: 'INSERT ONE' }
       );
     }
   }
@@ -61,7 +71,7 @@ export class Organization {
         Category.POSTGRES,
         log,
         [],
-        { entityId: id, operation: 'FIND ONE' }
+        { entityId: id, queryType: 'FIND ONE' }
       );
     }
   }
@@ -133,7 +143,7 @@ export class Organization {
         Category.POSTGRES,
         log,
         [],
-        { entityId: id, operation: 'GET PROGRAMS' }
+        { entityId: id, queryType: 'GET PROGRAMS' }
       );
     }
   }
@@ -157,7 +167,7 @@ export class Organization {
         Category.REQUEST,
         log,
         [],
-        { entityIds: programs, operation: 'PROGRAMS ARE VALID' }
+        { entityIds: programs, queryType: 'PROGRAMS ARE VALID' }
       );
   }
 
@@ -188,32 +198,54 @@ export class Organization {
         Category.POSTGRES,
         log,
         [],
-        { entityId: id, operation: 'GET ROLES' }
+        { entityId: id, queryType: 'GET ROLES' }
       );
     }
   }
 
   public static async initializeOrganization(
     org: Org.AsObject,
-    log: Logger
+    logger: Logger
   ): Promise<void> {
+    const log = logger.child({ organization: org.name });
+    const errors: (OnboardingError | Errors)[] = [];
     try {
       const admin = await AdminService.getInstance();
       const { name, externalUuid } = org;
+      log.info(
+        `Attempting to fetch data for organization from the admin service`
+      );
       const klUuid = await admin.getOrganization(name, log);
       const customPrograms = await admin.getOrganizationPrograms(klUuid, log);
       const customRoles = await admin.getOrganizationRoles(klUuid, log);
+      log.debug(`Fetched organization data from the admin service`);
 
-      await Organization.insertOne(
-        {
-          externalUuid,
-          klUuid,
-          name,
-        },
-        log
-      );
-      await Program.insertMany(customPrograms, externalUuid, log);
-      await Role.insertMany(customRoles, externalUuid, log);
+      try {
+        log.info(`Attempting to write organization data to the database`);
+        await Organization.insertOne(
+          {
+            externalUuid,
+            klUuid,
+            name,
+          },
+          log
+        );
+      } catch (error) {
+        pushErrorIntoArray(error, errors, log);
+      }
+      try {
+        log.info(`Attempting to write organization's programs to the database`);
+        await Program.insertMany(customPrograms, externalUuid, log);
+      } catch (error) {
+        pushErrorIntoArray(error, errors, log);
+      }
+      try {
+        log.info(`Attempting to write organization's roles to the database`);
+        await Role.insertMany(customRoles, externalUuid, log);
+      } catch (error) {
+        pushErrorIntoArray(error, errors, log);
+      }
+      if (errors.length > 0) throw new Errors(errors);
     } catch (error) {
       const msg = returnMessageOrThrowOnboardingError(error);
       throw new OnboardingError(
@@ -225,3 +257,18 @@ export class Organization {
     }
   }
 }
+
+const pushErrorIntoArray = (
+  error: unknown,
+  arr: (OnboardingError | Errors)[],
+  log: Logger
+): void => {
+  if (error instanceof OnboardingError || error instanceof Errors) {
+    arr.push(error);
+  } else {
+    const msg = error instanceof Error ? error.message : `${error}`;
+    arr.push(
+      new OnboardingError(MachineError.VALIDATION, msg, Category.REQUEST, log)
+    );
+  }
+};

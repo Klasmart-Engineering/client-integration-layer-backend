@@ -34,7 +34,7 @@ export class School {
         Category.POSTGRES,
         log,
         [],
-        { entityId: school.externalUuid, operation: 'INSERT ONE' }
+        { entityId: school.externalUuid, queryType: 'INSERT ONE' }
       );
     }
   }
@@ -59,7 +59,7 @@ export class School {
         Category.POSTGRES,
         log,
         [],
-        { entityId: id, operation: 'FIND ONE' }
+        { entityId: id, queryType: 'FIND ONE' }
       );
     }
   }
@@ -132,7 +132,7 @@ export class School {
           Category.POSTGRES,
           log,
           [],
-          { id, operation: 'get programs for school' }
+          { id, queryType: 'get programs for school' }
         );
       return programs.map((p) => ({ id: p.klUuid, name: p.program.name }));
     } catch (error) {
@@ -143,7 +143,7 @@ export class School {
         Category.POSTGRES,
         log,
         [],
-        { id, operation: 'get programs for school' }
+        { id, queryType: 'get programs for school' }
       );
     }
   }

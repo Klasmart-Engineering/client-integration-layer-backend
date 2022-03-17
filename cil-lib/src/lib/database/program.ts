@@ -44,7 +44,7 @@ export class Program {
         Category.POSTGRES,
         log,
         [],
-        { operation: 'INSERT ONE' }
+        { queryType: 'INSERT ONE' }
       );
     }
   }
@@ -57,6 +57,15 @@ export class Program {
     const errors = [];
     for (const { name, id } of programs) {
       try {
+        const alreadyExists = await prisma.program.findUnique({
+          where: {
+            klUuid: id,
+          },
+          select: {
+            klUuid: true,
+          },
+        });
+        if (alreadyExists && alreadyExists.klUuid) continue;
         await Program.insertOne(name, id, externalOrgId, log);
       } catch (error) {
         if (error instanceof OnboardingError) {
@@ -70,7 +79,7 @@ export class Program {
               Category.POSTGRES,
               log,
               [],
-              { operation: 'INSERT MANY' }
+              { queryType: 'INSERT MANY' }
             )
           );
         }
@@ -113,7 +122,7 @@ export class Program {
         Category.POSTGRES,
         log,
         [],
-        { operation: 'FIND ONE' }
+        { queryType: 'FIND ONE' }
       );
     }
   }
@@ -152,7 +161,7 @@ export class Program {
         Category.POSTGRES,
         log,
         [],
-        { operation: 'FIND PROGRAMS FOR ORG' }
+        { queryType: 'FIND PROGRAMS FOR ORG' }
       );
     }
   }
@@ -208,7 +217,7 @@ export class Program {
         Category.POSTGRES,
         log,
         [],
-        { operation: 'FIND MANY' }
+        { queryType: 'FIND MANY' }
       );
     }
   }
@@ -243,7 +252,7 @@ export class Program {
         Category.POSTGRES,
         log,
         [],
-        { operation: 'GET PROGRAMS FOR SCHOOL' }
+        { queryType: 'GET PROGRAMS FOR SCHOOL' }
       );
     }
   }
@@ -312,7 +321,7 @@ export class Program {
         Category.POSTGRES,
         log,
         [],
-        { operation: 'FIND MANY' }
+        { queryType: 'FIND MANY' }
       );
     }
   }

@@ -36,7 +36,7 @@ export class User {
         Category.POSTGRES,
         log,
         [],
-        { entityId: user.externalUuid, operation: 'INSERT ONE' }
+        { entityId: user.externalUuid, queryType: 'INSERT ONE' }
       );
     }
   }
@@ -61,7 +61,7 @@ export class User {
           Category.POSTGRES,
           log,
           [],
-          { entityId: u.externalUuid, operation: 'INSERT ONE' }
+          { entityId: u.externalUuid, queryType: 'INSERT ONE' }
         );
         errors.push(e);
       }
@@ -86,7 +86,7 @@ export class User {
         Category.POSTGRES,
         log,
         [],
-        { entityId: id, operation: 'FIND ONE' }
+        { entityId: id, queryType: 'FIND ONE' }
       );
     }
   }
@@ -250,7 +250,7 @@ export class User {
         Category.POSTGRES,
         log,
         [],
-        { entityId: userId, schoolId, operation: 'LINK USER TO SCHOOL' }
+        { entityId: userId, schoolId, queryType: 'LINK USER TO SCHOOL' }
       );
     }
   }
