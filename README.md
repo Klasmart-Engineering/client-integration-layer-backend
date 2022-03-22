@@ -92,3 +92,55 @@ cd cil-lib && npm publish
 ```
 `npx prisma generate --schema='./node_modules/@kl-engineering/cil-lib/prisma/schema.prisma'`
 ```
+## Mocha debugger for VS Code
+
+### Configuration setup
+
+For this feature, we want to configure and setup the debugger to identify issues quicker. Since we have two different test folders for cil-lib and cil-api. We would setup the configuration for these two options. 
+
+We first need to open the `launch.json` configuration file under .vscode folder and fill the configuration property by the following (this is a configuration for cil-lib workspace):
+```
+{
+      "args": [
+        "-r",
+        "ts-node/register",
+        "--timeout",
+        "999999",
+        "--colors",
+        "${workspaceFolder}/cil-lib/tests/**/*.test.ts"
+      ],
+
+      "internalConsoleOptions": "openOnSessionStart",
+      "name": "Mocha cil-lib test",
+      "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+      "request": "launch",
+      "env": {
+        "TS_NODE_PROJECT": "${workspaceFolder}/cil-lib/tsconfig.json", // Or whatever path you have
+        "NEW_RELIC_ENABLED": "false",
+        "NODE_ENV": "test",
+      },
+      
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "type": "pwa-node"
+    }
+```
+It searches for all test files in the specified directory in our workspace (cil-lib/tests) and its subdirectories and run them consecutively. Below are some basic parameters we need to setup:
+
+1. `require` is set to `ts-node/register`, this is because the test files are written in TypeScript so they have to be transpiled into JavaScript first with `ts-node/register`.
+2. `program` property is the absolute path to the Mocha executable. 
+3. `args` contains the arguments passed to Mocha. 
+4. `internalConsoleOptions` is set to `openOnSessionStart` so that VS Code switches to the Debug console when started, showing the progress of the execution.
+5. `env` contains environment variables passed to the program.
+6. `skipFiles` tells the debugger where it should not run into. In our case, we don't want it to run into the base Node code. 
+
+In order to configure for cil-api workspace, we just need to add another block with the same configuration, we just need to change the `name`, `program` and `env` accordingly.
+
+### Run test in VS Code
+
+In the console, navigate to Run and Debug icon on the most left panel, and choose which workspace you want to test. The next step is to set breakpoints to the part of code where you want to see the test output. We do that by right clicking in the far left margin next to a line of code. 
+
+Now hit the Run button next to test option to start debugging.
+
+

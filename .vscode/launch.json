@@ -25,5 +25,64 @@
       "outputCapture": "std",
       "skipFiles": ["<node_internals>/**/*.js"]
       // "smartStep": true
-    }]
+    },
+    // this is for mocha cil-lib debugger
+    {
+      "args": [
+        "-r",
+        "ts-node/register",
+        "--timeout",
+        "999999",
+        "--colors",
+        "${workspaceFolder}/cil-lib/tests/**/*.test.ts"
+      ],
+
+      "internalConsoleOptions": "openOnSessionStart",
+      "name": "Mocha cil-lib test",
+      "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+      "request": "launch",
+      "env": {
+        "TS_NODE_PROJECT": "${workspaceFolder}/cil-lib/tsconfig.json", // Or whatever path you have
+        "NEW_RELIC_ENABLED": "false",
+        "NODE_ENV": "test",
+      },
+      
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "type": "pwa-node"
+    },
+    // this is for mocha cil-api debugger
+    {
+      "args": [
+        "-r",
+        "ts-node/register",
+        "--timeout",
+        "999999",
+        "--colors",
+        "${workspaceFolder}/cil-api/tests/**/*.test.ts",
+      ],
+      "internalConsoleOptions": "openOnSessionStart",
+      "name": "Mocha cil-api test",
+      "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+      "request": "launch",
+      "skipFiles": [
+        "<node_internals>/**"
+      ],
+      "env": {
+        "TS_NODE_PROJECT": "${workspaceFolder}/cil-api/tsconfig.json", // Or whatever path you have
+        "ADMIN_SERVICE_API_KEY": "user_service_api_key",
+        "PORT": "4200",
+        "ADMIN_SERVICE_URL": "http://localhost:8080/user",
+        "NEW_RELIC_ENABLED": "false",
+        "NODE_ENV": "test",
+        "API_KEY": "abc",
+        "DATABASE_URL": "postgresql://postgres:kidsloop@localhost:5432/cil-validation",
+        "GENERIC_BACKEND_URL": "0.0.0.0:4200",
+
+      },
+      "type": "pwa-node"
+    },
+      
+]
 }
