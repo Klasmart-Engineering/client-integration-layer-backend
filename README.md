@@ -97,22 +97,22 @@ cd cil-lib && npm publish
 
 ### Configuration setup
 
-For this feature, we want to configure and setup the debugger to identify issues quicker. Since we have two different test folders for cil-lib and cil-api. We would setup the configuration for these two options.
+For this feature, we want to configure and setup the debugger to identify issues quicker. Since we have two different test folders for `cil-lib` and `cil-api`. We would setup the configuration for these two options.
 
-The configuration is provided by `launch.json` under .vscode folder. An example for setting mocha debugger for cil-lib is given in `mocha_debugger_example.json`.
+The configuration is provided by `launch.json` under `.vscode` folder. An example for setting mocha debugger for cil-lib is given in `mocha_debugger_example.json`.
 
-It searches for all test files in the specified directory in our workspace (cil-lib/tests) and its subdirectories and run them consecutively. An explanation of setting relevant variables for a mocha debugger can be found here: https://code.visualstudio.com/docs/nodejs/nodejs-debugging
+It searches for all test files in the specified directory in our workspace (`cil-lib/tests`) and its subdirectories and run them consecutively. An explanation of setting relevant variables for a mocha debugger can be found here: https://code.visualstudio.com/docs/nodejs/nodejs-debugging
 
-In order to configure for cil-api workspace, we just need to add another block with the same configuration, we just need to change the `name`, `program` and `env` accordingly.
+In order to configure for `cil-api` workspace, we just need to add another block with the same configuration, we just need to change the `name` and `program` accordingly.
 
 ### Run test in VS Code
 
-#### Cil-api test
+#### Cil-api
 
 In the console, navigate to Run and Debug icon on the most left panel, and choose which workspace you want to test. The next step is to set breakpoints to the part of code where you want to see the test output. We do that by right clicking in the far left margin next to a line of code.
 
 Now hit the Run button next to test option to start debugging.
 
-#### cil-lib test
+#### Cil-lib
 
-You would need to navigate to `cil-api` folder and run `npm run start` in order to start gRPC server before you can start debugging
+`cd cil-api` and run `npm run start` in order to start `gRPC` server before you can start debugging.
