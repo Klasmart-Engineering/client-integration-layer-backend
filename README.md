@@ -99,14 +99,20 @@ cd cil-lib && npm publish
 
 For this feature, we want to configure and setup the debugger to identify issues quicker. Since we have two different test folders for cil-lib and cil-api. We would setup the configuration for these two options.
 
-We first need to open the `launch.json` configuration file under .vscode folder and fill the configuration property with a mocha test configuration (see mocha_debugger_example.json for more details).
+The configuration is provided by `launch.json` under .vscode folder. An example for setting mocha debugger for cil-lib is given in `mocha_debugger_example.json`.
 
-It searches for all test files in the specified directory in our workspace (cil-lib/tests) and its subdirectories and run them consecutively. An explanation of setting relevant variables for a mocha debugger can be found here: https://vscode-docs.readthedocs.io/en/latest/extensions/testing-extensions/
+It searches for all test files in the specified directory in our workspace (cil-lib/tests) and its subdirectories and run them consecutively. An explanation of setting relevant variables for a mocha debugger can be found here: https://code.visualstudio.com/docs/nodejs/nodejs-debugging
 
 In order to configure for cil-api workspace, we just need to add another block with the same configuration, we just need to change the `name`, `program` and `env` accordingly.
 
 ### Run test in VS Code
 
+#### Cil-api test
+
 In the console, navigate to Run and Debug icon on the most left panel, and choose which workspace you want to test. The next step is to set breakpoints to the part of code where you want to see the test output. We do that by right clicking in the far left margin next to a line of code.
 
 Now hit the Run button next to test option to start debugging.
+
+#### cil-lib test
+
+You would need to navigate to `cil-api` folder and run `npm run start` in order to start gRPC server before you can start debugging
