@@ -1,0 +1,29 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    // this is for mocha cil-lib debugger
+    {
+      "args": [
+        "-r",
+        "ts-node/register",
+        "--timeout",
+        "999999",
+        "--colors",
+        "${workspaceFolder}/cil-lib/tests/**/*.test.ts"
+      ],
+
+      "internalConsoleOptions": "openOnSessionStart",
+      "name": "Mocha cil-lib test",
+      "program": "${workspaceFolder}/node_modules/mocha/bin/_mocha",
+      "request": "launch",
+      "env": {
+        "TS_NODE_PROJECT": "${workspaceFolder}/cil-lib/tsconfig.json", // Or whatever path you have
+        "NEW_RELIC_ENABLED": "false",
+        "NODE_ENV": "test"
+      },
+
+      "skipFiles": ["<node_internals>/**"],
+      "type": "pwa-node"
+    }
+  ]
+}
