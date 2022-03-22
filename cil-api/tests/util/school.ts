@@ -16,11 +16,11 @@ const prisma = new PrismaClient();
 
 export async function getSchool(externalUuid: ExternalUuid): Promise<
   | {
-      externalUuid: ExternalUuid;
-      id: Uuid;
-      name: string;
-      externalOrgUuid: ExternalUuid;
-    }
+    externalUuid: ExternalUuid;
+    id: Uuid;
+    name: string;
+    externalOrgUuid: ExternalUuid;
+  }
   | undefined
 > {
   const school = await prisma.school.findUnique({

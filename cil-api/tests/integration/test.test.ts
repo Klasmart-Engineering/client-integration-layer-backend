@@ -23,6 +23,7 @@ import {
   createProgramsAndRoles as createRolesAndProgramsInAdminService,
 } from '../util/populateAdminService';
 import { getSchool } from '../util/school';
+import { getClass } from '../util/class';
 import { deleteUsers, getUser, setUpUser } from '../util/user';
 import { IdNameMapper } from 'cil-lib/dist/main/lib/services/adminService';
 import {
@@ -890,19 +891,39 @@ describe('When receiving requests over the web the server should', () => {
 
   it('succeed onboarding class if the school already exists', async () => {
     const res = await populateAdminService();
-    let orgId;
-    for (let key of res.keys()) {
-      orgId = key.id;
-    }
+    const schoolId = uuidv4();
+    const classId = uuidv4();
+    const org = res.keys().next().value;
+    const className = uuidv4().substring(0, 8);
+    const schoolName = uuidv4().substring(0, 8);
+
     const reqs = new TestCaseBuilder()
       .addValidOrgs(res)
-      .addSchool({ externalOrganizationUuid: orgId }, true)
-      .addClass({ externalOrganizationUuid: orgId }, true)
+      .addSchool({
+        name: schoolName,
+        externalUuid: schoolId,
+        externalOrganizationUuid: org.id
+      }, true)
+      .addClass({
+        name: className,
+        externalUuid: classId,
+        externalSchoolUuid: schoolId,
+        externalOrganizationUuid: org.id
+      }, true)
       .finalize();
+
     const result = await onboard(reqs, client);
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
+
+    const classFound = await getClass(classId, schoolId);
+    expect(classFound).to.be.not.undefined;
+    expect(classFound.externalUuid).to.be.equal(classId);
+    expect(classFound.name).to.be.equal(className);
+    expect(classFound.externalOrgUuid).to.be.equal(org.id);
+    expect(classFound.externalSchoolUuid).to.be.equal(schoolId);
+
     expect(allSuccess).to.be.true;
   }).timeout(50000);
 }).timeout(50000);
