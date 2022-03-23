@@ -1,7 +1,7 @@
 import { gql } from '@apollo/client/core';
 import { AdminService, ExternalUuid, PrismaClient, Uuid } from 'cil-lib';
 import { getSchool } from './school';
-import { LOG_STUB } from '.';
+import { log, LOG_STUB } from '.';
 
 const prisma = new PrismaClient();
 
@@ -126,6 +126,7 @@ export async function getClass(externalUuid: ExternalUuid, externalSchoolUuid: E
   });
 
   if (!classFound) {
+    log(`Class not found in database. Class externalUuid: "${externalUuid}"`);
     return undefined;
   }
 
@@ -137,6 +138,7 @@ export async function getClass(externalUuid: ExternalUuid, externalSchoolUuid: E
   const admin = await AdminService.getInstance();
   const adminOrg = await admin.getOrganization(dbOrg.name, LOG_STUB)
   if (!adminOrg) {
+    log(`Organization not found in AdminService. Organization name: ${dbOrg.name}`);
     return undefined;
   }
 
@@ -159,6 +161,7 @@ export async function getClass(externalUuid: ExternalUuid, externalSchoolUuid: E
   };
 
   if (!classNode) {
+    log(`GraphQL query failed (classNode is undefined). Class id: ${classFound.klUuid}`);
     return undefined;
   }
 
