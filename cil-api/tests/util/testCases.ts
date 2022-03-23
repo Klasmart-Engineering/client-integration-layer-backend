@@ -32,7 +32,7 @@ export class TestCaseBuilder {
 
   private requests: proto.OnboardingRequest[] = [];
 
-  constructor() {}
+  constructor() { }
 
   public getValidSchools(org: string): string[] {
     return Array.from(this.validSchoolIds.get(org) || []);
@@ -607,10 +607,10 @@ export class TestCaseBuilder {
       externalOrganizationUuid: tempValidOrgId,
       roleIdentifiersList:
         undefined !== opts.roleIdentifiersList &&
-        opts.roleIdentifiersList.length > 0
+          opts.roleIdentifiersList.length > 0
           ? opts.roleIdentifiersList
           : opts.roles.get(tempValidOrgId) ||
-            Array.from(this.validRoleIds.get(tempValidOrgId)),
+          Array.from(this.validRoleIds.get(tempValidOrgId)),
       ...opts,
     };
     createEntityRequest
@@ -832,10 +832,10 @@ export class TestCaseBuilder {
       externalOrganizationUuid: tempValidOrgId,
       roleIdentifiersList:
         undefined !== opts.roleIdentifiersList &&
-        opts.roleIdentifiersList.length > 0
+          opts.roleIdentifiersList.length > 0
           ? opts.roleIdentifiersList
           : opts.roles.get(tempValidOrgId) ||
-            Array.from(this.validRoleIds.get(tempValidOrgId)),
+          Array.from(this.validRoleIds.get(tempValidOrgId)),
       ...opts,
     };
     createEntityRequest

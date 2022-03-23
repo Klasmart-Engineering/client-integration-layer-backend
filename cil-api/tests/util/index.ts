@@ -1,6 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 import { proto, grpc, Logger, PrismaClient, ExternalUuid } from 'cil-lib';
 import sinon from 'sinon';
+import chalk from 'chalk';
 
 export { populateAdminService } from './populateAdminService';
 
@@ -73,4 +74,8 @@ export async function getDbRole(name: string, externalOrgUuid: ExternalUuid) {
   });
 
   return program;
+}
+
+export function log(msg: string) {
+  return console.log(chalk.red(msg));
 }

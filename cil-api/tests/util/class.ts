@@ -1,7 +1,18 @@
 import { gql } from '@apollo/client/core';
 import { AdminService, ExternalUuid, PrismaClient, Uuid } from 'cil-lib';
+import { getSchool } from './school';
+import { log, LOG_STUB } from '.';
 
 const prisma = new PrismaClient();
+
+const GET_CLASS = gql`
+  query class($classId: ID!) {
+    classNode(id: $classId) {
+      id
+      name
+    }
+  }
+`;
 
 const GET_CLASS_TEACHERS_STUDENTS = gql`
   query classConnection($classConnectionId: ID!) {
@@ -28,12 +39,12 @@ const GET_CLASS_TEACHERS_STUDENTS = gql`
 
 export async function getClassConnections(externalUuid: ExternalUuid): Promise<
   | {
-      externalUuid: ExternalUuid;
-      id: Uuid;
-      name: string;
-      teachers: Array<{ klUuid: Uuid; externalUuid: ExternalUuid }>;
-      students: Array<{ klUuid: Uuid; externalUuid: ExternalUuid }>;
-    }
+    externalUuid: ExternalUuid;
+    id: Uuid;
+    name: string;
+    teachers: Array<{ klUuid: Uuid; externalUuid: ExternalUuid }>;
+    students: Array<{ klUuid: Uuid; externalUuid: ExternalUuid }>;
+  }
   | undefined
 > {
   const clazz = await prisma.class.findFirst({
@@ -96,5 +107,69 @@ export async function getClassConnections(externalUuid: ExternalUuid): Promise<
     name,
     teachers: teachers,
     students: students,
+  };
+}
+
+export async function getClass(externalUuid: ExternalUuid, externalSchoolUuid: ExternalUuid): Promise<
+  | {
+    externalUuid: ExternalUuid;
+    id: Uuid;
+    name: string;
+    externalOrgUuid: ExternalUuid;
+    externalSchoolUuid: ExternalUuid;
+  }
+  | undefined
+> {
+  const classFound = await prisma.class.findUnique({
+    where: { externalUuid: externalUuid },
+    select: { klUuid: true, externalOrgUuid: true },
+  });
+
+  if (!classFound) {
+    log(`Class not found in database. Class externalUuid: "${externalUuid}"`);
+    return undefined;
+  }
+
+  const dbOrg = await prisma.organization.findUnique({
+    where: { externalUuid: classFound.externalOrgUuid },
+    select: { name: true },
+  });
+
+  const admin = await AdminService.getInstance();
+  const adminOrg = await admin.getOrganization(dbOrg.name, LOG_STUB)
+  if (!adminOrg) {
+    log(`Organization not found in AdminService. Organization name: ${dbOrg.name}`);
+    return undefined;
+  }
+
+  const dbSchool = await getSchool(externalSchoolUuid);
+  if (!dbSchool) {
+    return undefined;
+  }
+
+  const { data } = await admin.client.query({
+    query: GET_CLASS,
+    variables: {
+      classId: classFound.klUuid,
+    },
+    context: admin.context,
+  });
+
+  const classNode = data['classNode'] as {
+    id: Uuid;
+    name: string;
+  };
+
+  if (!classNode) {
+    log(`GraphQL query failed (classNode is undefined). Class id: ${classFound.klUuid}`);
+    return undefined;
+  }
+
+  return {
+    id: classNode.id,
+    name: classNode.name,
+    externalUuid: externalUuid,
+    externalOrgUuid: classFound.externalOrgUuid,
+    externalSchoolUuid: externalSchoolUuid
   };
 }
