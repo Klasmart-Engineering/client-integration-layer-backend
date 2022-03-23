@@ -97,13 +97,7 @@ cd cil-lib && npm publish
 
 ### Configuration setup
 
-For this feature, we want to configure and setup the debugger to identify issues quicker. Since we have two different test folders for `cil-lib` and `cil-api`. We would setup the configuration for these two options.
-
-The configuration is provided by `launch.json` under `.vscode` folder. An example for setting mocha debugger for cil-lib is given in `mocha_debugger_example.json`.
-
-It searches for all test files in the specified directory in our workspace (`cil-lib/tests`) and its subdirectories and run them consecutively. An explanation of setting relevant variables for a mocha debugger can be found here: https://code.visualstudio.com/docs/nodejs/nodejs-debugging
-
-In order to configure for `cil-api` workspace, we just need to add another block with the same configuration, we just need to change the `name` and `program` accordingly.
+For this feature, we want to configure and setup the debugger to identify issues quicker. Since we have two different test folders for `cil-lib` and `cil-api`. We would setup the configuration for these two options. This configuration is provided in `launch.json` under `.vscode` folder.
 
 ### Run test in VS Code
 

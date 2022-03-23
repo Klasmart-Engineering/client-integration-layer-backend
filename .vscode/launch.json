@@ -26,7 +26,9 @@
       "skipFiles": ["<node_internals>/**/*.js"]
       // "smartStep": true
     },
-    // this is for mocha cil-lib debugger
+    // Below are configuration settings for mocha cil-lib and cil-api debugger.
+    // For more details on mocha debugger configuration settings
+    // have a look at https://code.visualstudio.com/docs/nodejs/nodejs-debugging
 
     {
       "args": [
@@ -57,7 +59,7 @@
       "skipFiles": ["<node_internals>/**"],
       "type": "pwa-node"
     },
-    // this is for mocha cil-api debugger
+    // this is for mocha cil-api debugger settings
     {
       "args": [
         "-r",
