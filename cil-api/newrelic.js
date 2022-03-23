@@ -62,4 +62,11 @@ exports.config = {
       'response.headers.x*',
     ],
   },
+  transaction_tracer: {
+    enabled: true,
+    record_sql: 'obfuscated',
+  },
+  slow_sql: {
+    enabled: true,
+  },
 };
