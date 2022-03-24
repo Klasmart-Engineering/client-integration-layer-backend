@@ -92,3 +92,9 @@ cd cil-lib && npm publish
 ```
 `npx prisma generate --schema='./node_modules/@kl-engineering/cil-lib/prisma/schema.prisma'`
 ```
+
+## Mocha debugger for VS Code
+This is already configured in `./vscode/launch.json`
+
+You can choose  between debugging the unit tests in `cil-lib` or integration tests in `cil-api` using the run menu in the Debug tab.
+When running tests, ensure that the API server is running (see Installation and Running locally).
