@@ -22,7 +22,7 @@ import {
   createOrg as createOrgInAdminService,
   createProgramsAndRoles as createRolesAndProgramsInAdminService,
 } from '../util/populateAdminService';
-import { getSchool } from '../util/school';
+import { getSchool, getSchoolUsers } from '../util/school';
 import { getClass } from '../util/class';
 import { deleteUsers, getUser, setUpUser } from '../util/user';
 import { IdNameMapper } from 'cil-lib/dist/main/lib/services/adminService';
@@ -65,27 +65,29 @@ describe('When receiving requests over the web the server should', () => {
 
   it('succeed with a small valid series of deterministic inputs', async () => {
     const res = await populateAdminService();
-    const reqs = new TestCaseBuilder()
+    const testCase = new TestCaseBuilder()
       .addValidOrgs(res)
       .addValidSchoolsToEachOrg(5)
       .addValidClassesToEachSchool(5)
-      .addValidUsersToEachSchool(10, 1, 3)
-      .finalize();
+      .addValidUsersToEachSchool(10, 1, 3);
+    const reqs = testCase.finalize();
     const result = await onboard(reqs, client);
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
     expect(allSuccess).to.be.true;
+
+    await assertSchoolUsersInAdmin(testCase);
   }).timeout(50000);
 
   it('succeed with a larger valid series of deterministic inputs', async () => {
     const res = await populateAdminService();
-    const reqs = new TestCaseBuilder()
+    const testCase = new TestCaseBuilder()
       .addValidOrgs(res)
       .addValidSchoolsToEachOrg(5)
       .addValidClassesToEachSchool(10)
-      .addValidUsersToEachSchool(100, 10)
-      .finalize();
+      .addValidUsersToEachSchool(100, 10);
+    const reqs = testCase.finalize();
     const result = await onboard(reqs, client);
     const successes = parseResponsesForSuccesses(result);
     expect(successes).to.eql({
@@ -98,17 +100,18 @@ describe('When receiving requests over the web the server should', () => {
     for (const value of errorMessages.values()) {
       expect(value.size).to.equal(0);
     }
-    // query the data in order to see if it exists
+
+    await assertSchoolUsersInAdmin(testCase);
   }).timeout(50000);
 
   it('succeed with very large deterministic inputs', async () => {
     const res = await populateAdminService();
-    const reqs = new TestCaseBuilder()
+    const testCase = new TestCaseBuilder()
       .addValidOrgs(res)
       .addValidSchoolsToEachOrg(1)
       .addValidClassesToEachSchool(100)
-      .addValidUsersToEachSchool(2500, 20)
-      .finalize();
+      .addValidUsersToEachSchool(2500, 20);
+    const reqs = testCase.finalize();
     const result = await onboard(reqs, client);
     const successes = parseResponsesForSuccesses(result);
     expect(successes).to.eql({
@@ -121,7 +124,8 @@ describe('When receiving requests over the web the server should', () => {
     for (const value of errorMessages.values()) {
       expect(value.size).to.equal(0);
     }
-    // query the data in order to see if it exists
+
+    await assertSchoolUsersInAdmin(testCase);
   }).timeout(50000);
 
   it('only expose external uuids', async () => {
@@ -823,9 +827,10 @@ describe('When receiving requests over the web the server should', () => {
     const student1 = uuidv4();
     const student2 = uuidv4();
     const student3 = uuidv4();
+    const schoolId = uuidv4();
     const setUpRequest = new TestCaseBuilder()
       .addValidOrgs(res)
-      .addSchool({ externalOrganizationUuid: org.id })
+      .addSchool({ externalUuid: schoolId, externalOrganizationUuid: org.id })
       .addClass({ externalOrganizationUuid: org.id, externalUuid: classId })
       .addUser({
         addToValidClasses: 1,
@@ -899,17 +904,23 @@ describe('When receiving requests over the web the server should', () => {
 
     const reqs = new TestCaseBuilder()
       .addValidOrgs(res)
-      .addSchool({
-        name: schoolName,
-        externalUuid: schoolId,
-        externalOrganizationUuid: org.id
-      }, true)
-      .addClass({
-        name: className,
-        externalUuid: classId,
-        externalSchoolUuid: schoolId,
-        externalOrganizationUuid: org.id
-      }, true)
+      .addSchool(
+        {
+          name: schoolName,
+          externalUuid: schoolId,
+          externalOrganizationUuid: org.id,
+        },
+        true
+      )
+      .addClass(
+        {
+          name: className,
+          externalUuid: classId,
+          externalSchoolUuid: schoolId,
+          externalOrganizationUuid: org.id,
+        },
+        true
+      )
       .finalize();
 
     const result = await onboard(reqs, client);
@@ -946,4 +957,13 @@ function addStudentsToClassReq(classId: string, studentIds: ExternalUuid[]) {
         .setExternalStudentUuidList(studentIds)
     )
   );
+}
+
+async function assertSchoolUsersInAdmin(testCase: TestCaseBuilder) {
+  for (const schoolId of testCase.getValidSchools(testCase.validOrgIds[0])) {
+    const schoolUsers = await getSchoolUsers(schoolId);
+    expect(schoolUsers.map((user) => user.externalUuid)).to.includes.members(
+      testCase.getValidUsersInSchool(schoolId)
+    );
+  }
 }

@@ -1,7 +1,15 @@
 import { v4 as uuidv4 } from 'uuid';
-import { proto, grpc, Logger, PrismaClient, ExternalUuid } from 'cil-lib';
+import {
+  proto,
+  grpc,
+  Logger,
+  PrismaClient,
+  ExternalUuid,
+  AdminService,
+} from 'cil-lib';
 import sinon from 'sinon';
 import chalk from 'chalk';
+import { DocumentNode, TypedDocumentNode } from '@apollo/client/core';
 
 export { populateAdminService } from './populateAdminService';
 
@@ -78,4 +86,45 @@ export async function getDbRole(name: string, externalOrgUuid: ExternalUuid) {
 
 export function log(msg: string) {
   return console.log(chalk.red(msg));
+}
+
+export async function traversePaginatedQuery<T, U>(
+  admin: AdminService,
+  query: DocumentNode | TypedDocumentNode,
+  transformer: (responseData: U) => T,
+  connectionName: string,
+  variables?: Record<string, unknown>
+): Promise<T[]> | undefined {
+  let hasNextPage = true;
+  let cursor = '';
+
+  const result: T[] = [];
+  while (hasNextPage) {
+    const response = await admin.client.query({
+      query,
+      variables: {
+        count: 50,
+        cursor,
+        ...variables,
+      },
+      context: admin.context,
+    });
+    const data = response.data;
+    if (!data) {
+      log('Received no data property on the response object');
+      return undefined;
+    }
+    const responseData = data[connectionName];
+    if (!responseData || !responseData.pageInfo) {
+      log('When trying to parse the paginated query, found no pages of data');
+      return undefined;
+    }
+    hasNextPage = responseData.pageInfo.hasNextPage;
+    cursor = responseData.pageInfo.endCursor;
+
+    for (const { node } of responseData.edges) {
+      result.push(transformer(node));
+    }
+  }
+  return result;
 }
