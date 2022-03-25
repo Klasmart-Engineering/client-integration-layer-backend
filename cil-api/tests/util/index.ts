@@ -92,7 +92,7 @@ export async function traversePaginatedQuery<T, U>(
   admin: AdminService,
   query: DocumentNode | TypedDocumentNode,
   transformer: (responseData: U) => T,
-  connectionName: string,
+  connectionDataAccessor,
   variables?: Record<string, unknown>
 ): Promise<T[]> | undefined {
   let hasNextPage = true;
@@ -114,7 +114,7 @@ export async function traversePaginatedQuery<T, U>(
       log('Received no data property on the response object');
       return undefined;
     }
-    const responseData = data[connectionName];
+    const responseData = connectionDataAccessor(data);
     if (!responseData || !responseData.pageInfo) {
       log('When trying to parse the paginated query, found no pages of data');
       return undefined;
