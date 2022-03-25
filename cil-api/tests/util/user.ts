@@ -17,6 +17,13 @@ const GET_USER = gql`
             email
             phone
           }
+          organizationMembershipsConnection {
+            edges {
+              node {
+                organizationId
+              }
+            }
+          }
         }
       }
     }
@@ -33,6 +40,7 @@ export async function getUser(externalUuid: ExternalUuid): Promise<
       dateOfBirth: string;
       email: string;
       phone: string;
+      externalOrgIds: ExternalUuid[];
     }
   | undefined
 > {
@@ -62,11 +70,30 @@ export async function getUser(externalUuid: ExternalUuid): Promise<
       username: string;
       dateOfBirth: string;
       contactInfo: { email: string; phone: string };
+      organizationMembershipsConnection: {
+        edges: [
+          {
+            node: {
+              organizationId: string;
+            };
+          }
+        ];
+      };
     };
   }>;
 
   return users
-    .map((user) => {
+    .map(async (user) => {
+      const userOrgKlUuids =
+        user.node.organizationMembershipsConnection.edges.map(
+          (edge) => edge.node.organizationId
+        );
+
+      let externalOrgIds = [];
+      if (userOrgKlUuids && userOrgKlUuids.length > 0) {
+        externalOrgIds.concat(await getExternalOrgIds(userOrgKlUuids));
+      }
+
       return {
         externalUuid: externalUuid,
         id: user.node.id,
@@ -74,9 +101,18 @@ export async function getUser(externalUuid: ExternalUuid): Promise<
         dateOfBirth: user.node.dateOfBirth,
         email: user.node.contactInfo.email,
         phone: user.node.contactInfo.phone,
+        externalOrgIds,
       };
     })
     .find((user) => user != undefined);
+}
+
+async function getExternalOrgIds(orgIds: Uuid[]): Promise<ExternalUuid[]> {
+  const orgs = await prisma.organization.findMany({
+    where: { klUuid: { in: orgIds } },
+    select: { externalUuid: true },
+  });
+  return orgs.map((org) => org.externalUuid);
 }
 
 export async function deleteUsers(userIds: ExternalUuid[]): Promise<boolean> {

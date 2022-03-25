@@ -1,5 +1,4 @@
 import { expect } from 'chai';
-import Sinon from 'sinon';
 import sinon, { SinonStub } from 'sinon';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -12,12 +11,11 @@ import {
 import { Link } from '../../../../src/lib/database';
 import {
   AddUsersToOrganization,
-  BatchOnboarding,
   Entity,
   Responses,
 } from '../../../../src/lib/protos';
 import { AdminService } from '../../../../src/lib/services';
-import { Context } from '../../../../src/lib/utils';
+import { Context, ExternalUuid } from '../../../../src/lib/utils';
 import { LOG_STUB, wrapRequest } from '../../../util';
 
 export type AddUsersToOrganizationTestCase = {
@@ -185,10 +183,16 @@ describe('add users to organization', () => {
 
   describe('should fail when ', () => {
     INVALID_ADD_USERS_TO_ORGANIZATION.forEach(
-      ({ scenario, addUsersToOrganization: c, message: m }) => {
+      ({
+        scenario,
+        addUsersToOrganization: addUserToOrg,
+        message: expectedErrorMessage,
+      }) => {
         it(scenario, async () => {
-          const req = wrapRequest(c);
-          const resp = await makeCommonAssertions(req, m);
+          const req = wrapRequest(addUserToOrg);
+          const resp = await processOnboardingRequest(req, LOG_STUB);
+          const userId = addUserToOrg.getExternalUserUuidsList()[0];
+          assertValidationErrorUser(resp, userId, expectedErrorMessage);
           const response = resp.toObject().responsesList[0];
           expect(response.errors?.validation).not.to.be.undefined;
         });
@@ -197,9 +201,8 @@ describe('add users to organization', () => {
   });
 
   it('should fail if the org ID is not in the database', async () => {
-    const req = wrapRequest(
-      VALID_ADD_USERS_TO_ORGANIZATION[0].addUsersToOrganization
-    );
+    const addUsersToOrg = setUpAddUsersToOrg();
+    const req = wrapRequest(addUsersToOrg);
     orgStub.rejects(
       new OnboardingError(
         MachineError.VALIDATION,
@@ -211,13 +214,16 @@ describe('add users to organization', () => {
         ['Invalid Org']
       )
     );
-    await makeCommonAssertions(req, 'Invalid');
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+    assertValidationErrorUser(
+      resp,
+      addUsersToOrg.getExternalUserUuidsList()[0]
+    );
   });
 
   it('should fail if the role names are not found', async () => {
-    const req = wrapRequest(
-      VALID_ADD_USERS_TO_ORGANIZATION[0].addUsersToOrganization
-    );
+    const addUsersToOrg = setUpAddUsersToOrg();
+    const req = wrapRequest(addUsersToOrg);
     roleStub.rejects(
       new OnboardingError(
         MachineError.VALIDATION,
@@ -229,13 +235,17 @@ describe('add users to organization', () => {
         ['Invalid query']
       )
     );
-    await makeCommonAssertions(req, 'Invalid');
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+    assertValidationErrorUser(
+      resp,
+      addUsersToOrg.getExternalUserUuidsList()[0],
+      'Invalid'
+    );
   });
 
   it('should fail if retrieving user ids db error', async () => {
-    const req = wrapRequest(
-      VALID_ADD_USERS_TO_ORGANIZATION[0].addUsersToOrganization
-    );
+    const addUsersToOrg = setUpAddUsersToOrg();
+    const req = wrapRequest(addUsersToOrg);
     orgStub.rejects(
       new OnboardingError(
         MachineError.VALIDATION,
@@ -247,15 +257,29 @@ describe('add users to organization', () => {
         ['Invalid query']
       )
     );
-    await makeCommonAssertions(req, 'Invalid');
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+    assertValidationErrorUser(
+      resp,
+      addUsersToOrg.getExternalUserUuidsList()[0],
+      'Invalid'
+    );
   });
 
   it('should fail if the user already belongs to the org', async () => {
-    const req = wrapRequest(
-      VALID_ADD_USERS_TO_ORGANIZATION[0].addUsersToOrganization
-    );
-    linkStub.resolves({ valid: [uuidv4()], invalid: [] });
-    await makeCommonAssertions(req, 'already belongs to Organization');
+    const addUsersToOrg = setUpAddUsersToOrg();
+    const userId = addUsersToOrg.getExternalUserUuidsList()[0];
+    const req = wrapRequest(addUsersToOrg);
+    linkStub.resolves({ valid: [userId], invalid: [] });
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+    assertUserError(resp, userId);
+    expect(resp.getResponsesList()[0].toObject().errors!.entityAlreadyExists)
+      .not.to.be.undefined;
+    expect(
+      resp.getResponsesList()[0].toObject().errors!.entityAlreadyExists!
+        .detailsList
+    ).to.includes.members([
+      `User: ${userId} already belongs to Organization: ${addUsersToOrg.getExternalOrganizationUuid()}`,
+    ]);
   });
 
   it('if one user belongs to the org, but others dont, it should fail that user and pass the others', async () => {
@@ -264,29 +288,23 @@ describe('add users to organization', () => {
     const user2 = uuidv4();
     const user3 = uuidv4();
     addUsers.setExternalUserUuidsList([user1, user2, user3]);
-        
-    const req = wrapRequest(
-      addUsers
-    );
-    userStub
-      .onFirstCall()
-      .resolves({
-        valid: new Map<string, string>([
-          [uuidv4(), uuidv4()],
-          [uuidv4(), uuidv4()],
-          [uuidv4(), uuidv4()]
-        ]),
-        invalid: [],
-      });
-    userStub
-      .onSecondCall()
-      .resolves({
-        valid: new Map<string, string>([
-          [uuidv4(), uuidv4()],
-          [uuidv4(), uuidv4()]
-        ]),
-        invalid: [],
-      });
+
+    const req = wrapRequest(addUsers);
+    userStub.onFirstCall().resolves({
+      valid: new Map<string, string>([
+        [uuidv4(), uuidv4()],
+        [uuidv4(), uuidv4()],
+        [uuidv4(), uuidv4()],
+      ]),
+      invalid: [],
+    });
+    userStub.onSecondCall().resolves({
+      valid: new Map<string, string>([
+        [uuidv4(), uuidv4()],
+        [uuidv4(), uuidv4()],
+      ]),
+      invalid: [],
+    });
     contextStub.resolves({
       getOrganizationId: orgIdStub,
       organizationIdIsValid: orgStub,
@@ -294,42 +312,32 @@ describe('add users to organization', () => {
       getUserIds: userStub,
     } as unknown as Context);
     linkStub.resolves({ valid: [user2], invalid: [user1, user3] });
-    
-      
-    try {
-      const resp = await processOnboardingRequest(req, LOG_STUB);
-      expect(resp).not.to.be.undefined;
-      const responses = resp.toObject().responsesList;
-      expect(responses).to.have.lengthOf(3);
-      
-      // Test valid responses are correct
-      const validResponse = responses[1];
-      expect(validResponse).not.to.be.undefined;
-      expect(validResponse.success).to.be.true;
-      
-      // Test invalid response is correct
-      const invalidResponse = responses[0];
-      expect(invalidResponse.success).to.be.false;
-      expect(invalidResponse.requestId).to.eql(
-        req.getRequestsList()[0].getRequestId()?.toObject()
-      );
-      expect(invalidResponse.entityId).to.contains(
-        user2
-      );
-      expect(invalidResponse.entity).to.equal(Entity.USER);
-      expect(invalidResponse.errors?.validation).not.to.be.undefined;
-      expect(
-        invalidResponse.errors?.validation?.errorsList[0].detailsList[0]
-      ).to.contains('already belongs to Organization');
-      
-      return resp;
-    } catch (error) {
-      expect(error, 'this api should not error').to.be.undefined;
-    }
-    throw new Error('Unexpected reached the end of the test');
 
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+    expect(resp).not.to.be.undefined;
+    const responses = resp.toObject().responsesList;
+    expect(responses).to.have.lengthOf(3);
+
+    // Test valid responses are correct
+    const validResponse = responses[1];
+    expect(validResponse).not.to.be.undefined;
+    expect(validResponse.success).to.be.true;
+
+    // Test invalid response is correct
+    const invalidResponse = responses[0];
+    expect(invalidResponse.success).to.be.false;
+    expect(invalidResponse.requestId).to.eql(
+      req.getRequestsList()[0].getRequestId()?.toObject()
+    );
+    expect(invalidResponse.entityId).to.contains(user2);
+    expect(invalidResponse.entity).to.equal(Entity.USER);
+    expect(invalidResponse.errors?.entityAlreadyExists).not.to.be.undefined;
+    expect(
+      invalidResponse.errors?.entityAlreadyExists?.detailsList
+    ).to.includes.members([
+      `User: ${user2} already belongs to Organization: ${addUsers.getExternalOrganizationUuid()}`,
+    ]);
   });
-
 });
 
 function setUpAddUsersToOrg(
@@ -346,37 +354,31 @@ function setUpAddUsersToOrg(
   return addUsersToOrganization;
 }
 
-async function makeCommonAssertions(
-  req: BatchOnboarding,
+function assertValidationErrorUser(
+  resp: Responses,
+  userId: ExternalUuid,
   expectedMessage?: string
-): Promise<Responses> {
-  try {
-    const resp = await processOnboardingRequest(req, LOG_STUB);
-    expect(resp).not.to.be.undefined;
-    const responses = resp.toObject().responsesList;
-    expect(responses).to.have.lengthOf(1);
-    const response = responses[0];
-    expect(response.success).to.be.false;
-    expect(response.requestId).to.eql(
-      req.getRequestsList()[0].getRequestId()?.toObject()
-    );
-    expect(response.entityId).to.contains(
-      req
-        .getRequestsList()[0]
-        .getLinkEntities()
-        ?.getAddUsersToOrganization()
-        ?.getExternalUserUuidsList()
-    );
-    expect(response.entity).to.equal(Entity.USER);
-    expect(response.errors?.validation).not.to.be.undefined;
-    if (expectedMessage) {
-      expect(
-        response.errors?.validation?.errorsList[0].detailsList[0]
-      ).to.contains(expectedMessage);
-    }
-    return resp;
-  } catch (error) {
-    expect(error, 'this api should not error').to.be.undefined;
+) {
+  const response = assertUserError(resp, userId)
+    .getResponsesList()[0]
+    .toObject();
+  expect(response.errors?.validation).not.to.be.undefined;
+  if (expectedMessage) {
+    expect(
+      response.errors?.validation?.errorsList[0].detailsList[0]
+    ).to.contains(expectedMessage);
   }
-  throw new Error('Unexpected reached the end of the test');
+}
+
+function assertUserError(resp: Responses, userId: ExternalUuid) {
+  const responses = resp.toObject().responsesList;
+  expect(responses).to.have.lengthOf(1);
+  const response = responses[0];
+  expect(response.success).to.be.false;
+  expect(response.requestId).to.eql(response.requestId);
+  if (userId && userId.length > 0) {
+    expect(response.entityId).to.eql(userId);
+  }
+  expect(response.entity).to.equal(Entity.USER);
+  return resp;
 }

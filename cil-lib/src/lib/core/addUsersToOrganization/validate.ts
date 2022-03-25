@@ -121,7 +121,7 @@ async function validate(
         .setEntityId(id)
         .setErrors(
           new OnboardingError(
-            MachineError.VALIDATION,
+            MachineError.ENTITY_ALREADY_EXISTS,
             `User: ${id} already belongs to Organization: ${orgId}`,
             Category.REQUEST,
             log

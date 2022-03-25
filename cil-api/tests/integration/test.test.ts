@@ -28,6 +28,7 @@ import { deleteUsers, getUser, setUpUser } from '../util/user';
 import { IdNameMapper } from 'cil-lib/dist/main/lib/services/adminService';
 import {
   AddUsersToClass,
+  AddUsersToOrganization,
   OnboardingRequest,
 } from 'cil-lib/dist/main/lib/protos';
 import { getClassConnections } from '../util/class';
@@ -895,6 +896,62 @@ describe('When receiving requests over the web the server should', () => {
     expect(
       classConnections.students.map((student) => student.externalUuid)
     ).to.includes.members([student1, student2, student3]);
+  }).timeout(50000);
+
+  it('handle adding users to org that already exists', async () => {
+    const res = await populateAdminService();
+    const org: IdNameMapper = res.keys().next().value;
+    const userId1 = uuidv4();
+    const userId2 = uuidv4();
+    const reqs = new TestCaseBuilder()
+      .addValidOrgs(res)
+      .addUser({
+        addToValidSchools: 0,
+        addToValidClasses: 0,
+        externalOrganizationUuid: org.id,
+        externalUuid: userId1,
+      })
+      .addUser({
+        addToValidSchools: 0,
+        addToValidClasses: 0,
+        externalOrganizationUuid: org.id,
+        externalUuid: userId2,
+      })
+      .finalize();
+    const setUp = await onboard(reqs, client);
+    const allSuccess = setUp
+      .toObject()
+      .responsesList.every((response) => response.success === true);
+    expect(allSuccess).to.be.true;
+
+    const request = new OnboardingRequest().setLinkEntities(
+      new proto.Link().setAddUsersToOrganization(
+        new AddUsersToOrganization()
+          .setExternalOrganizationUuid(org.id)
+          .setRoleIdentifiersList(['TEST ROLE 1'])
+          .setExternalUserUuidsList([userId1, userId2])
+      )
+    );
+
+    const result = await (
+      await onboard(wrapRequest([request]), client)
+    ).toObject().responsesList;
+    expect(result.filter((resp) => resp.success === false)).to.be.length(2);
+    expect(result.filter((r) => r.errors)).to.be.length(2);
+    expect(
+      result
+        .filter((resp) => resp.errors)
+        .filter((resp) => resp.errors.entityAlreadyExists)
+    ).to.be.length(2);
+    expect(result.map((resp) => resp.entityId)).to.includes.members([
+      userId1,
+      userId2,
+    ]);
+
+    const user1 = await getUser(userId1);
+    expect(user1.externalOrgIds).to.include.members([org.id]);
+    const user2 = await getUser(userId2);
+    expect(user2.externalOrgIds).to.include.members([org.id]);
   }).timeout(50000);
 
   it('succeed onboarding class if the school already exists', async () => {
