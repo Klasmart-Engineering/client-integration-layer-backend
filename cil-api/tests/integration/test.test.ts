@@ -22,7 +22,7 @@ import {
   createOrg as createOrgInAdminService,
   createProgramsAndRoles as createRolesAndProgramsInAdminService,
 } from '../util/populateAdminService';
-import { getSchool, getSchoolUsers } from '../util/school';
+import { getSchool, getSchoolPrograms, getSchoolUsers } from '../util/school';
 import { getClass } from '../util/class';
 import { deleteUsers, getUser, setUpUser } from '../util/user';
 import { IdNameMapper } from 'cil-lib/dist/main/lib/services/adminService';
@@ -559,14 +559,12 @@ describe('When receiving requests over the web the server should', () => {
     const schoolId = uuidv4();
     const schoolName = uuidv4().substring(0, 8);
     const org = res.keys().next().value;
-    const reqs = new TestCaseBuilder()
-      .addValidOrgs(res)
-      .addSchool({
-        externalOrganizationUuid: org.id,
-        externalUuid: schoolId,
-        name: schoolName,
-      })
-      .finalize();
+    const testCase = new TestCaseBuilder().addValidOrgs(res).addSchool({
+      externalOrganizationUuid: org.id,
+      externalUuid: schoolId,
+      name: schoolName,
+    });
+    const reqs = testCase.finalize();
     const result = await onboard(reqs, client);
     const allSuccess = result
       .toObject()
@@ -580,6 +578,11 @@ describe('When receiving requests over the web the server should', () => {
     expect(school.externalUuid).to.be.equal(schoolId);
     expect(school.name).to.be.equal(schoolName);
     expect(school.externalOrgUuid).to.be.equal(org.id);
+
+    const programs = await getSchoolPrograms(schoolId);
+    expect(programs.map((program) => program.name)).to.includes.members(
+      testCase.getProgramsForSchool(schoolId)
+    );
   }).timeout(50000);
 
   it('handle dupe adding users to classes that already exists', async () => {
