@@ -960,10 +960,12 @@ function addStudentsToClassReq(classId: string, studentIds: ExternalUuid[]) {
 }
 
 async function assertSchoolUsersInAdmin(testCase: TestCaseBuilder) {
-  for (const schoolId of testCase.getValidSchools(testCase.validOrgIds[0])) {
-    const schoolUsers = await getSchoolUsers(schoolId);
-    expect(schoolUsers.map((user) => user.externalUuid)).to.includes.members(
-      testCase.getValidUsersInSchool(schoolId)
-    );
+  for (const orgId of testCase.validOrgIds) {
+    for (const schoolId of testCase.getValidSchools(orgId)) {
+      const schoolUsers = await getSchoolUsers(schoolId);
+      expect(schoolUsers.map((user) => user.externalUuid)).to.includes.members(
+        testCase.getValidUsersInSchool(schoolId)
+      );
+    }
   }
 }
