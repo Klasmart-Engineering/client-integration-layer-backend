@@ -240,6 +240,48 @@ export class Link {
     }
   }
 
+  public static async classesBelongToSchool(
+    classIds: ExternalUuid[],
+    schoolId: ExternalUuid,
+    log: Logger
+  ): Promise<{validToPass: ExternalUuid[]; invalidLink: ExternalUuid[] }> {
+    try {
+      const validClasses = (
+        await prisma.classLinkSchool.findMany({
+          where: {
+            externalClassUuid: {
+              in: classIds,
+            },
+            externalSchoolUuid: schoolId,
+          },
+          select: {
+            externalClassUuid: true,
+          },
+        })
+      ).map((c) => c.externalClassUuid);
+
+      const toValidate = new Set(classIds);
+      // store invalid class ids that were already linked to school
+      const invalidLink = [];
+      for (const externalUuid of validClasses) {
+        
+        // delete returns true if the class was in the list
+        if (toValidate.delete(externalUuid)) invalidLink.push(externalUuid);
+      }
+      return {validToPass: Array.from(toValidate), invalidLink: invalidLink};
+    } catch (error) {
+      const msg = returnMessageOrThrowOnboardingError(error);
+      throw new OnboardingError(
+        MachineError.READ,
+        msg,
+        Category.POSTGRES,
+        log,
+        [],
+        { entityIds: classIds, queryType: 'classes belong to school' }
+      );
+    }
+  }
+
   /**
    *
    * @throws if any of the provided arguments don't share the same org

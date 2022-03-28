@@ -12,6 +12,7 @@ import {
 } from '../../errors';
 import {
   AddClassesToSchool,
+  EntityAlreadyExistsError,
   EntityDoesNotExistError,
   Entity as PbEntity,
   Error as PbError,
@@ -32,9 +33,27 @@ export async function validateMany(
   for (const d of data) {
     try {
       const result = await validate(d, log);
-
+      
       valid.push(result.valid);
-      for (const i of result.invalid) {
+
+      // create responses for already linked classes
+      for (const classId of result.invalidLink) {
+        const resp = new Response()
+            .setSuccess(false)
+            .setRequestId(requestIdToProtobuf(d.requestId))
+            .setEntity(PbEntity.CLASS)
+            .setEntityId(classId)
+            .setErrors(
+              new PbError().setEntityAlreadyExists(
+                new EntityAlreadyExistsError().setDetailsList([
+                  `Classes with id ${classId} already exist`, 
+                ])
+              )
+            );
+            invalid.push(resp);
+      }
+      // create responses for non-existed classes
+      for (const i of result.invalidNotExist) {
         const resp = new Response()
           .setSuccess(false)
           .setRequestId(requestIdToProtobuf(d.requestId))
@@ -80,14 +99,14 @@ export async function validateMany(
 async function validate(
   r: IncomingData,
   log: Logger
-): Promise<{ valid: IncomingData; invalid: string[] }> {
+): Promise<{ valid: IncomingData; invalidNotExist: string[], invalidLink: string[] }> {
   const { protobuf } = r;
 
   schemaValidation(protobuf.toObject(), log);
   const schoolId = protobuf.getExternalSchoolUuid();
   const classIds = protobuf.getExternalClassUuidsList();
 
-  const { valid, invalid } = await Class.areValid(classIds, log);
+  const { valid, invalid} = await Class.areValid(classIds, log);
   if (valid.length === 0)
     throw new OnboardingError(
       MachineError.VALIDATION,
@@ -95,14 +114,18 @@ async function validate(
       Category.REQUEST,
       log
     );
-
-  protobuf.setExternalClassUuidsList(valid);
-  r.data.externalClassUuidsList = valid;
+  
+  // Check if the valid classes already linked to the school 
+  const {validToPass, invalidLink} = await Link.classesBelongToSchool(valid, schoolId, log);
+  
+  protobuf.setExternalClassUuidsList(validToPass);
+  r.data.externalClassUuidsList = validToPass;
 
   // Checking that both sets of ids are valid are covered by this
   await Link.shareTheSameOrganization(log, [schoolId], valid);
-
-  return { valid: r, invalid };
+  
+  
+  return { valid: r, invalidNotExist: invalid, invalidLink: invalidLink };
 }
 
 function schemaValidation(

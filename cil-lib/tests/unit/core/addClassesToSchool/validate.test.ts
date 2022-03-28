@@ -116,12 +116,14 @@ describe('add classes to school should', () => {
 
   beforeEach(() => {
     const schoolId = uuidv4();
+    const classId = uuidv4();
     adminStub = sinon.stub(AdminService, 'getInstance').resolves({
       addClassesToSchool: sinon
         .stub()
         .resolves([{ id: schoolId, name: 'Test school' }]),
     } as unknown as AdminService);
     shareSameOrgStub = sinon.stub(Link, 'shareTheSameOrganization').resolves();
+
     classDbStub = sinon
       .stub(ClassDB, 'areValid')
       .resolves({ valid: [uuidv4()], invalid: [] });
@@ -197,6 +199,51 @@ describe('add classes to school should', () => {
     }
     expect(successCount).to.equal(2);
     expect(failureCount).to.equal(1);
+  });
+
+  it('successfully process all valid ids when two is invalid (non-existing) and one invalid (already linked)', async () => {
+    const innerReq = setUpAddClassesToSchool();
+    const classIds = [uuidv4(), uuidv4(), uuidv4(), uuidv4()];
+    innerReq.setExternalClassUuidsList([classIds[0]]);
+    sinon
+      .stub(Link, 'classesBelongToSchool')
+      .resolves({ validToPass: [uuidv4()], invalidLink: [uuidv4()] });
+    classDbStub.resolves({
+      valid: [classIds[0], classIds[1]],
+      invalid: [classIds[2], classIds[3]],
+
+      validToPass: [classIds[0]],
+      invalidLink: [classIds[1]],
+    });
+
+    const req = wrapRequest(innerReq);
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+    const responses = resp.getResponsesList();
+    expect(responses).to.have.length(4);
+
+    let successCount = 0;
+    let failureCount = 0;
+    let alreadyLinked = 0;
+    let doesNotExist = 0;
+    for (const r of responses) {
+      expect(r.getEntity()).not.to.be.undefined;
+      expect(r.getEntityId()).not.to.be.undefined;
+      if (r.getSuccess()) {
+        successCount += 1;
+      } else {
+        failureCount += 1;
+        if (r.getErrors()?.hasEntityAlreadyExists()) {
+          alreadyLinked += 1;
+        }
+        if (r.getErrors()?.hasEntityDoesNotExist()) {
+          doesNotExist += 1;
+        }
+      }
+    }
+    expect(successCount).to.equal(1);
+    expect(failureCount).to.equal(3);
+    expect(alreadyLinked).to.equal(1);
+    expect(doesNotExist).to.equal(2);
   });
 
   it(`fail when the entities don't belong to the same organization`, async () => {
