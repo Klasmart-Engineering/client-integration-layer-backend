@@ -120,7 +120,9 @@ export async function getUser(externalUuid: ExternalUuid): Promise<
 
       let externalOrgIds = [];
       if (userOrgKlUuids && userOrgKlUuids.length > 0) {
-        externalOrgIds.concat(await getExternalOrgIds(userOrgKlUuids));
+        externalOrgIds = externalOrgIds.concat(
+          await getExternalOrgIds(userOrgKlUuids)
+        );
       }
 
       return {

@@ -9,6 +9,7 @@ import {
   LOG_STUB,
   onboard,
   populateAdminService,
+  random,
   wrapRequest,
 } from '../util';
 import { TestCaseBuilder } from '../util/testCases';
@@ -968,6 +969,31 @@ describe('When receiving requests over the web the server should', () => {
     expect(user1.externalOrgIds).to.include.members([org.id]);
     const user2 = await getUser(userId2);
     expect(user2.externalOrgIds).to.include.members([org.id]);
+  }).timeout(50000);
+
+  it('handle adding user with capital letters in email', async () => {
+    const res = await populateAdminService();
+    const org: IdNameMapper = res.keys().next().value;
+    const userId = uuidv4();
+    const email = `AbA${random()}@email.com`;
+    const reqs = new TestCaseBuilder()
+      .addValidOrgs(res)
+      .addUser({
+        addToValidSchools: 0,
+        addToValidClasses: 0,
+        externalOrganizationUuid: org.id,
+        externalUuid: userId,
+        email,
+      })
+      .finalize();
+    const setUp = await onboard(reqs, client);
+    const allSuccess = setUp
+      .toObject()
+      .responsesList.every((response) => response.success === true);
+    expect(allSuccess).to.be.true;
+
+    const user = await getUser(userId);
+    expect(user.email).to.be.eql(email.toLowerCase());
   }).timeout(50000);
 
   it('succeed onboarding class if the school already exists', async () => {
