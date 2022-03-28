@@ -244,7 +244,7 @@ export class Link {
     classIds: ExternalUuid[],
     schoolId: ExternalUuid,
     log: Logger
-  ): Promise<{validToPass: ExternalUuid[]; invalidLink: ExternalUuid[] }> {
+  ): Promise<{ validToPass: ExternalUuid[]; invalidLink: ExternalUuid[] }> {
     try {
       const validClasses = (
         await prisma.classLinkSchool.findMany({
@@ -264,11 +264,10 @@ export class Link {
       // store invalid class ids that were already linked to school
       const invalidLink = [];
       for (const externalUuid of validClasses) {
-        
         // delete returns true if the class was in the list
         if (toValidate.delete(externalUuid)) invalidLink.push(externalUuid);
       }
-      return {validToPass: Array.from(toValidate), invalidLink: invalidLink};
+      return { validToPass: Array.from(toValidate), invalidLink: invalidLink };
     } catch (error) {
       const msg = returnMessageOrThrowOnboardingError(error);
       throw new OnboardingError(
