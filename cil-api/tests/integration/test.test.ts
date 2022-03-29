@@ -24,9 +24,10 @@ import {
 } from '../util/populateAdminService';
 import { getSchool, getSchoolPrograms, getSchoolUsers } from '../util/school';
 import { getClass } from '../util/class';
-import { deleteUsers, getUser, setUpUser } from '../util/user';
+import { deleteUsers, getUser, getUserOrgRoles, setUpUser } from '../util/user';
 import { IdNameMapper } from 'cil-lib/dist/main/lib/services/adminService';
 import {
+  AddOrganizationRolesToUser,
   AddUsersToClass,
   OnboardingRequest,
 } from 'cil-lib/dist/main/lib/protos';
@@ -939,6 +940,55 @@ describe('When receiving requests over the web the server should', () => {
     expect(classFound.externalSchoolUuid).to.be.equal(schoolId);
 
     expect(allSuccess).to.be.true;
+  }).timeout(50000);
+
+  it('succeed adding new org roles to user', async () => {
+    const res = await populateAdminService();
+    const org: IdNameMapper = res.keys().next().value;
+    const orgRoles: string[] = res
+      .values()
+      .next()
+      .value.roles.map((role) => role.name);
+    const rolesMap = new Map<string, string[]>();
+    rolesMap.set(org.id, [orgRoles[0]]);
+    const user = uuidv4();
+
+    // Onboard User with just one of the valid Org roles
+    const reqs = new TestCaseBuilder()
+      .setShouldOptimizeLinks(false)
+      .addValidOrgs(res)
+      .addUser({
+        addToValidClasses: 0,
+        addToValidSchools: 0,
+        externalOrganizationUuid: org.id,
+        externalUuid: user,
+        roles: rolesMap,
+      })
+      .finalize();
+
+    const setUp = await onboard(reqs, client);
+    const allSuccess = setUp
+      .toObject()
+      .responsesList.every((response) => response.success === true);
+    expect(allSuccess).to.be.true;
+
+    const rolesFirst = await getUserOrgRoles(org.id, user);
+    expect(rolesFirst).to.not.include(orgRoles[1]);
+
+    // Add a new valid Org role to User
+    const request = new OnboardingRequest().setLinkEntities(
+      new proto.Link().setAddOrganizationRolesToUser(
+        new AddOrganizationRolesToUser()
+          .setExternalOrganizationUuid(org.id)
+          .setExternalUserUuid(user)
+          .setRoleIdentifiersList([orgRoles[1]])
+      )
+    );
+
+    await onboard(wrapRequest([request]), client);
+
+    const roles = await getUserOrgRoles(org.id, user);
+    expect(roles).to.include(orgRoles[1]);
   }).timeout(50000);
 }).timeout(50000);
 
