@@ -206,7 +206,7 @@ describe('add classes to school should', () => {
     const classIds = [uuidv4(), uuidv4(), uuidv4(), uuidv4()];
     innerReq.setExternalClassUuidsList([classIds[0]]);
     sinon
-      .stub(Link, 'classesBelongToSchool')
+      .stub(Link, 'classesDoNotBelongToSchool')
       .resolves({ validToPass: [uuidv4()], invalidLink: [uuidv4()] });
     classDbStub.resolves({
       valid: [classIds[0], classIds[1]],

@@ -120,7 +120,7 @@ async function validate(
     );
 
   // Check if the valid classes already linked to the school
-  const { validToPass, invalidLink } = await Link.classesBelongToSchool(
+  const { validToPass, invalidLink } = await Link.classesDoNotBelongToSchool(
     valid,
     schoolId,
     log

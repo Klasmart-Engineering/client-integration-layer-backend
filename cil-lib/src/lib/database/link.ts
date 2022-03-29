@@ -239,14 +239,15 @@ export class Link {
       );
     }
   }
-
-  public static async classesBelongToSchool(
+  // This method filter out all classes that already belong to a school (invalid)
+  // and only pass the ones that are valid
+  public static async classesDoNotBelongToSchool(
     classIds: ExternalUuid[],
     schoolId: ExternalUuid,
     log: Logger
   ): Promise<{ validToPass: ExternalUuid[]; invalidLink: ExternalUuid[] }> {
     try {
-      const validClasses = (
+      const validExistClasses = (
         await prisma.classLinkSchool.findMany({
           where: {
             externalClassUuid: {
@@ -263,7 +264,7 @@ export class Link {
       const toValidate = new Set(classIds);
       // store invalid class ids that were already linked to school
       const invalidLink = [];
-      for (const externalUuid of validClasses) {
+      for (const externalUuid of validExistClasses) {
         // delete returns true if the class was in the list
         if (toValidate.delete(externalUuid)) invalidLink.push(externalUuid);
       }
