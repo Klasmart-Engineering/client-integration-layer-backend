@@ -22,7 +22,7 @@ import {
   createOrg as createOrgInAdminService,
   createProgramsAndRoles as createRolesAndProgramsInAdminService,
 } from '../util/populateAdminService';
-import { getSchool, getSchoolPrograms, getSchoolUsers } from '../util/school';
+import { getSchool, getSchoolClasses, getSchoolPrograms, getSchoolUsers } from '../util/school';
 import { getClass } from '../util/class';
 import { deleteUsers, getUser, setUpUser } from '../util/user';
 import { IdNameMapper } from 'cil-lib/dist/main/lib/services/adminService';
@@ -352,6 +352,8 @@ describe('When receiving requests over the web the server should', () => {
   it('successfully onboard the user if username exceeds max value', async () => {
     const res = await populateAdminService();
     const characters = 'abcdefghijklmnopgrstuvwxyz';
+    const externalUuid = uuidv4();
+
     let invalidUsername = '';
     for (let i = 0; i <= 40; i++) {
       invalidUsername += characters.charAt(
@@ -362,13 +364,22 @@ describe('When receiving requests over the web the server should', () => {
       .addValidOrgs(res)
       .addValidSchoolsToEachOrg(5)
       .addValidClassesToEachSchool(5)
-      .addCustomizableUser({ username: invalidUsername })
+      .addCustomizableUser({
+        username: invalidUsername,
+        externalUuid: externalUuid
+      })
       .finalize();
     const result = await onboard(reqs, client);
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
     expect(allSuccess).to.be.true;
+
+    const returnedUser = await getUser(externalUuid);
+    expect(returnedUser).to.be.not.undefined;
+    expect(returnedUser).to.have.property('username');
+    expect(returnedUser.username).to.be.equal(invalidUsername);
+
   }).timeout(50000);
 
   it('fail the user onboarding if phone format is wrong', async () => {
@@ -457,12 +468,16 @@ describe('When receiving requests over the web the server should', () => {
 
     expect(returnedUser1).to.be.not.undefined;
     expect(returnedUser1.username).to.be.null;
+    expect(returnedUser1.externalUuid).to.equal(externalUuid1);
     expect(returnedUser2).to.be.not.undefined;
     expect(returnedUser2.email).to.be.null;
+    expect(returnedUser2.externalUuid).to.equal(externalUuid2);
     expect(returnedUser3).to.be.not.undefined;
     expect(returnedUser3.phone).to.be.null;
+    expect(returnedUser3.externalUuid).to.equal(externalUuid3);
     expect(returnedUser4).to.be.not.undefined;
     expect(returnedUser4.dateOfBirth).to.be.null;
+    expect(returnedUser4.externalUuid).to.equal(externalUuid4);
   }).timeout(50000);
 
   it('fail the user onboarding if none of the fields email or phone was provided', async () => {
@@ -988,12 +1003,23 @@ describe('When receiving requests over the web the server should', () => {
       .toObject()
       .responsesList.every((r) => r.success === true);
 
-    const classFound = await getClass(classId, schoolId);
-    expect(classFound).to.be.not.undefined;
-    expect(classFound.externalUuid).to.be.equal(classId);
-    expect(classFound.name).to.be.equal(className);
-    expect(classFound.externalOrgUuid).to.be.equal(org.id);
-    expect(classFound.externalSchoolUuid).to.be.equal(schoolId);
+    const returnedSchool = await getSchool(schoolId);
+    expect(returnedSchool).to.be.not.undefined;
+    expect(returnedSchool.externalUuid).to.be.equal(schoolId);
+    expect(returnedSchool.name).to.be.equal(schoolName);
+    expect(returnedSchool.externalOrgUuid).to.be.equal(org.id);
+
+    const returnedClass = await getClass(classId);
+    expect(returnedClass).to.be.not.undefined;
+    expect(returnedClass.externalUuid).to.be.equal(classId);
+    expect(returnedClass.name).to.be.equal(className);
+    expect(returnedClass.externalOrgUuid).to.be.equal(org.id);
+
+    const returnedClasses = await getSchoolClasses(schoolId);
+    expect(returnedClasses).to.deep.include({
+      klUuid: returnedClass.id,
+      externalUuid: returnedClass.externalUuid
+    });
 
     expect(allSuccess).to.be.true;
   }).timeout(50000);

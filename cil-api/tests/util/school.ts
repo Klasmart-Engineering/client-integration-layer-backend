@@ -78,6 +78,39 @@ const GET_SCHOOL_PROGRAMS = gql`
   }
 `;
 
+const GET_SCHOOL_CLASSES = gql`
+  query schoolConnection(
+    $count: PageSize
+    $cursor: String
+    $schoolConnectionId: ID!
+  ) {
+    schoolNode(id: $schoolConnectionId) {
+      id
+      name
+      classesConnection(
+        direction: FORWARD
+        filter: { AND: [{ status: { operator: eq, value: "active" } }] }
+        cursor: $cursor
+        count: $count
+      ) {
+        totalCount
+        pageInfo {
+          hasNextPage
+          hasPreviousPage
+          startCursor
+          endCursor
+        }
+        edges {
+          node {
+            id
+            name
+          }
+        }
+      }
+    }
+  }
+`;
+
 export async function getSchoolPrograms(
   externalUuid: ExternalUuid
 ): Promise<Array<{ klUuid: Uuid; name: string }> | undefined> {
@@ -161,15 +194,12 @@ export async function getSchoolUsers(
   return users;
 }
 
-export async function getSchool(externalUuid: ExternalUuid): Promise<
-  | {
-      externalUuid: ExternalUuid;
-      id: Uuid;
-      name: string;
-      externalOrgUuid: ExternalUuid;
-    }
-  | undefined
-> {
+export async function getSchool(externalUuid: ExternalUuid): Promise<{
+  externalUuid: ExternalUuid;
+  id: Uuid;
+  name: string;
+  externalOrgUuid: ExternalUuid;
+} | undefined> {
   const school = await prisma.school.findUnique({
     where: { externalUuid: externalUuid },
     select: { klUuid: true, externalOrgUuid: true },
@@ -222,4 +252,48 @@ export async function getSchool(externalUuid: ExternalUuid): Promise<
     externalUuid: externalUuid,
     externalOrgUuid: school.externalOrgUuid,
   };
+}
+
+export async function getSchoolClasses(
+  externalUuid: ExternalUuid
+): Promise<Array<{ klUuid: Uuid; externalUuid: string }> | undefined> {
+  const school = await prisma.school.findFirst({
+    where: { externalUuid: externalUuid },
+  });
+
+  if (!school) {
+    log(`School not found in database. School externalUuid: "${externalUuid}"`);
+    return undefined;
+  }
+
+  const transformer = (node: { id: string }) => node.id;
+  const admin = await AdminService.getInstance();
+  const classIds = await traversePaginatedQuery(
+    admin,
+    GET_SCHOOL_CLASSES,
+    transformer,
+    (data) => data['schoolNode']['classesConnection'],
+    {
+      schoolConnectionId: school.klUuid,
+    }
+  );
+
+  if (!classIds) {
+    log(`Classes not found in admin service. School externalUuid: "${externalUuid}"`);
+    return undefined;
+  }
+
+  const classes = await prisma.class.findMany({
+    where: {
+      klUuid: {
+        in: classIds,
+      },
+    },
+    select: {
+      klUuid: true,
+      externalUuid: true
+    },
+  });
+
+  return classes;
 }
