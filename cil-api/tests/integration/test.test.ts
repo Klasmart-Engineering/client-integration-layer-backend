@@ -9,6 +9,7 @@ import {
   LOG_STUB,
   onboard,
   populateAdminService,
+  random,
   wrapRequest,
 } from '../util';
 import { TestCaseBuilder } from '../util/testCases';
@@ -22,11 +23,12 @@ import {
   createOrg as createOrgInAdminService,
   createProgramsAndRoles as createRolesAndProgramsInAdminService,
 } from '../util/populateAdminService';
-import { getSchool, getSchoolPrograms, getSchoolUsers } from '../util/school';
+import { getSchool, getSchoolClasses, getSchoolPrograms, getSchoolUsers } from '../util/school';
 import { getClass } from '../util/class';
-import { deleteUsers, getUser, setUpUser } from '../util/user';
+import { deleteUsers, getUser, getUserOrgRoles, setUpUser } from '../util/user';
 import { IdNameMapper } from 'cil-lib/dist/main/lib/services/adminService';
 import {
+  AddOrganizationRolesToUser,
   AddUsersToClass,
   AddUsersToOrganization,
   OnboardingRequest,
@@ -352,6 +354,8 @@ describe('When receiving requests over the web the server should', () => {
   it('successfully onboard the user if username exceeds max value', async () => {
     const res = await populateAdminService();
     const characters = 'abcdefghijklmnopgrstuvwxyz';
+    const externalUuid = uuidv4();
+
     let invalidUsername = '';
     for (let i = 0; i <= 40; i++) {
       invalidUsername += characters.charAt(
@@ -362,13 +366,22 @@ describe('When receiving requests over the web the server should', () => {
       .addValidOrgs(res)
       .addValidSchoolsToEachOrg(5)
       .addValidClassesToEachSchool(5)
-      .addCustomizableUser({ username: invalidUsername })
+      .addCustomizableUser({
+        username: invalidUsername,
+        externalUuid: externalUuid
+      })
       .finalize();
     const result = await onboard(reqs, client);
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
     expect(allSuccess).to.be.true;
+
+    const returnedUser = await getUser(externalUuid);
+    expect(returnedUser).to.be.not.undefined;
+    expect(returnedUser).to.have.property('username');
+    expect(returnedUser.username).to.be.equal(invalidUsername);
+
   }).timeout(50000);
 
   it('fail the user onboarding if phone format is wrong', async () => {
@@ -457,12 +470,16 @@ describe('When receiving requests over the web the server should', () => {
 
     expect(returnedUser1).to.be.not.undefined;
     expect(returnedUser1.username).to.be.null;
+    expect(returnedUser1.externalUuid).to.equal(externalUuid1);
     expect(returnedUser2).to.be.not.undefined;
     expect(returnedUser2.email).to.be.null;
+    expect(returnedUser2.externalUuid).to.equal(externalUuid2);
     expect(returnedUser3).to.be.not.undefined;
     expect(returnedUser3.phone).to.be.null;
+    expect(returnedUser3.externalUuid).to.equal(externalUuid3);
     expect(returnedUser4).to.be.not.undefined;
     expect(returnedUser4.dateOfBirth).to.be.null;
+    expect(returnedUser4.externalUuid).to.equal(externalUuid4);
   }).timeout(50000);
 
   it('fail the user onboarding if none of the fields email or phone was provided', async () => {
@@ -954,6 +971,31 @@ describe('When receiving requests over the web the server should', () => {
     expect(user2.externalOrgIds).to.include.members([org.id]);
   }).timeout(50000);
 
+  it('handle adding user with capital letters in email', async () => {
+    const res = await populateAdminService();
+    const org: IdNameMapper = res.keys().next().value;
+    const userId = uuidv4();
+    const email = `AbA${random()}@email.com`;
+    const reqs = new TestCaseBuilder()
+      .addValidOrgs(res)
+      .addUser({
+        addToValidSchools: 0,
+        addToValidClasses: 0,
+        externalOrganizationUuid: org.id,
+        externalUuid: userId,
+        email,
+      })
+      .finalize();
+    const setUp = await onboard(reqs, client);
+    const allSuccess = setUp
+      .toObject()
+      .responsesList.every((response) => response.success === true);
+    expect(allSuccess).to.be.true;
+
+    const user = await getUser(userId);
+    expect(user.email).to.be.eql(email.toLowerCase());
+  }).timeout(50000);
+
   it('succeed onboarding class if the school already exists', async () => {
     const res = await populateAdminService();
     const schoolId = uuidv4();
@@ -988,14 +1030,74 @@ describe('When receiving requests over the web the server should', () => {
       .toObject()
       .responsesList.every((r) => r.success === true);
 
-    const classFound = await getClass(classId, schoolId);
-    expect(classFound).to.be.not.undefined;
-    expect(classFound.externalUuid).to.be.equal(classId);
-    expect(classFound.name).to.be.equal(className);
-    expect(classFound.externalOrgUuid).to.be.equal(org.id);
-    expect(classFound.externalSchoolUuid).to.be.equal(schoolId);
+    const returnedSchool = await getSchool(schoolId);
+    expect(returnedSchool).to.be.not.undefined;
+    expect(returnedSchool.externalUuid).to.be.equal(schoolId);
+    expect(returnedSchool.name).to.be.equal(schoolName);
+    expect(returnedSchool.externalOrgUuid).to.be.equal(org.id);
+
+    const returnedClass = await getClass(classId);
+    expect(returnedClass).to.be.not.undefined;
+    expect(returnedClass.externalUuid).to.be.equal(classId);
+    expect(returnedClass.name).to.be.equal(className);
+    expect(returnedClass.externalOrgUuid).to.be.equal(org.id);
+
+    const returnedClasses = await getSchoolClasses(schoolId);
+    expect(returnedClasses).to.deep.include({
+      klUuid: returnedClass.id,
+      externalUuid: returnedClass.externalUuid
+    });
 
     expect(allSuccess).to.be.true;
+  }).timeout(50000);
+
+  it('succeed adding new org roles to user', async () => {
+    const res = await populateAdminService();
+    const org: IdNameMapper = res.keys().next().value;
+    const orgRoles: string[] = res
+      .values()
+      .next()
+      .value.roles.map((role) => role.name);
+    const rolesMap = new Map<string, string[]>();
+    rolesMap.set(org.id, [orgRoles[0]]);
+    const user = uuidv4();
+
+    // Onboard User with just one of the valid Org roles
+    const reqs = new TestCaseBuilder()
+      .setShouldOptimizeLinks(false)
+      .addValidOrgs(res)
+      .addUser({
+        addToValidClasses: 0,
+        addToValidSchools: 0,
+        externalOrganizationUuid: org.id,
+        externalUuid: user,
+        roles: rolesMap,
+      })
+      .finalize();
+
+    const setUp = await onboard(reqs, client);
+    const allSuccess = setUp
+      .toObject()
+      .responsesList.every((response) => response.success === true);
+    expect(allSuccess).to.be.true;
+
+    const rolesFirst = await getUserOrgRoles(org.id, user);
+    expect(rolesFirst).to.not.include(orgRoles[1]);
+
+    // Add a new valid Org role to User
+    const request = new OnboardingRequest().setLinkEntities(
+      new proto.Link().setAddOrganizationRolesToUser(
+        new AddOrganizationRolesToUser()
+          .setExternalOrganizationUuid(org.id)
+          .setExternalUserUuid(user)
+          .setRoleIdentifiersList([orgRoles[1]])
+      )
+    );
+
+    await onboard(wrapRequest([request]), client);
+
+    const roles = await getUserOrgRoles(org.id, user);
+    expect(roles).to.include(orgRoles[1]);
   }).timeout(50000);
 }).timeout(50000);
 

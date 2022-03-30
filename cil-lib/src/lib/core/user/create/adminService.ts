@@ -7,7 +7,7 @@ import {
   MachineError,
   OnboardingError,
 } from '../../../errors';
-import { Entity, Response } from '../../../protos';
+import { Entity, Response, User } from '../../../protos';
 import { AdminService } from '../../../services';
 import { CreateUserInput } from '../../../services/adminService/users';
 import { protoGenderToString } from '../../../types/gender';
@@ -24,7 +24,7 @@ export async function sendRequest(
 
   try {
     const admin = await AdminService.getInstance();
-    const result = await admin.createUsers(
+    const results = await admin.createUsers(
       users.map(({ data }) => {
         const user: CreateUserInput = {
           givenName: data.givenName!,
@@ -49,17 +49,15 @@ export async function sendRequest(
       log
     );
 
-    const m = new Map<string, IncomingData>();
-    for (const s of users) {
-      const key = `${s.data.givenName}|${s.data.familyName}|${s.data.email}|${s.data.phone}|${s.data.username}`;
-      m.set(key, s);
+    const incomingRequest = new Map<string, IncomingData>();
+    for (const user of users) {
+      const key = userKey(user.data);
+      incomingRequest.set(key, user);
     }
 
-    for (const s of result) {
-      const key = `${s.givenName}|${s.familyName}|${s.email ?? ''}|${
-        s.phone ?? ''
-      }|${s.username ?? ''}`;
-      const user = m.get(key);
+    for (const result of results) {
+      const key = adminServiceUserKey(result);
+      const user = incomingRequest.get(key);
       if (!user)
         throw new OnboardingError(
           MachineError.WRITE,
@@ -72,9 +70,9 @@ export async function sendRequest(
             `Please speak to someone in the admin service team, this really shouldn't happen`,
           ]
         );
-      user.data.kidsloopUserUuid = s.id;
+      user.data.kidsloopUserUuid = result.id;
     }
-    return [{ valid: Array.from(m.values()), invalid: [] }, log];
+    return [{ valid: Array.from(incomingRequest.values()), invalid: [] }, log];
   } catch (error) {
     // @TODO - We need to filter out any invalid entities or entities that
     // already exist and retry
@@ -94,4 +92,23 @@ export async function sendRequest(
   }
 
   return [{ valid: [], invalid }, log];
+}
+
+export function adminServiceUserKey(result: {
+  id: string;
+  givenName: string;
+  familyName: string;
+  email?: string | undefined;
+  phone?: string | undefined;
+  username?: string | undefined;
+}) {
+  return `${result.givenName}|${result.familyName}|${
+    result.email?.toLowerCase() ?? ''
+  }|${result.phone ?? ''}|${result.username ?? ''}`;
+}
+
+export function userKey(user: Partial<ReturnType<User['toObject']> & User>) {
+  return `${user.givenName}|${user.familyName}|${user.email?.toLowerCase()}|${
+    user.phone
+  }|${user.username}`;
 }

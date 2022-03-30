@@ -1,6 +1,5 @@
 import { gql } from '@apollo/client/core';
 import { AdminService, ExternalUuid, PrismaClient, Uuid } from 'cil-lib';
-import { getSchool } from './school';
 import { log, LOG_STUB } from '.';
 
 const prisma = new PrismaClient();
@@ -110,16 +109,12 @@ export async function getClassConnections(externalUuid: ExternalUuid): Promise<
   };
 }
 
-export async function getClass(externalUuid: ExternalUuid, externalSchoolUuid: ExternalUuid): Promise<
-  | {
-    externalUuid: ExternalUuid;
-    id: Uuid;
-    name: string;
-    externalOrgUuid: ExternalUuid;
-    externalSchoolUuid: ExternalUuid;
-  }
-  | undefined
-> {
+export async function getClass(externalUuid: ExternalUuid): Promise<{
+  externalUuid: ExternalUuid;
+  id: Uuid;
+  name: string;
+  externalOrgUuid: ExternalUuid;
+} | undefined> {
   const classFound = await prisma.class.findUnique({
     where: { externalUuid: externalUuid },
     select: { klUuid: true, externalOrgUuid: true },
@@ -139,11 +134,6 @@ export async function getClass(externalUuid: ExternalUuid, externalSchoolUuid: E
   const adminOrg = await admin.getOrganization(dbOrg.name, LOG_STUB)
   if (!adminOrg) {
     log(`Organization not found in AdminService. Organization name: ${dbOrg.name}`);
-    return undefined;
-  }
-
-  const dbSchool = await getSchool(externalSchoolUuid);
-  if (!dbSchool) {
     return undefined;
   }
 
@@ -169,7 +159,6 @@ export async function getClass(externalUuid: ExternalUuid, externalSchoolUuid: E
     id: classNode.id,
     name: classNode.name,
     externalUuid: externalUuid,
-    externalOrgUuid: classFound.externalOrgUuid,
-    externalSchoolUuid: externalSchoolUuid
+    externalOrgUuid: classFound.externalOrgUuid
   };
 }
