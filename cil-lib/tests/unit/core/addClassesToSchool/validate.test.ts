@@ -116,7 +116,7 @@ describe('add classes to school should', () => {
 
   beforeEach(() => {
     const schoolId = uuidv4();
-    const classId = uuidv4();
+    const classId  = uuidv4()
     adminStub = sinon.stub(AdminService, 'getInstance').resolves({
       addClassesToSchool: sinon
         .stub()
@@ -130,7 +130,7 @@ describe('add classes to school should', () => {
     sinon.stub(ClassDB, 'linkToSchool').resolves();
 
     schoolStub = sinon.stub().resolves(schoolId);
-    classIdStub = sinon.stub().resolves(schoolId);
+    classIdStub = sinon.stub().resolves(classId);
     sinon.stub(Context, 'getInstance').resolves({
       getSchoolId: schoolStub,
       getClassId: classIdStub,
@@ -175,16 +175,17 @@ describe('add classes to school should', () => {
     const innerReq = setUpAddClassesToSchool();
     const classIds = [uuidv4(), uuidv4(), uuidv4()];
     innerReq.setExternalClassUuidsList(classIds);
-
+    const validExist = [classIds[0], classIds[1]];
+    const invalidNotExist = [classIds[2]];
     classDbStub.resolves({
-      valid: [classIds[0], classIds[1]],
-      invalid: [classIds[2]],
+      valid: validExist,
+      invalid: invalidNotExist,
     });
 
     const req = wrapRequest(innerReq);
     const resp = await processOnboardingRequest(req, LOG_STUB);
     const responses = resp.getResponsesList();
-    expect(responses).to.have.length(3);
+    expect(responses).to.have.length(4);
     let successCount = 0;
     let failureCount = 0;
     for (const r of responses) {
@@ -197,29 +198,30 @@ describe('add classes to school should', () => {
         expect(r.getErrors()?.hasEntityDoesNotExist()).to.be.true;
       }
     }
-    expect(successCount).to.equal(2);
+    expect(successCount).to.equal(3);
     expect(failureCount).to.equal(1);
   });
 
-  it('successfully process all valid ids when two is invalid (non-existing) and one invalid (already linked)', async () => {
+  it('successfully process all valid ids when one is invalid (non-existing) and one invalid (already linked)', async () => {
     const innerReq = setUpAddClassesToSchool();
-    const classIds = [uuidv4(), uuidv4(), uuidv4(), uuidv4()];
-    innerReq.setExternalClassUuidsList([classIds[0]]);
-    sinon
-      .stub(Link, 'classesDoNotBelongToSchool')
-      .resolves({ validToPass: [uuidv4()], invalidLink: [uuidv4()] });
+    const classIds = [uuidv4(), uuidv4(), uuidv4()];
+    innerReq.setExternalClassUuidsList(classIds);
+    const validExist = [classIds[0], classIds[1]];
+    const invalidNotExist = [classIds[2]];
+    const validNotLinked = [classIds[0]];
+    const invalidAlreadyLinked = [classIds[2]];
     classDbStub.resolves({
-      valid: [classIds[0], classIds[1]],
-      invalid: [classIds[2], classIds[3]],
-
-      validToPass: [classIds[0]],
-      invalidLink: [classIds[1]],
+      valid: validExist,
+      invalid: invalidNotExist,
     });
-
+    sinon
+      .stub(Link, 'classesBelongToSchool')
+      .resolves({ valid: validNotLinked, invalid: invalidAlreadyLinked });
+    
     const req = wrapRequest(innerReq);
     const resp = await processOnboardingRequest(req, LOG_STUB);
     const responses = resp.getResponsesList();
-    expect(responses).to.have.length(4);
+    expect(responses).to.have.length(3);
 
     let successCount = 0;
     let failureCount = 0;
@@ -241,9 +243,9 @@ describe('add classes to school should', () => {
       }
     }
     expect(successCount).to.equal(1);
-    expect(failureCount).to.equal(3);
+    expect(failureCount).to.equal(2);
     expect(alreadyLinked).to.equal(1);
-    expect(doesNotExist).to.equal(2);
+    expect(doesNotExist).to.equal(1);
   });
 
   it(`fail when the entities don't belong to the same organization`, async () => {
