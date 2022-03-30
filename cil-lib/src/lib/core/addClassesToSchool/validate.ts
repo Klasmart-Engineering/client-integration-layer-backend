@@ -102,8 +102,6 @@ async function validate(
         );
       invalidResponses.push(resp);
     }
-    protobuf.setExternalClassUuidsList(valid);
-    r.data.externalClassUuidsList = valid;
 
     // Checking that both sets of ids are valid are covered by this
     await Link.shareTheSameOrganization(log, [schoolId], valid);
