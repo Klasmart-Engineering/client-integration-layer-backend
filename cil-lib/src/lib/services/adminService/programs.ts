@@ -1,5 +1,7 @@
 import { gql } from '@apollo/client/core';
 
+import { Uuid } from '../../utils';
+
 export const GET_SYSTEM_PROGRAMS = gql`
   query getSystemPrograms($count: PageSize, $cursor: String) {
     programsConnection(
@@ -61,3 +63,8 @@ export const GET_PROGRAMS_BY_ORGANIZATION = gql`
     }
   }
 `;
+
+export type AddProgramsToClass = {
+  classId: Uuid;
+  programIds: Uuid[];
+};

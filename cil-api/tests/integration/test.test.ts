@@ -24,11 +24,12 @@ import {
   createProgramsAndRoles as createRolesAndProgramsInAdminService,
 } from '../util/populateAdminService';
 import { getSchool, getSchoolClasses, getSchoolPrograms, getSchoolUsers } from '../util/school';
-import { getClass } from '../util/class';
+import { getClass, getClassProgramsConnections } from '../util/class';
 import { deleteUsers, getUser, getUserOrgRoles, setUpUser } from '../util/user';
 import { IdNameMapper } from 'cil-lib/dist/main/lib/services/adminService';
 import {
   AddOrganizationRolesToUser,
+  AddProgramsToClass,
   AddUsersToClass,
   AddUsersToOrganization,
   OnboardingRequest,
@@ -1036,7 +1037,7 @@ describe('When receiving requests over the web the server should', () => {
     expect(returnedSchool.name).to.be.equal(schoolName);
     expect(returnedSchool.externalOrgUuid).to.be.equal(org.id);
 
-    const returnedClass = await getClass(classId);
+    const returnedClass = await getClass(classId,schoolId);
     expect(returnedClass).to.be.not.undefined;
     expect(returnedClass.externalUuid).to.be.equal(classId);
     expect(returnedClass.name).to.be.equal(className);
@@ -1099,6 +1100,230 @@ describe('When receiving requests over the web the server should', () => {
     const roles = await getUserOrgRoles(org.id, user);
     expect(roles).to.include(orgRoles[1]);
   }).timeout(50000);
+  
+  it('succeed when trying to link programs to class with the same classId1 and one independent classId2 ', async () => {
+    const res = await populateAdminService();
+    const schoolId = uuidv4();
+    const classId1 = uuidv4();
+    const classId2 = uuidv4();
+    const org = res.keys().next().value;
+    const className1 = uuidv4().substring(0, 8);
+    const className2 = uuidv4().substring(0, 8);
+    const schoolName = uuidv4().substring(0, 8);
+
+    const setUpReqs = new TestCaseBuilder()
+      .addValidOrgs(res)
+      .addSchool(
+        {
+          name: schoolName,
+          externalUuid: schoolId,
+          externalOrganizationUuid: org.id,
+        },
+        true
+      )
+      .addClass(
+        {
+          name: className1,
+          externalUuid: classId1,
+          externalSchoolUuid: schoolId,
+          externalOrganizationUuid: org.id,
+        },
+        true,
+        false
+      ) // flag set to false to not link the programs with the class. We want to create our own links
+      .addClass(
+        {
+          name: className2,
+          externalUuid: classId2,
+          externalSchoolUuid: schoolId,
+          externalOrganizationUuid: org.id,
+        },
+        true,
+        false
+      ) // flag set to false to not link the programs with the class. We want to create our own links
+      .finalize();
+
+    const setUpResult = await onboard(setUpReqs, client);
+    const setUpSuccess = setUpResult
+      .toObject()
+      .responsesList.every((r) => r.success === true);
+    expect(setUpSuccess).to.be.true;
+    expect(
+      setUpResult.getResponsesList().map((result) => result.getEntityId())
+    ).includes.members([classId1, classId2, schoolId]);
+    const result = await await onboard(
+      wrapRequest([
+        addProgramsToClassReq(classId1, ['TEST PROGRAM 1']),
+        addProgramsToClassReq(classId1, ['TEST PROGRAM 2']),
+        addProgramsToClassReq(classId2, ['TEST PROGRAM 3']),
+      ]),
+      client
+    );
+
+    const allSuccess = result
+      .toObject()
+      .responsesList.every((r) => r.success === true);
+
+    expect(result.getResponsesList()).to.be.length(3);
+    expect(
+      result.getResponsesList().filter((resp) => resp.getSuccess() === true)
+    ).to.be.length(3);
+    expect(
+      result.getResponsesList().map((resp) => resp.getEntityId())
+    ).to.includes.members([classId1, classId2]);
+
+    const class1ProgramsConnections = await getClassProgramsConnections(
+      classId1
+    );
+    expect(
+      class1ProgramsConnections.programs.map((program) => program.name)
+    ).to.includes.members(['TEST PROGRAM 1', 'TEST PROGRAM 2']);
+
+    const class2ProgramsConnections = await getClassProgramsConnections(
+      classId2
+    );
+    expect(
+      class2ProgramsConnections.programs.map((program) => program.name)
+    ).to.includes.members(['TEST PROGRAM 3']);
+
+    expect(allSuccess).to.be.true;
+  });
+  
+  it('partially succeed when trying to link programs with the same classId1 and same classId2', async () => {
+    const res = await populateAdminService();
+    const schoolId = uuidv4();
+    const classId1 = uuidv4();
+    const classId2 = uuidv4();
+    const org = res.keys().next().value;
+    const className1 = uuidv4().substring(0, 8);
+    const className2 = uuidv4().substring(0, 8);
+    const schoolName = uuidv4().substring(0, 8);
+
+    const setUpReqs = new TestCaseBuilder()
+      .addValidOrgs(res)
+      .addSchool(
+        {
+          name: schoolName,
+          externalUuid: schoolId,
+          externalOrganizationUuid: org.id,
+        },
+        true
+      )
+      .addClass(
+        {
+          name: className1,
+          externalUuid: classId1,
+          externalSchoolUuid: schoolId,
+          externalOrganizationUuid: org.id,
+        },
+        true,
+        false
+      ) // flag set to false to not link the programs with the class. We want to create our own links
+      .addClass(
+        {
+          name: className2,
+          externalUuid: classId2,
+          externalSchoolUuid: schoolId,
+          externalOrganizationUuid: org.id,
+        },
+        true,
+        false
+      ) // flag set to false to not link the programs with the class. We want to create our own links
+      .finalize();
+
+    const setUpResult = await onboard(setUpReqs, client);
+    const setUpSuccess = setUpResult
+      .toObject()
+      .responsesList.every((r) => r.success === true);
+    expect(setUpSuccess).to.be.true;
+    expect(
+      setUpResult.getResponsesList().map((result) => result.getEntityId())
+    ).includes.members([classId1, classId2, schoolId]);
+
+    const result = await onboard(
+      wrapRequest([
+        addProgramsToClassReq(classId1, ['TEST PROGRAM 1']),
+        addProgramsToClassReq(classId1, ['TEST PROGRAM 2']),
+        addProgramsToClassReq(classId1, [
+          'TEST PROGRAM 1',
+          'TEST PROGRAM 2',
+          'TEST PROGRAM 3',
+        ]),
+        addProgramsToClassReq(classId1, ['TEST PROGRAM 3', 'TEST PROGRAM 4']),
+        addProgramsToClassReq(classId1, ['TEST PROGRAM 1', 'TEST PROGRAM 2']),
+        addProgramsToClassReq(classId2, ['TEST PROGRAM 1', 'TEST PROGRAM 2']),
+        addProgramsToClassReq(classId2, ['TEST PROGRAM 1', 'TEST PROGRAM 2']),
+        addProgramsToClassReq(classId2, ['TEST PROGRAM 3']),
+        addProgramsToClassReq(classId2, ['TEST PROGRAM 3', 'TEST PROGRAM 4']),
+        addProgramsToClassReq(classId2, [
+          'TEST PROGRAM 1',
+          'TEST PROGRAM 2',
+          'TEST PROGRAM 3',
+          'TEST PROGRAM 4',
+        ]),
+      ]),
+      client
+    );
+
+    expect(result.getResponsesList()).to.be.length(19);
+
+    expect(
+      result.getResponsesList().filter((resp) => resp.getSuccess() === true)
+    ).to.be.length(7);
+    expect(
+      result.getResponsesList().filter((resp) => resp.getErrors())
+    ).to.be.length(12);
+    expect(
+      result
+        .getResponsesList()
+        .filter((resp) => resp.getErrors())
+        .filter((resp) => resp.getErrors().getEntityAlreadyExists())
+    ).to.be.length(12);
+
+    expect(
+      result.getResponsesList().map((resp) => resp.getEntityId())
+    ).to.includes.members([classId1, classId2]);
+
+    expect(
+      result
+        .getResponsesList()
+        .filter((resp) => resp.getErrors())
+        .filter((resp) => resp.getErrors().getEntityAlreadyExists())
+        .filter((resp) => resp.getEntityId() === classId1)
+    ).to.be.length(5);
+
+    expect(
+      result
+        .getResponsesList()
+        .filter((resp) => resp.getErrors())
+        .filter((resp) => resp.getErrors().getEntityAlreadyExists())
+        .filter((resp) => resp.getEntityId() === classId2)
+    ).to.be.length(7);
+
+    const class1ProgramsConnections = await getClassProgramsConnections(
+      classId1
+    );
+    expect(
+      class1ProgramsConnections.programs.map((program) => program.name)
+    ).to.includes.members([
+      'TEST PROGRAM 1',
+      'TEST PROGRAM 2',
+      'TEST PROGRAM 3',
+      'TEST PROGRAM 4',
+    ]);
+
+    const class2ProgramsConnections = await getClassProgramsConnections(
+      classId2
+    );
+    expect(
+      class2ProgramsConnections.programs.map((program) => program.name)
+    ).to.includes.members([
+      'TEST PROGRAM 1',
+      'TEST PROGRAM 2',
+      'TEST PROGRAM 3',
+      'TEST PROGRAM 4',
+    ]);
+  });
 }).timeout(50000);
 
 function addTeachersToClassReq(classId: string, teacherIds: ExternalUuid[]) {
@@ -1130,4 +1355,14 @@ async function assertSchoolUsersInAdmin(testCase: TestCaseBuilder) {
       );
     }
   }
+}
+
+function addProgramsToClassReq(classId: string, programNames: string[]) {
+  return new OnboardingRequest().setLinkEntities(
+    new proto.Link().setAddProgramsToClass(
+      new AddProgramsToClass()
+        .setExternalClassUuid(classId)
+        .setProgramNamesList(programNames)
+    )
+  );
 }
