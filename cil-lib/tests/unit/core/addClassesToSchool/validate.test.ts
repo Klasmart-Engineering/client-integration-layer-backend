@@ -116,7 +116,7 @@ describe('add classes to school should', () => {
 
   beforeEach(() => {
     const schoolId = uuidv4();
-    const classId  = uuidv4()
+    const classId = uuidv4();
     adminStub = sinon.stub(AdminService, 'getInstance').resolves({
       addClassesToSchool: sinon
         .stub()
@@ -185,7 +185,7 @@ describe('add classes to school should', () => {
     const req = wrapRequest(innerReq);
     const resp = await processOnboardingRequest(req, LOG_STUB);
     const responses = resp.getResponsesList();
-    expect(responses).to.have.length(4);
+    expect(responses).to.have.length(3);
     let successCount = 0;
     let failureCount = 0;
     for (const r of responses) {
@@ -198,7 +198,7 @@ describe('add classes to school should', () => {
         expect(r.getErrors()?.hasEntityDoesNotExist()).to.be.true;
       }
     }
-    expect(successCount).to.equal(3);
+    expect(successCount).to.equal(2);
     expect(failureCount).to.equal(1);
   });
 
@@ -217,7 +217,7 @@ describe('add classes to school should', () => {
     sinon
       .stub(Link, 'classesBelongToSchool')
       .resolves({ valid: validNotLinked, invalid: invalidAlreadyLinked });
-    
+
     const req = wrapRequest(innerReq);
     const resp = await processOnboardingRequest(req, LOG_STUB);
     const responses = resp.getResponsesList();
