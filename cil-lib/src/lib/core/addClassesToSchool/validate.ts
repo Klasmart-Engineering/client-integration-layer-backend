@@ -75,7 +75,6 @@ async function validate(
   const schoolId = protobuf.getExternalSchoolUuid();
   const classIds = protobuf.getExternalClassUuidsList();
   const invalidResponses = [];
-  let validIdsToCheck = []; // valid ids for already linked check
   // Check the target classes are valid
   {
     const { valid, invalid } = await Class.areValid(classIds, log);
@@ -102,16 +101,16 @@ async function validate(
         );
       invalidResponses.push(resp);
     }
-
+    protobuf.setExternalClassUuidsList(valid);
+    r.data.externalClassUuidsList = valid;
     // Checking that both sets of ids are valid are covered by this
     await Link.shareTheSameOrganization(log, [schoolId], valid);
-    validIdsToCheck = valid;
   }
 
   // Check if the valid classes already linked to the school
   {
     const { valid: invalid, invalid: valid } = await Link.classesBelongToSchool(
-      validIdsToCheck,
+      protobuf.getExternalClassUuidsList(),
       schoolId,
       log
     );
