@@ -76,6 +76,7 @@ async function validate(
   const invalidResponses = [];
 
   const ctx = await Context.getInstance();
+  let validIdsToCheck = []; // valid ids for already linked check
   // Check the target organization is valid
   await ctx.organizationIdIsValid(orgId, log);
 
@@ -101,18 +102,16 @@ async function validate(
         );
       invalidResponses.push(resp);
     }
-    protobuf.setExternalUserUuidsList(Array.from(valid.keys()));
-    r.data.externalUserUuidsList = Array.from(valid.keys());
+    const validExistIds: IterableIterator<string> = valid.keys();
+    validIdsToCheck = Array.from(validExistIds);
+    protobuf.setExternalUserUuidsList(validIdsToCheck);
+    r.data.externalUserUuidsList = validIdsToCheck;
   }
 
   // Check that Users don't already belong to Organization
   {
     const { valid: invalid, invalid: valid } =
-      await Link.usersBelongToOrganization(
-        protobuf.getExternalUserUuidsList(),
-        orgId,
-        log
-      );
+      await Link.usersBelongToOrganization(validIdsToCheck, orgId, log);
     for (const id of invalid) {
       const resp = new Response()
         .setSuccess(false)

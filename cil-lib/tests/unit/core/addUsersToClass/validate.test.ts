@@ -37,7 +37,7 @@ export const INVALID_ADD_USERS_TO_CLASS: AddUsersToClassTestCase[] = [
   {
     scenario: 'the class uuid is empty',
     addUsersToClass: setUpAddUsersToClass(false, true, true),
-    message: '"externalClassUuid" is not allowed to be empty'
+    message: '"externalClassUuid" is not allowed to be empty',
   },
 ];
 
@@ -105,36 +105,28 @@ describe('add users to class validation', () => {
     const addUsersToClass = setUpAddUsersToClass(true, true, false);
     const studentExternalId = addUsersToClass.getExternalStudentUuidList()[0];
     userIdsStub.resolves({
-      valid: new Map([
-        [studentExternalId, uuidv4()],
-      ]),
+      valid: new Map([[studentExternalId, uuidv4()]]),
       invalid: [],
     });
     linkStub
       .onFirstCall()
       .resolves({ valid: [studentExternalId], invalid: [] });
-    linkStub
-      .onSecondCall()
-      .resolves({ valid: [], invalid: [] });
+    linkStub.onSecondCall().resolves({ valid: [], invalid: [] });
     const req = wrapRequest(addUsersToClass);
     const resp = await processOnboardingRequest(req, LOG_STUB);
     const responses = resp.getResponsesList();
     expect(responses).to.have.length(1);
     assertValid(responses[0], studentExternalId);
-  })
+  });
 
   it('should pass when when only teachers are passed in', async () => {
     const addUsersToClass = setUpAddUsersToClass(true, false, true);
     const teacherExternalId = addUsersToClass.getExternalTeacherUuidList()[0];
     userIdsStub.resolves({
-      valid: new Map([
-        [teacherExternalId, uuidv4()],
-      ]),
+      valid: new Map([[teacherExternalId, uuidv4()]]),
       invalid: [],
     });
-    linkStub
-      .onFirstCall()
-      .resolves({ valid: [], invalid: [] });
+    linkStub.onFirstCall().resolves({ valid: [], invalid: [] });
     linkStub
       .onSecondCall()
       .resolves({ valid: [teacherExternalId], invalid: [] });
@@ -143,16 +135,18 @@ describe('add users to class validation', () => {
     const responses = resp.getResponsesList();
     expect(responses).to.have.length(1);
     assertValid(responses[0], teacherExternalId);
-  })
-
-  INVALID_ADD_USERS_TO_CLASS.forEach(({ scenario, addUsersToClass, message }) => {
-    it(`fail when ${scenario}`, async () => {
-      const req = wrapRequest(addUsersToClass);
-      const resp = await makeCommonAssertions(req, message);
-      const response = resp.toObject().responsesList[0];
-      expect(response.errors?.validation).not.to.be.undefined;
-    });
   });
+
+  INVALID_ADD_USERS_TO_CLASS.forEach(
+    ({ scenario, addUsersToClass, message }) => {
+      it(`fail when ${scenario}`, async () => {
+        const req = wrapRequest(addUsersToClass);
+        const resp = await makeCommonAssertions(req, message);
+        const response = resp.toObject().responsesList[0];
+        expect(response.errors?.validation).not.to.be.undefined;
+      });
+    }
+  );
 
   it('should fail if the link does not exist', async () => {
     const req = wrapRequest(VALID_ADD_USERS_TO_CLASS[0].addUsersToClass);
