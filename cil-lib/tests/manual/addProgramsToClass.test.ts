@@ -11,7 +11,6 @@ import {
   setUpSchool,
   schoolReq,
 } from './util';
-import { v4 as uuidv4 } from 'uuid';
 
 import {
   AddClassesToSchool,
@@ -19,7 +18,7 @@ import {
   AddProgramsToSchool,
   BatchOnboarding,
 } from '../../../cil-lib/src/lib/protos';
-import { ExternalUuid } from '../../src';
+import { AdminService, ExternalUuid } from '../../src';
 
 export type AddProgramsToClassTestCase = {
   scenario: string;
@@ -38,10 +37,10 @@ function setUpProgramsToClass(
 
 describe('Adding programs to class', () => {
   let orgId: ExternalUuid;
+  let programs: string[] = [];
 
   before(async () => {
     orgId = await createOrg();
-    // Add programs from admin service to generic backend db
     await persistPrograms(orgId);
   });
 

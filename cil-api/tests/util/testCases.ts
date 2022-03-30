@@ -32,7 +32,7 @@ export class TestCaseBuilder {
 
   private requests: proto.OnboardingRequest[] = [];
 
-  constructor() { }
+  constructor() {}
 
   public getValidSchools(org: string): string[] {
     return Array.from(this.validSchoolIds.get(org) || []);
@@ -309,7 +309,8 @@ export class TestCaseBuilder {
 
   public addClass(
     entity: Partial<proto.Class.AsObject> & { programs?: string[] } = {},
-    isValid: boolean = true
+    isValid: boolean = true,
+    isLinkedWithPrograms: boolean = true
   ): TestCaseBuilder {
     const createEntityRequest = new proto.Class();
     const orgId =
@@ -353,22 +354,24 @@ export class TestCaseBuilder {
     this.classesForSchool.get(schoolId).add(data.externalUuid);
 
     // Add programs to the class
-    if (this.programsForSchool.get(schoolId)) {
-      const programs =
-        entity && entity.programs
-          ? entity.programs
-          : [...this.programsForSchool.get(schoolId)];
+    if (isLinkedWithPrograms) {
+      if (this.programsForSchool.get(schoolId)) {
+        const programs =
+          entity && entity.programs
+            ? entity.programs
+            : [...this.programsForSchool.get(schoolId)];
 
-      const linkPrograms = new proto.AddProgramsToClass()
-        .setExternalClassUuid(data.externalUuid)
-        .setProgramNamesList(programs);
-      this.requests.push(
-        new OnboardingRequest().setLinkEntities(
-          new Link().setAddProgramsToClass(linkPrograms)
-        )
-      );
+        const linkPrograms = new proto.AddProgramsToClass()
+          .setExternalClassUuid(data.externalUuid)
+          .setProgramNamesList(programs);
+        this.requests.push(
+          new OnboardingRequest().setLinkEntities(
+            new Link().setAddProgramsToClass(linkPrograms)
+          )
+        );
 
-      this.programsForClass.set(data.externalUuid, programs);
+        this.programsForClass.set(data.externalUuid, programs);
+      }
     }
 
     isValid
@@ -607,10 +610,10 @@ export class TestCaseBuilder {
       externalOrganizationUuid: tempValidOrgId,
       roleIdentifiersList:
         undefined !== opts.roleIdentifiersList &&
-          opts.roleIdentifiersList.length > 0
+        opts.roleIdentifiersList.length > 0
           ? opts.roleIdentifiersList
           : opts.roles.get(tempValidOrgId) ||
-          Array.from(this.validRoleIds.get(tempValidOrgId)),
+            Array.from(this.validRoleIds.get(tempValidOrgId)),
       ...opts,
     };
     createEntityRequest
@@ -832,10 +835,10 @@ export class TestCaseBuilder {
       externalOrganizationUuid: tempValidOrgId,
       roleIdentifiersList:
         undefined !== opts.roleIdentifiersList &&
-          opts.roleIdentifiersList.length > 0
+        opts.roleIdentifiersList.length > 0
           ? opts.roleIdentifiersList
           : opts.roles.get(tempValidOrgId) ||
-          Array.from(this.validRoleIds.get(tempValidOrgId)),
+            Array.from(this.validRoleIds.get(tempValidOrgId)),
       ...opts,
     };
     createEntityRequest
