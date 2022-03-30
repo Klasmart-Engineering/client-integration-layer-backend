@@ -239,7 +239,7 @@ export class Link {
       );
     }
   }
-  
+
   public static async classesBelongToSchool(
     classIds: ExternalUuid[],
     schoolId: ExternalUuid,

@@ -27,13 +27,11 @@ export async function validateMany(
   data: IncomingData[],
   log: Logger
 ): Promise<[Result<IncomingData>, Logger]> {
-  
   const validRequests = [];
   let invalidRequests: Response[] = [];
 
   for (const d of data) {
     try {
-
       const { valid, invalid } = await validate(d, log);
       if (valid !== null) validRequests.push(valid);
       invalidRequests = invalidRequests.concat(invalid);
@@ -62,14 +60,15 @@ export async function validateMany(
     }
   }
 
-  return [{ valid: validRequests, invalid:invalidRequests }, log];
+  return [{ valid: validRequests, invalid: invalidRequests }, log];
 }
 
 async function validate(
   r: IncomingData,
   log: Logger
 ): Promise<{
-  valid: IncomingData | null; invalid: Response[] 
+  valid: IncomingData | null;
+  invalid: Response[];
 }> {
   const { protobuf } = r;
 
@@ -87,7 +86,7 @@ async function validate(
         Category.REQUEST,
         log
       );
-    
+
     for (const id of invalid) {
       const resp = new Response()
         .setSuccess(false)
@@ -104,18 +103,16 @@ async function validate(
       invalidResponses.push(resp);
     }
 
-  protobuf.setExternalClassUuidsList(valid);
-  r.data.externalClassUuidsList = valid;
+    protobuf.setExternalClassUuidsList(valid);
+    r.data.externalClassUuidsList = valid;
 
-  // Checking that both sets of ids are valid are covered by this
-  await Link.shareTheSameOrganization(log, [schoolId], valid);
-
+    // Checking that both sets of ids are valid are covered by this
+    await Link.shareTheSameOrganization(log, [schoolId], valid);
   }
-  
+
   // Check if the valid classes already linked to the school
   {
-    const { valid: invalid, invalid: valid } = 
-    await Link.classesBelongToSchool(
+    const { valid: invalid, invalid: valid } = await Link.classesBelongToSchool(
       classIds,
       schoolId,
       log
@@ -142,9 +139,8 @@ async function validate(
   }
 
   const valid = r.data.externalClassUuidsList.length === 0 ? null : r;
-  
-  return { valid, invalid: invalidResponses };
 
+  return { valid, invalid: invalidResponses };
 }
 
 function schemaValidation(
