@@ -113,6 +113,7 @@ describe('add classes to school should', () => {
   let classDbStub: SinonStub;
   let classIdStub: SinonStub;
   let shareSameOrgStub: SinonStub;
+  let shareSameClassStub: SinonStub;
 
   beforeEach(() => {
     const schoolId = uuidv4();
@@ -123,6 +124,8 @@ describe('add classes to school should', () => {
         .resolves([{ id: schoolId, name: 'Test school' }]),
     } as unknown as AdminService);
     shareSameOrgStub = sinon.stub(Link, 'shareTheSameOrganization').resolves();
+    shareSameClassStub = sinon.stub(Link, 'classesBelongToSchool')
+      .resolves({ valid: [], invalid: [uuidv4()] });
 
     classDbStub = sinon
       .stub(ClassDB, 'areValid')
@@ -139,9 +142,6 @@ describe('add classes to school should', () => {
 
   afterEach(() => {
     sinon.restore();
-    adminStub.restore();
-    shareSameOrgStub.restore();
-    classDbStub.restore();
   });
 
   VALID_ADD_CLASSES_TO_SCHOOL.forEach(({ scenario, addClassesToSchool: c }) => {
@@ -183,6 +183,10 @@ describe('add classes to school should', () => {
     classDbStub.resolves({
       valid: validExist,
       invalid: invalidNotExist,
+    })
+    shareSameClassStub.resolves({
+      valid: [],
+      invalid: validExist,
     });
 
     const req = wrapRequest(innerReq);
@@ -217,8 +221,7 @@ describe('add classes to school should', () => {
       valid: validExist,
       invalid: invalidNotExist,
     });
-    sinon
-      .stub(Link, 'classesBelongToSchool')
+    shareSameClassStub
       .resolves({ valid: validNotLinked, invalid: invalidAlreadyLinked });
 
     const req = wrapRequest(innerReq);

@@ -77,6 +77,7 @@ async function validate(
   const invalidResponses = [];
   // Check the target classes are valid
   {
+    /** == An PLEASE CHECK - I think this should use Context - as class Ids can be cached in-mem */
     const { valid, invalid } = await Class.areValid(classIds, log);
     if (valid.length === 0)
       throw new OnboardingError(
