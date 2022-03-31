@@ -139,6 +139,9 @@ describe('add classes to school should', () => {
 
   afterEach(() => {
     sinon.restore();
+    adminStub.restore();
+    shareSameOrgStub.restore();
+    classDbStub.restore();
   });
 
   VALID_ADD_CLASSES_TO_SCHOOL.forEach(({ scenario, addClassesToSchool: c }) => {
