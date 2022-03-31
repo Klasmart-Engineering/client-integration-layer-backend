@@ -96,6 +96,7 @@ describe('add programs to school should', () => {
   let getOrgStub: SinonStub;
   let orgIdStub: SinonStub;
   let programsStub: SinonStub;
+  let programsValidStub: SinonStub;
 
   beforeEach(() => {
     const schoolId = uuidv4();
@@ -110,13 +111,23 @@ describe('add programs to school should', () => {
 
     orgIdStub = sinon.stub().resolves(uuidv4());
     schoolStub = sinon.stub().resolves(schoolId);
-    programsStub = sinon
+    programsValidStub = sinon
       .stub()
       .resolves([{ id: uuidv4(), name: 'Test program' }]);
+    programsStub = sinon.stub();
+    programsStub.onFirstCall().resolves({
+      valid: [{ id: uuidv4(), name: 'Test program' }],
+      invalid: [],
+    });
+    programsStub.onSecondCall().resolves({
+      valid: [],
+      invalid: ['Test program'],
+    });
     sinon.stub(Context, 'getInstance').resolves({
       getOrganizationId: orgIdStub,
       getSchoolId: schoolStub,
-      programsAreValid: programsStub,
+      getProgramNames: programsStub,
+      programsAreValid: programsValidStub,
     } as unknown as Context);
   });
 
@@ -154,6 +165,7 @@ describe('add programs to school should', () => {
     const req = wrapRequest(
       VALID_ADD_PROGRAMS_TO_SCHOOL[0].addProgramsToSchool
     );
+
     schoolStub.rejects(
       new OnboardingError(
         MachineError.VALIDATION,
