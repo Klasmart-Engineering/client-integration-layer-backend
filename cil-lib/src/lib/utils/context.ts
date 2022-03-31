@@ -239,6 +239,29 @@ export class Context {
     return { valid: validResult, invalid };
   }
 
+  public async getClassIds(
+    ids: ExternalUuid[],
+    log: Logger
+  ): Promise<{ valid: Map<ExternalUuid, Uuid>; invalid: ExternalUuid[] }> {
+    const targets = new Set(ids);
+    const validResult = new Map();
+    // Check the cache
+    for (const id of ids) {
+      const kidsloopUuid = this.classes.get(id);
+      if (kidsloopUuid) {
+        targets.delete(id);
+        validResult.set(id, kidsloopUuid);
+      }
+    }
+    const { valid, invalid } = await Class.areValid(Array.from(targets), log);
+    // Any valid entries we can add to the cache
+    for (const { externalUuid, klUuid } of valid) {
+      this.classes.set(externalUuid, klUuid);
+      validResult.set(externalUuid, klUuid);
+    }
+    return { valid: validResult, invalid };
+  }
+
   /**
    * @param {string[]} programs - The program names to be validated
    * @param {string} orgId - The client UUID for the organization

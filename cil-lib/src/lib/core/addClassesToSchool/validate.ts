@@ -1,7 +1,8 @@
 import Joi from 'joi';
 import { Logger } from 'pino';
 
-import { Class, JOI_VALIDATION_SETTINGS, Link } from '../../..';
+import { Context } from '../../..';
+import { JOI_VALIDATION_SETTINGS, Link } from '../../..';
 import {
   BASE_PATH,
   Category,
@@ -36,7 +37,6 @@ export async function validateMany(
       invalidRequests = invalidRequests.concat(invalid);
     } catch (error) {
       const e = convertErrorToProtobuf(error, log);
-
       if (d.protobuf.getExternalClassUuidsList()?.length == 0) {
         const resp = new Response()
           .setSuccess(false)
@@ -73,13 +73,18 @@ async function validate(
 
   schemaValidation(protobuf.toObject(), log);
   const schoolId = protobuf.getExternalSchoolUuid();
-  const classIds = protobuf.getExternalClassUuidsList();
   const invalidResponses = [];
+
+  const ctx = await Context.getInstance();
   // Check the target classes are valid
   {
-    /** == An PLEASE CHECK - I think this should use Context - as class Ids can be cached in-mem */
-    const { valid, invalid } = await Class.areValid(classIds, log);
-    if (valid.length === 0)
+    // Use Context to get cached class ids
+    const { valid, invalid } = await ctx.getClassIds(
+      protobuf.getExternalClassUuidsList(),
+      log
+    );
+
+    if (valid.size === 0)
       throw new OnboardingError(
         MachineError.VALIDATION,
         `None of the provided class ids were valid`,
@@ -102,10 +107,14 @@ async function validate(
         );
       invalidResponses.push(resp);
     }
-    protobuf.setExternalClassUuidsList(valid);
-    r.data.externalClassUuidsList = valid;
+    protobuf.setExternalClassUuidsList(Array.from(valid.keys()));
+    r.data.externalClassUuidsList = Array.from(valid.keys());
     // Checking that both sets of ids are valid are covered by this
-    await Link.shareTheSameOrganization(log, [schoolId], valid);
+    await Link.shareTheSameOrganization(
+      log,
+      [schoolId],
+      Array.from(valid.keys())
+    );
   }
 
   // Check if the valid classes already linked to the school
@@ -115,6 +124,7 @@ async function validate(
       schoolId,
       log
     );
+
     for (const id of invalid) {
       const resp = new Response()
         .setSuccess(false)
@@ -137,6 +147,7 @@ async function validate(
   }
 
   const valid = r.data.externalClassUuidsList.length === 0 ? null : r;
+  console.log('valid1 = ', valid);
 
   return { valid, invalid: invalidResponses };
 }

@@ -108,12 +108,13 @@ export const INVALID_ADD_CLASSES_TO_SCHOOL: AddClassesToSchoolTestCase[] = [
 ];
 
 describe('add classes to school should', () => {
-  let schoolStub: SinonStub;
+  let schoolIdStub: SinonStub;
   let adminStub: SinonStub;
   let classDbStub: SinonStub;
   let classIdStub: SinonStub;
   let shareSameOrgStub: SinonStub;
-  let shareSameClassStub: SinonStub;
+  let linkStub: SinonStub;
+  let contextStub: SinonStub;
 
   beforeEach(() => {
     const schoolId = uuidv4();
@@ -124,18 +125,21 @@ describe('add classes to school should', () => {
         .resolves([{ id: schoolId, name: 'Test school' }]),
     } as unknown as AdminService);
     shareSameOrgStub = sinon.stub(Link, 'shareTheSameOrganization').resolves();
-    shareSameClassStub = sinon.stub(Link, 'classesBelongToSchool')
+    linkStub = sinon
+      .stub(Link, 'classesBelongToSchool')
       .resolves({ valid: [], invalid: [uuidv4()] });
 
-    classDbStub = sinon
-      .stub(ClassDB, 'areValid')
-      .resolves({ valid: [uuidv4()], invalid: [] });
+    classDbStub = sinon.stub().resolves({
+      valid: new Map<string, string>([[uuidv4(), uuidv4()]]),
+      invalid: [],
+    });
     sinon.stub(ClassDB, 'linkToSchool').resolves();
 
-    schoolStub = sinon.stub().resolves(schoolId);
+    schoolIdStub = sinon.stub().resolves(schoolId);
     classIdStub = sinon.stub().resolves(classId);
-    sinon.stub(Context, 'getInstance').resolves({
-      getSchoolId: schoolStub,
+    contextStub = sinon.stub(Context, 'getInstance').resolves({
+      getSchoolId: schoolIdStub,
+      getClassIds: classDbStub,
       getClassId: classIdStub,
     } as unknown as Context);
   });
@@ -152,6 +156,7 @@ describe('add classes to school should', () => {
 
       expect(responses).to.have.length(1);
       expect(responses[0]).not.to.be.undefined;
+
       expect(responses[0].getSuccess()).to.be.true;
     });
   });
@@ -178,13 +183,16 @@ describe('add classes to school should', () => {
     const innerReq = setUpAddClassesToSchool();
     const classIds = [uuidv4(), uuidv4(), uuidv4()];
     innerReq.setExternalClassUuidsList(classIds);
-    const validExist = [classIds[0], classIds[1]];
+    const validExist = new Map<string, string>([
+      [classIds[0], 'Test class 0'],
+      [classIds[1], 'Test class 1'],
+    ]);
     const invalidNotExist = [classIds[2]];
     classDbStub.resolves({
       valid: validExist,
       invalid: invalidNotExist,
-    })
-    shareSameClassStub.resolves({
+    });
+    linkStub.resolves({
       valid: [],
       invalid: validExist,
     });
@@ -208,6 +216,79 @@ describe('add classes to school should', () => {
     expect(successCount).to.equal(2);
     expect(failureCount).to.equal(1);
   });
+  it('should fail if the class already belongs to the school', async () => {
+    const addClassesToSchool = setUpAddClassesToSchool();
+    const classId = addClassesToSchool.getExternalClassUuidsList()[0];
+    const req = wrapRequest(addClassesToSchool);
+
+    linkStub.resolves({ valid: [classId], invalid: [] });
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+
+    expect(resp.getResponsesList()[0].toObject().errors!.entityAlreadyExists)
+      .not.to.be.undefined;
+    expect(
+      resp.getResponsesList()[0].toObject().errors!.entityAlreadyExists!
+        .detailsList
+    ).to.includes.members([
+      `Class: ${classId} already belongs to school: ${addClassesToSchool.getExternalSchoolUuid()}`,
+    ]);
+  });
+
+  it('if one class belongs to the school, but others dont, it should fail that class and pass the others', async () => {
+    const addClasses = setUpAddClassesToSchool();
+    const class1 = uuidv4();
+    const class2 = uuidv4();
+    const class3 = uuidv4();
+    addClasses.setExternalClassUuidsList([class1, class2, class3]);
+
+    const req = wrapRequest(addClasses);
+    classDbStub.onFirstCall().resolves({
+      valid: new Map<string, string>([
+        [uuidv4(), uuidv4()],
+        [uuidv4(), uuidv4()],
+        [uuidv4(), uuidv4()],
+      ]),
+      invalid: [],
+    });
+    classDbStub.onSecondCall().resolves({
+      valid: new Map<string, string>([
+        [uuidv4(), uuidv4()],
+        [uuidv4(), uuidv4()],
+      ]),
+      invalid: [],
+    });
+    contextStub.resolves({
+      getSchoolId: schoolIdStub,
+      getClassIds: classDbStub,
+      getClassId: classIdStub,
+    } as unknown as Context);
+    linkStub.resolves({ valid: [class2], invalid: [class1, class3] });
+
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+    expect(resp).not.to.be.undefined;
+    const responses = resp.toObject().responsesList;
+    expect(responses).to.have.lengthOf(3);
+
+    // Test valid responses are correct
+    const validResponse = responses[1];
+    expect(validResponse).not.to.be.undefined;
+    expect(validResponse.success).to.be.true;
+
+    // Test invalid response is correct
+    const invalidResponse = responses[0];
+    expect(invalidResponse.success).to.be.false;
+    expect(invalidResponse.requestId).to.eql(
+      req.getRequestsList()[0].getRequestId()?.toObject()
+    );
+    expect(invalidResponse.entityId).to.contains(class2);
+    expect(invalidResponse.entity).to.equal(Entity.CLASS);
+    expect(invalidResponse.errors?.entityAlreadyExists).not.to.be.undefined;
+    expect(
+      invalidResponse.errors?.entityAlreadyExists?.detailsList
+    ).to.includes.members([
+      `Class: ${class2} already belongs to school: ${addClasses.getExternalSchoolUuid()}`,
+    ]);
+  });
 
   it('successfully process all valid ids when one is invalid (non-existing) and one invalid (already linked)', async () => {
     const innerReq = setUpAddClassesToSchool();
@@ -221,8 +302,10 @@ describe('add classes to school should', () => {
       valid: validExist,
       invalid: invalidNotExist,
     });
-    shareSameClassStub
-      .resolves({ valid: validNotLinked, invalid: invalidAlreadyLinked });
+    linkStub.resolves({
+      valid: validNotLinked,
+      invalid: invalidAlreadyLinked,
+    });
 
     const req = wrapRequest(innerReq);
     const resp = await processOnboardingRequest(req, LOG_STUB);
