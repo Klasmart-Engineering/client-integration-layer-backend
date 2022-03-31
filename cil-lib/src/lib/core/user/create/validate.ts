@@ -74,16 +74,14 @@ function schemaValidation(entity: PbUser.AsObject, log: Logger): void {
       errors.set(p, e);
     }
   }
-  // This is to validate the custom logic around requiring either
-  // - USERNAME + PHONE
-  // - USERNAME + EMAIL
-  // (or both). This can't be handled by JOI
-  const { email, phone } = entity;
+
+  const { email, phone, username } = entity;
   const phoneRegex = new RegExp(VALIDATION_RULES.PHONE_REGEX);
   const emailRegex = new RegExp(VALIDATION_RULES.EMAIL_REGEX);
   const phoneIsValid = phoneRegex.exec(phone);
   const emailIsValid = emailRegex.exec(email);
-  if (phoneIsValid === null && emailIsValid === null) {
+
+  if (email.length === 0 && phone.length === 0 && username.length === 0) {
     errors.set(
       'phone',
       new OnboardingError(
@@ -91,12 +89,58 @@ function schemaValidation(entity: PbUser.AsObject, log: Logger): void {
         `${Entity.USER} failed validation`,
         Category.REQUEST,
         log,
-        [...BASE_PATH, 'user', '[email | phone]'],
+        [...BASE_PATH, 'user', '[email | phone | username ]'],
         {},
         [
-          'Phone and Email are invalid, at least one of the two must be valid',
-          `Must provide a combination of either 'PHONE' + 'USERNAME' or 'EMAIL' + 'USERNAME'`,
+          'Missing Phone, Email and Username must provide at least one of these values',
         ]
+      )
+    );
+  }
+
+  if (username.length > 0 && email.length === 0 && phone.length === 0) {
+    errors.set(
+      'username',
+      new OnboardingError(
+        MachineError.VALIDATION,
+        `${Entity.USER} failed validation`,
+        Category.REQUEST,
+        log,
+        [...BASE_PATH, 'user', '[email | phone ]'],
+        {},
+        [
+          'Username provided but missing email and phone, need to provide at least one contact info',
+        ]
+      )
+    );
+  }
+
+  if (email.length > 0 && emailIsValid === null) {
+    errors.set(
+      'email',
+      new OnboardingError(
+        MachineError.VALIDATION,
+        `${Entity.USER} failed validation`,
+        Category.REQUEST,
+        log,
+        [...BASE_PATH, 'user', '[email]'],
+        {},
+        ['Email is invalid']
+      )
+    );
+  }
+
+  if (phone.length > 0 && phoneIsValid === null) {
+    errors.set(
+      'phone',
+      new OnboardingError(
+        MachineError.VALIDATION,
+        `${Entity.USER} failed validation`,
+        Category.REQUEST,
+        log,
+        [...BASE_PATH, 'user', '[phone]'],
+        {},
+        ['phone is invalid']
       )
     );
   }

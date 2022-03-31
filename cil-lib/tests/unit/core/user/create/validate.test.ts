@@ -18,6 +18,7 @@ import {
   User,
 } from '../../../../../src/lib/protos';
 import { Context } from '../../../../../src/lib/utils';
+import { random } from '../../../../manual/util';
 import { LOG_STUB, wrapRequest } from '../../../../util';
 
 const USER = Object.freeze({
@@ -181,10 +182,26 @@ export const INVALID_USERS: UserTestCase[] = [
     })(),
   },
   {
-    scenario: 'the phone and email are missing',
+    scenario: 'the phone, email and username are missing',
     user: (() => {
-      const s = setUpUser({ ...USER, phone: false, email: false });
-      return s;
+      const user = setUpUser({
+        ...USER,
+        phone: false,
+        email: false,
+        username: false,
+      });
+      return user;
+    })(),
+  },
+  {
+    scenario: 'username provided but missing email and phone',
+    user: (() => {
+      const user = setUpUser({
+        ...USER,
+        phone: false,
+        email: false,
+      });
+      return user;
     })(),
   },
   {
@@ -217,6 +234,22 @@ export const INVALID_USERS: UserTestCase[] = [
       const s = setUpUser();
       s.addRoleIdentifiers(uuidv4());
       return s;
+    })(),
+  },
+  {
+    scenario: 'invalid email',
+    user: (() => {
+      const user = setUpUser({ ...USER });
+      user.setEmail(random());
+      return user;
+    })(),
+  },
+  {
+    scenario: 'invalid phone',
+    user: (() => {
+      const user = setUpUser({ ...USER });
+      user.setPhone(random());
+      return user;
     })(),
   },
 ];

@@ -318,19 +318,42 @@ describe('When receiving requests over the web the server should', () => {
     expect(allSuccess).to.be.false;
   }).timeout(50000);
 
-  it('fail the user onboarding if email is invalid', async () => {
+  it('filter out user if email is invalid', async () => {
     const res = await populateAdminService();
-    const reqs = new TestCaseBuilder()
-      .addValidOrgs(res)
-      .addValidSchoolsToEachOrg(5)
-      .addValidClassesToEachSchool(5)
-      .addCustomizableUser({ email: '.notvalid' })
-      .finalize();
-    const result = await onboard(reqs, client);
-    const allSuccess = result
+    const org = res.keys().next().value;
+
+    const user1 = setUpUser(org.id, uuidv4());
+    user1.setEmail(random());
+    const user2 = setUpUser(org.id, uuidv4());
+    const reqs = new TestCaseBuilder().addValidOrgs(res).finalize();
+
+    const setUp = await onboard(reqs, client);
+    const allSuccess = setUp
       .toObject()
       .responsesList.every((r) => r.success === true);
-    expect(allSuccess).to.be.false;
+    expect(allSuccess).to.be.true;
+
+    const results = await (
+      await onboard(
+        wrapRequest([
+          new proto.OnboardingRequest().setUser(user1),
+          new proto.OnboardingRequest().setUser(user2),
+        ]),
+        client
+      )
+    ).toObject().responsesList;
+
+    expect(results.filter((result) => result.success === true)).to.be.length(1);
+    expect(results.filter((result) => result.errors)).to.be.length(1);
+    expect(
+      results
+        .filter((result) => result.errors)
+        .map((result) => result.errors)
+        .filter((error) => error.validation)
+    ).to.be.length(1);
+
+    const adminUser = await getUser(user1.getExternalUuid());
+    expect(adminUser).to.be.not.undefined;
   }).timeout(50000);
 
   it('fail the user onboarding if email exceeds max value', async () => {
