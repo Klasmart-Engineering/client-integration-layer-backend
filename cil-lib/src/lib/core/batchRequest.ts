@@ -1,4 +1,5 @@
 import { Message } from 'google-protobuf';
+import newrelic from 'newrelic';
 import { Logger } from 'pino';
 
 import { Category, MachineError, OnboardingError } from '../errors';
@@ -273,9 +274,15 @@ export class RequestBatch {
       map.set(key, arr);
     }
     const details: Record<string, number> = {};
-    for (const [k, v] of map) details[k] = v.length;
+    for (const [k, v] of map) {
+      details[k] = v.length;
+      newrelic.incrementMetric(
+        `csi/generic-backend/${k}`.toLowerCase(),
+        v.length
+      );
+    }
 
-    log.info(
+    log.debug(
       { operationCounts: details },
       'received incoming batch of requests'
     );
