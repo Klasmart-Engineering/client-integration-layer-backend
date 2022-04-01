@@ -352,8 +352,12 @@ describe('When receiving requests over the web the server should', () => {
         .filter((error) => error.validation)
     ).to.be.length(1);
 
-    const adminUser = await getUser(user1.getExternalUuid());
-    expect(adminUser).to.be.not.undefined;
+    const adminUser1 = await getUser(user1.getExternalUuid());
+    expect(adminUser1).to.be.undefined;
+    const adminUser2 = await getUser(user2.getExternalUuid());
+    expect(adminUser2.phone).to.be.eq(user2.getPhone());
+    expect(adminUser2.email).to.be.eq(user2.getEmail());
+    expect(adminUser2.username).to.be.eq(user2.getUsername());
   }).timeout(50000);
 
   it('fail the user onboarding if email exceeds max value', async () => {
@@ -510,13 +514,13 @@ describe('When receiving requests over the web the server should', () => {
     expect(returnedUser4.externalUuid).to.equal(externalUuid4);
   }).timeout(50000);
 
-  it('fail the user onboarding if none of the fields email or phone was provided', async () => {
+  it('fail the user onboarding if none of the fields email or phone or username was provided', async () => {
     const res = await populateAdminService();
     const reqs = new TestCaseBuilder()
       .addValidOrgs(res)
       .addValidSchoolsToEachOrg(2)
       .addValidClassesToEachSchool(2)
-      .addCustomizableUser({ email: '', phone: '' })
+      .addCustomizableUser({ email: '', phone: '', username: '' })
       .finalize();
     const result = await onboard(reqs, client);
     const allSuccess = result
@@ -589,7 +593,10 @@ describe('When receiving requests over the web the server should', () => {
       .addValidUsersToEachSchool(5);
 
     for (let i = 0; i < 5; i++) {
-      builder = builder.addCustomizableUser({ email: '', phone: '' }, false);
+      builder = builder.addCustomizableUser(
+        { email: '', phone: '', username: '' },
+        false
+      );
     }
     const reqs = builder.finalize();
     const result = await onboard(reqs, client);
@@ -1351,6 +1358,36 @@ describe('When receiving requests over the web the server should', () => {
       'TEST PROGRAM 4',
     ]);
   });
+
+  it('user onboarding with username and missing email/phone', async () => {
+    const res = await populateAdminService();
+    const userId = uuidv4();
+    const username = random();
+
+    const reqs = new TestCaseBuilder()
+      .addValidOrgs(res)
+      .addUser({
+        email: '',
+        phone: '',
+        username: username,
+        addToValidClasses: 0,
+        addToValidSchools: 0,
+        addToValidOrgs: 1,
+        externalUuid: userId,
+      })
+      .finalize();
+
+    const result = await onboard(reqs, client);
+    const allSuccess = result
+      .toObject()
+      .responsesList.every((r) => r.success === true);
+    expect(allSuccess).to.be.true;
+
+    const adminUser = await getUser(userId);
+    expect(adminUser.username).to.be.equal(username);
+    expect(adminUser.email).to.be.null;
+    expect(adminUser.phone).to.be.null;
+  }).timeout(50000);
 
   it('succeed when onboarding more than 50 users and linked them to school, then onboard the same batch again and not get any internal server errors', async () => {
     const res = await populateAdminService();

@@ -29,10 +29,6 @@ export async function sendRequest(
         const user: CreateUserInput = {
           givenName: data.givenName!,
           familyName: data.familyName!,
-          contactInfo: {
-            phone: data.phone,
-            email: data.email,
-          },
           gender: protoGenderToString(data.gender!, log),
         };
 
@@ -42,6 +38,16 @@ export async function sendRequest(
 
         if (data.dateOfBirth && data.dateOfBirth.length > 0) {
           user.dateOfBirth = data.dateOfBirth;
+        }
+
+        if (
+          (data.email && data.email.length > 0) ||
+          (data.phone && data.phone.length > 0)
+        ) {
+          user.contactInfo = {
+            phone: data.phone,
+            email: data.email,
+          };
         }
 
         return user;

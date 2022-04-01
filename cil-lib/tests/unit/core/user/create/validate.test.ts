@@ -66,6 +66,10 @@ export const VALID_USERS: UserTestCase[] = [
     user: setUpUser({ ...USER, shortCode: false }),
   },
   {
+    scenario: 'contains everything but email and phone',
+    user: setUpUser({ ...USER, email: false, phone: false }),
+  },
+  {
     scenario: 'the given name is a single character',
     user: (() => {
       const user = setUpUser();
@@ -189,17 +193,6 @@ export const INVALID_USERS: UserTestCase[] = [
         phone: false,
         email: false,
         username: false,
-      });
-      return user;
-    })(),
-  },
-  {
-    scenario: 'username provided but missing email and phone',
-    user: (() => {
-      const user = setUpUser({
-        ...USER,
-        phone: false,
-        email: false,
       });
       return user;
     })(),

@@ -5,7 +5,7 @@ import { Uuid } from '../../utils';
 export type CreateUserInput = {
   givenName: string;
   familyName: string;
-  contactInfo: ContactInfo;
+  contactInfo?: ContactInfo;
   username?: string;
   dateOfBirth?: string;
   gender: string;

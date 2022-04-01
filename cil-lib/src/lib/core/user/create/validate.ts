@@ -98,23 +98,6 @@ function schemaValidation(entity: PbUser.AsObject, log: Logger): void {
     );
   }
 
-  if (username.length > 0 && email.length === 0 && phone.length === 0) {
-    errors.set(
-      'username',
-      new OnboardingError(
-        MachineError.VALIDATION,
-        `${Entity.USER} failed validation`,
-        Category.REQUEST,
-        log,
-        [...BASE_PATH, 'user', '[email | phone ]'],
-        {},
-        [
-          'Username provided but missing email and phone, need to provide at least one contact info',
-        ]
-      )
-    );
-  }
-
   if (email.length > 0 && emailIsValid === null) {
     errors.set(
       'email',
