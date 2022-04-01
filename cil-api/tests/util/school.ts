@@ -194,12 +194,15 @@ export async function getSchoolUsers(
   return users;
 }
 
-export async function getSchool(externalUuid: ExternalUuid): Promise<{
-  externalUuid: ExternalUuid;
-  id: Uuid;
-  name: string;
-  externalOrgUuid: ExternalUuid;
-} | undefined> {
+export async function getSchool(externalUuid: ExternalUuid): Promise<
+  | {
+      externalUuid: ExternalUuid;
+      id: Uuid;
+      name: string;
+      externalOrgUuid: ExternalUuid;
+    }
+  | undefined
+> {
   const school = await prisma.school.findUnique({
     where: { externalUuid: externalUuid },
     select: { klUuid: true, externalOrgUuid: true },
@@ -279,7 +282,9 @@ export async function getSchoolClasses(
   );
 
   if (!classIds) {
-    log(`Classes not found in admin service. School externalUuid: "${externalUuid}"`);
+    log(
+      `Classes not found in admin service. School externalUuid: "${externalUuid}"`
+    );
     return undefined;
   }
 
@@ -291,7 +296,7 @@ export async function getSchoolClasses(
     },
     select: {
       klUuid: true,
-      externalUuid: true
+      externalUuid: true,
     },
   });
 

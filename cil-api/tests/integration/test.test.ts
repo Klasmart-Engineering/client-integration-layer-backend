@@ -23,7 +23,12 @@ import {
   createOrg as createOrgInAdminService,
   createProgramsAndRoles as createRolesAndProgramsInAdminService,
 } from '../util/populateAdminService';
-import { getSchool, getSchoolClasses, getSchoolPrograms, getSchoolUsers } from '../util/school';
+import {
+  getSchool,
+  getSchoolClasses,
+  getSchoolPrograms,
+  getSchoolUsers,
+} from '../util/school';
 import { getClass, getClassProgramsConnections } from '../util/class';
 import { deleteUsers, getUser, getUserOrgRoles, setUpUser } from '../util/user';
 import { IdNameMapper } from 'cil-lib/dist/main/lib/services/adminService';
@@ -369,7 +374,7 @@ describe('When receiving requests over the web the server should', () => {
       .addValidClassesToEachSchool(5)
       .addCustomizableUser({
         username: invalidUsername,
-        externalUuid: externalUuid
+        externalUuid: externalUuid,
       })
       .finalize();
     const result = await onboard(reqs, client);
@@ -382,7 +387,6 @@ describe('When receiving requests over the web the server should', () => {
     expect(returnedUser).to.be.not.undefined;
     expect(returnedUser).to.have.property('username');
     expect(returnedUser.username).to.be.equal(invalidUsername);
-
   }).timeout(50000);
 
   it('fail the user onboarding if phone format is wrong', async () => {
@@ -1037,7 +1041,7 @@ describe('When receiving requests over the web the server should', () => {
     expect(returnedSchool.name).to.be.equal(schoolName);
     expect(returnedSchool.externalOrgUuid).to.be.equal(org.id);
 
-    const returnedClass = await getClass(classId,schoolId);
+    const returnedClass = await getClass(classId, schoolId);
     expect(returnedClass).to.be.not.undefined;
     expect(returnedClass.externalUuid).to.be.equal(classId);
     expect(returnedClass.name).to.be.equal(className);
@@ -1046,7 +1050,7 @@ describe('When receiving requests over the web the server should', () => {
     const returnedClasses = await getSchoolClasses(schoolId);
     expect(returnedClasses).to.deep.include({
       klUuid: returnedClass.id,
-      externalUuid: returnedClass.externalUuid
+      externalUuid: returnedClass.externalUuid,
     });
 
     expect(allSuccess).to.be.true;
@@ -1100,7 +1104,7 @@ describe('When receiving requests over the web the server should', () => {
     const roles = await getUserOrgRoles(org.id, user);
     expect(roles).to.include(orgRoles[1]);
   }).timeout(50000);
-  
+
   it('succeed when trying to link programs to class with the same classId1 and one independent classId2 ', async () => {
     const res = await populateAdminService();
     const schoolId = uuidv4();
@@ -1188,7 +1192,7 @@ describe('When receiving requests over the web the server should', () => {
 
     expect(allSuccess).to.be.true;
   });
-  
+
   it('partially succeed when trying to link programs with the same classId1 and same classId2', async () => {
     const res = await populateAdminService();
     const schoolId = uuidv4();
@@ -1323,6 +1327,49 @@ describe('When receiving requests over the web the server should', () => {
       'TEST PROGRAM 3',
       'TEST PROGRAM 4',
     ]);
+  });
+
+  it('succeed when onboarding more than 50 users and linked them to school, then onboard the same batch again and not get any internal server errors', async () => {
+    const res = await populateAdminService();
+    const org: IdNameMapper = res.keys().next().value;
+    const classId = uuidv4();
+    const schoolId = uuidv4();
+
+    const setUpRequest = new TestCaseBuilder()
+      .addValidOrgs(res)
+      .addSchool({ externalUuid: schoolId, externalOrganizationUuid: org.id })
+      .addClass({ externalOrganizationUuid: org.id, externalUuid: classId })
+      .addValidUsersToEachSchool(53, 0, 1)
+      .finalize();
+
+    const result = await onboard(setUpRequest, client);
+
+    const allSuccess = result
+      .toObject()
+      .responsesList.every((r) => r.success === true);
+
+    expect(allSuccess).to.be.true;
+
+    const resultSameBatch = await onboard(setUpRequest, client);
+
+    // Ensure that all the errors are alreadyExistsError either from validation or admin service part
+    const errors = resultSameBatch
+      .getResponsesList()
+      .filter((resp) => resp.getErrors());
+
+    const errorAlreadyExists = resultSameBatch
+      .getResponsesList()
+      .filter((resp) => resp.getErrors())
+      .filter((resp) => resp.getErrors().getEntityAlreadyExists());
+
+    expect(errors.length).to.be.eql(errorAlreadyExists.length);
+
+    expect(
+      resultSameBatch
+        .getResponsesList()
+        .filter((resp) => resp.getErrors())
+        .filter((resp) => resp.getErrors().getInternalServer())
+    ).to.be.length(0);
   });
 }).timeout(50000);
 

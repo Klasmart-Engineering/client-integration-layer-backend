@@ -18,8 +18,7 @@ import { IncomingData } from '.';
 
 export async function sendRequest(
   operations: IncomingData[],
-  log: Logger,
-  retry = true
+  log: Logger
 ): Promise<[Result<IncomingData>, Logger]> {
   let invalid: Response[] = [];
   const usersMapping = new Map<
@@ -58,7 +57,7 @@ export async function sendRequest(
     try {
       await admin.addUsersToSchools(request, log);
     } catch (error) {
-      if (error instanceof AdminDupeError && retry) {
+      if (error instanceof AdminDupeError) {
         const retries = dupeErrors(error, operations, log);
 
         retries.invalid.forEach((usersWithErrors, schoolId) => {
@@ -71,21 +70,30 @@ export async function sendRequest(
         });
 
         if (retries.valid.length > 0) {
-          const result = await sendRequest(retries.valid, log, false);
-          const results = result[0];
+          try {
+            await admin.addUsersToSchools(request, log);
+          } catch (e) {
+            if (e instanceof AdminDupeError) {
+              log.error(
+                `Failed when attempting to retry de-duped add users to a school in the admin service`
+              );
+              const r = dupeErrors(e, operations, log);
 
-          const invalid = invalids(invalidUsers, usersMapping, operations, log);
-          return [
-            { valid: results.valid, invalid: invalid.concat(results.invalid) },
-            log,
-          ];
+              r.invalid.forEach((usersWithErrors, schoolId) => {
+                const users = invalidUsers.get(schoolId) ?? new Map();
+
+                usersWithErrors.forEach((userWithError) => {
+                  users.set(userWithError.kidsloopId, userWithError);
+                });
+                invalidUsers.set(schoolId, users);
+              });
+            } else {
+              setOtherInvalidUsers(request, invalidUsers);
+            }
+          }
         }
       } else {
-        for (const r of request) {
-          const users = invalidUsers.get(r.schoolId) ?? new Map();
-          for (const id of r.userIds) users.set(id, { kidsloopId: id });
-          invalidUsers.set(r.schoolId, users);
-        }
+        setOtherInvalidUsers(request, invalidUsers);
       }
     }
   }
@@ -97,6 +105,17 @@ export async function sendRequest(
     (op) => op.protobuf.getExternalUserUuidsList().length > 0
   );
   return [{ valid: ops, invalid }, log];
+}
+
+function setOtherInvalidUsers(
+  request: AddUsersToSchool[],
+  invalidUsers: Map<Uuid, Map<Uuid, { kidsloopId: Uuid; error?: Error }>>
+): void {
+  for (const r of request) {
+    const users = invalidUsers.get(r.schoolId) ?? new Map();
+    for (const id of r.userIds) users.set(id, { kidsloopId: id });
+    invalidUsers.set(r.schoolId, users);
+  }
 }
 
 function invalids(
