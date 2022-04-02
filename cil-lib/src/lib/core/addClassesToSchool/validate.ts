@@ -147,7 +147,6 @@ async function validate(
   }
 
   const valid = r.data.externalClassUuidsList.length === 0 ? null : r;
-  console.log('valid1 = ', valid);
 
   return { valid, invalid: invalidResponses };
 }

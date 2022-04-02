@@ -64,8 +64,7 @@
       "args": [
         "-r",
         "ts-node/register",
-        "--timeout",
-        "999999",
+        "--no-timeout",
         "--colors",
         "${workspaceFolder}/cil-api/tests/**/*.test.ts"
       ],
