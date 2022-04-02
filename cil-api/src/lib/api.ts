@@ -20,27 +20,36 @@ export class OnboardingServer implements proto.IOnboardingServer {
     call: ServerUnaryCall<proto.BatchOnboarding, proto.Responses>,
     callback: sendUnaryData<proto.Responses>
   ): Promise<void> {
-    newrelic.startBackgroundTransaction('onBoard', async () => {
-      const apiKey = call.metadata.get('x-api-key');
-      if (apiKey.length !== 1 || apiKey[0] !== process.env.API_KEY) {
-        const error = new StatusBuilder();
-        error.withCode(Status.UNAUTHENTICATED);
-        error.withDetails('Unauthorized');
-        callback(error.build());
-        return;
-      }
-
+    newrelic.startWebTransaction('onboard', async () => {
+      const transaction = newrelic.getTransaction();
+      transaction.acceptDistributedTraceHeaders(
+        'grpc',
+        call.metadata.getMap() as Record<string, string>
+      );
       try {
-        const resp = await processOnboardingRequest(call.request, log);
-        callback(null, resp);
-      } catch (error) {
-        logger.error(`There is an error which should be caught earlier`);
-        const e = new StatusBuilder();
-        e.withCode(Status.INTERNAL);
-        e.withDetails(
-          `The app got unexpected error. Please contact someone from the team`
-        );
-        callback(e.build());
+        const apiKey = call.metadata.get('x-api-key');
+        if (apiKey.length !== 1 || apiKey[0] !== process.env.API_KEY) {
+          const error = new StatusBuilder();
+          error.withCode(Status.UNAUTHENTICATED);
+          error.withDetails('Unauthorized');
+          callback(error.build(), null);
+          return;
+        }
+
+        try {
+          const resp = await processOnboardingRequest(call.request, log);
+          callback(null, resp);
+        } catch (error) {
+          logger.error(`There is an error which should be caught earlier`);
+          const e = new StatusBuilder();
+          e.withCode(Status.INTERNAL);
+          e.withDetails(
+            `The app got unexpected error. Please contact someone from the team`
+          );
+          callback(e.build(), null);
+        }
+      } finally {
+        transaction.end();
       }
     });
   }
@@ -48,8 +57,14 @@ export class OnboardingServer implements proto.IOnboardingServer {
   public async onboardStream(
     call: ServerDuplexStream<proto.BatchOnboarding, proto.Responses>
   ): Promise<void> {
-    newrelic.startBackgroundTransaction('onBoardStream', () => {
-      newrelic.incrementMetric('test');
+    newrelic.startWebTransaction('onboard-stream', async () => {
+      const transaction = newrelic.getTransaction();
+      transaction.acceptDistributedTraceHeaders(
+        'grpc',
+        call.metadata.toHttp2Headers()
+      );
+      const responseHeaders = {};
+      transaction.insertDistributedTraceHeaders(responseHeaders);
       const apiKey = call.metadata.get('x-api-key');
       if (apiKey.length !== 1 || apiKey[0] !== process.env.API_KEY) {
         const error = new StatusBuilder();
@@ -73,7 +88,10 @@ export class OnboardingServer implements proto.IOnboardingServer {
           cb(error.build())
         );
       });
-      call.on('end', () => call.end());
+      call.on('end', () => {
+        call.end();
+        transaction.end();
+      });
     });
   }
 }

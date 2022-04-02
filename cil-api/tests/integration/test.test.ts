@@ -23,7 +23,12 @@ import {
   createOrg as createOrgInAdminService,
   createProgramsAndRoles as createRolesAndProgramsInAdminService,
 } from '../util/populateAdminService';
-import { getSchool, getSchoolClasses, getSchoolPrograms, getSchoolUsers } from '../util/school';
+import {
+  getSchool,
+  getSchoolClasses,
+  getSchoolPrograms,
+  getSchoolUsers,
+} from '../util/school';
 import { getClass, getClassProgramsConnections } from '../util/class';
 import { deleteUsers, getUser, getUserOrgRoles, setUpUser } from '../util/user';
 import { IdNameMapper } from 'cil-lib/dist/main/lib/services/adminService';
@@ -313,19 +318,46 @@ describe('When receiving requests over the web the server should', () => {
     expect(allSuccess).to.be.false;
   }).timeout(50000);
 
-  it('fail the user onboarding if email is invalid', async () => {
+  it('filter out user if email is invalid', async () => {
     const res = await populateAdminService();
-    const reqs = new TestCaseBuilder()
-      .addValidOrgs(res)
-      .addValidSchoolsToEachOrg(5)
-      .addValidClassesToEachSchool(5)
-      .addCustomizableUser({ email: '.notvalid' })
-      .finalize();
-    const result = await onboard(reqs, client);
-    const allSuccess = result
+    const org = res.keys().next().value;
+
+    const user1 = setUpUser(org.id, uuidv4());
+    user1.setEmail(random());
+    const user2 = setUpUser(org.id, uuidv4());
+    const reqs = new TestCaseBuilder().addValidOrgs(res).finalize();
+
+    const setUp = await onboard(reqs, client);
+    const allSuccess = setUp
       .toObject()
       .responsesList.every((r) => r.success === true);
-    expect(allSuccess).to.be.false;
+    expect(allSuccess).to.be.true;
+
+    const results = await (
+      await onboard(
+        wrapRequest([
+          new proto.OnboardingRequest().setUser(user1),
+          new proto.OnboardingRequest().setUser(user2),
+        ]),
+        client
+      )
+    ).toObject().responsesList;
+
+    expect(results.filter((result) => result.success === true)).to.be.length(1);
+    expect(results.filter((result) => result.errors)).to.be.length(1);
+    expect(
+      results
+        .filter((result) => result.errors)
+        .map((result) => result.errors)
+        .filter((error) => error.validation)
+    ).to.be.length(1);
+
+    const adminUser1 = await getUser(user1.getExternalUuid());
+    expect(adminUser1).to.be.undefined;
+    const adminUser2 = await getUser(user2.getExternalUuid());
+    expect(adminUser2.phone).to.be.eq(user2.getPhone());
+    expect(adminUser2.email).to.be.eq(user2.getEmail());
+    expect(adminUser2.username).to.be.eq(user2.getUsername());
   }).timeout(50000);
 
   it('fail the user onboarding if email exceeds max value', async () => {
@@ -369,7 +401,7 @@ describe('When receiving requests over the web the server should', () => {
       .addValidClassesToEachSchool(5)
       .addCustomizableUser({
         username: invalidUsername,
-        externalUuid: externalUuid
+        externalUuid: externalUuid,
       })
       .finalize();
     const result = await onboard(reqs, client);
@@ -382,7 +414,6 @@ describe('When receiving requests over the web the server should', () => {
     expect(returnedUser).to.be.not.undefined;
     expect(returnedUser).to.have.property('username');
     expect(returnedUser.username).to.be.equal(invalidUsername);
-
   }).timeout(50000);
 
   it('fail the user onboarding if phone format is wrong', async () => {
@@ -483,13 +514,13 @@ describe('When receiving requests over the web the server should', () => {
     expect(returnedUser4.externalUuid).to.equal(externalUuid4);
   }).timeout(50000);
 
-  it('fail the user onboarding if none of the fields email or phone was provided', async () => {
+  it('fail the user onboarding if none of the fields email or phone or username was provided', async () => {
     const res = await populateAdminService();
     const reqs = new TestCaseBuilder()
       .addValidOrgs(res)
       .addValidSchoolsToEachOrg(2)
       .addValidClassesToEachSchool(2)
-      .addCustomizableUser({ email: '', phone: '' })
+      .addCustomizableUser({ email: '', phone: '', username: '' })
       .finalize();
     const result = await onboard(reqs, client);
     const allSuccess = result
@@ -562,7 +593,10 @@ describe('When receiving requests over the web the server should', () => {
       .addValidUsersToEachSchool(5);
 
     for (let i = 0; i < 5; i++) {
-      builder = builder.addCustomizableUser({ email: '', phone: '' }, false);
+      builder = builder.addCustomizableUser(
+        { email: '', phone: '', username: '' },
+        false
+      );
     }
     const reqs = builder.finalize();
     const result = await onboard(reqs, client);
@@ -1037,7 +1071,7 @@ describe('When receiving requests over the web the server should', () => {
     expect(returnedSchool.name).to.be.equal(schoolName);
     expect(returnedSchool.externalOrgUuid).to.be.equal(org.id);
 
-    const returnedClass = await getClass(classId,schoolId);
+    const returnedClass = await getClass(classId, schoolId);
     expect(returnedClass).to.be.not.undefined;
     expect(returnedClass.externalUuid).to.be.equal(classId);
     expect(returnedClass.name).to.be.equal(className);
@@ -1046,7 +1080,7 @@ describe('When receiving requests over the web the server should', () => {
     const returnedClasses = await getSchoolClasses(schoolId);
     expect(returnedClasses).to.deep.include({
       klUuid: returnedClass.id,
-      externalUuid: returnedClass.externalUuid
+      externalUuid: returnedClass.externalUuid,
     });
 
     expect(allSuccess).to.be.true;
@@ -1100,7 +1134,7 @@ describe('When receiving requests over the web the server should', () => {
     const roles = await getUserOrgRoles(org.id, user);
     expect(roles).to.include(orgRoles[1]);
   }).timeout(50000);
-  
+
   it('succeed when trying to link programs to class with the same classId1 and one independent classId2 ', async () => {
     const res = await populateAdminService();
     const schoolId = uuidv4();
@@ -1188,7 +1222,7 @@ describe('When receiving requests over the web the server should', () => {
 
     expect(allSuccess).to.be.true;
   });
-  
+
   it('partially succeed when trying to link programs with the same classId1 and same classId2', async () => {
     const res = await populateAdminService();
     const schoolId = uuidv4();
@@ -1323,6 +1357,79 @@ describe('When receiving requests over the web the server should', () => {
       'TEST PROGRAM 3',
       'TEST PROGRAM 4',
     ]);
+  });
+
+  it('user onboarding with username and missing email/phone', async () => {
+    const res = await populateAdminService();
+    const userId = uuidv4();
+    const username = random();
+
+    const reqs = new TestCaseBuilder()
+      .addValidOrgs(res)
+      .addUser({
+        email: '',
+        phone: '',
+        username: username,
+        addToValidClasses: 0,
+        addToValidSchools: 0,
+        addToValidOrgs: 1,
+        externalUuid: userId,
+      })
+      .finalize();
+
+    const result = await onboard(reqs, client);
+    const allSuccess = result
+      .toObject()
+      .responsesList.every((r) => r.success === true);
+    expect(allSuccess).to.be.true;
+
+    const adminUser = await getUser(userId);
+    expect(adminUser.username).to.be.equal(username);
+    expect(adminUser.email).to.be.null;
+    expect(adminUser.phone).to.be.null;
+  }).timeout(50000);
+
+  it('succeed when onboarding more than 50 users and linked them to school, then onboard the same batch again and not get any internal server errors', async () => {
+    const res = await populateAdminService();
+    const org: IdNameMapper = res.keys().next().value;
+    const classId = uuidv4();
+    const schoolId = uuidv4();
+
+    const setUpRequest = new TestCaseBuilder()
+      .addValidOrgs(res)
+      .addSchool({ externalUuid: schoolId, externalOrganizationUuid: org.id })
+      .addClass({ externalOrganizationUuid: org.id, externalUuid: classId })
+      .addValidUsersToEachSchool(53, 0, 1)
+      .finalize();
+
+    const result = await onboard(setUpRequest, client);
+
+    const allSuccess = result
+      .toObject()
+      .responsesList.every((r) => r.success === true);
+
+    expect(allSuccess).to.be.true;
+
+    const resultSameBatch = await onboard(setUpRequest, client);
+
+    // Ensure that all the errors are alreadyExistsError either from validation or admin service part
+    const errors = resultSameBatch
+      .getResponsesList()
+      .filter((resp) => resp.getErrors());
+
+    const errorAlreadyExists = resultSameBatch
+      .getResponsesList()
+      .filter((resp) => resp.getErrors())
+      .filter((resp) => resp.getErrors().getEntityAlreadyExists());
+
+    expect(errors.length).to.be.eql(errorAlreadyExists.length);
+
+    expect(
+      resultSameBatch
+        .getResponsesList()
+        .filter((resp) => resp.getErrors())
+        .filter((resp) => resp.getErrors().getInternalServer())
+    ).to.be.length(0);
   });
 }).timeout(50000);
 

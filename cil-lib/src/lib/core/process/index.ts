@@ -1,4 +1,5 @@
 import { Message } from 'google-protobuf';
+import newrelic from 'newrelic';
 import { Logger } from 'pino';
 
 import {
@@ -149,34 +150,63 @@ export async function compose<T extends IdTracked<V, U>, V extends Message, U>(
   let responses: Response[] = [];
   let logger = log.child({ operation: op });
   log.debug('processing with next batch of processing');
+  const opPath = op.toLowerCase();
   try {
     let result: Result<T>;
 
-    logger = logger.child({ step: '1. VALIDATE' });
-    logger.debug('attempting to validate operation');
-    [result, logger] = await validate(data, logger);
-    responses = responses.concat(result.invalid);
+    result = await newrelic.startSegment(
+      `${opPath}/validate`,
+      false,
+      async () => {
+        logger = logger.child({ step: '1. VALIDATE' });
+        logger.debug('attempting to validate operation');
+        [result, logger] = await validate(data, logger);
+        responses = responses.concat(result.invalid);
+        return result;
+      }
+    );
     if (result.valid.length === 0) return responses;
 
-    logger = logger.child({ step: '2. PREPARE DATA FOR ADMIN SERVICE' });
-    log.debug('attempting to prepare data for storage in database');
-    [result, logger] = await prepare(result.valid, logger);
-    responses = responses.concat(result.invalid);
+    result = await newrelic.startSegment(
+      `${opPath}/prepare`,
+      false,
+      async () => {
+        logger = logger.child({ step: '2. PREPARE DATA FOR ADMIN SERVICE' });
+        log.debug('attempting to prepare data for storage in database');
+        [result, logger] = await prepare(result.valid, logger);
+        responses = responses.concat(result.invalid);
+        return result;
+      }
+    );
     if (result.valid.length === 0) return responses;
 
     // Process 50 elements per iteration
     const chunks = chunkItems(result.valid);
-    for (const chunk of chunks) {
-      logger = logger.child({ step: '3. SEND REQUEST TO ADMIN SERVICE' });
-      log.debug('attempting to write operation to admin service');
-      [result, logger] = await sendRequest(chunk, logger);
-      responses = responses.concat(result.invalid);
+    for (const [i, chunk] of chunks.entries()) {
+      result = await newrelic.startSegment(
+        `${opPath}/admin/chunk-${i}`,
+        false,
+        async () => {
+          logger = logger.child({ step: '3. SEND REQUEST TO ADMIN SERVICE' });
+          log.debug('attempting to write operation to admin service');
+          [result, logger] = await sendRequest(chunk, logger);
+          responses = responses.concat(result.invalid);
+          return result;
+        }
+      );
       if (result.valid.length === 0) return responses;
 
-      logger = logger.child({ step: '4. WRITE TO DATABASE' });
-      log.debug('attempting to write operation to database');
-      const databaseResult = await store(result.valid, logger);
-      responses = responses.concat(databaseResult);
+      result = await newrelic.startSegment(
+        `${opPath}/database/chunk-${i}`,
+        false,
+        async () => {
+          logger = logger.child({ step: '4. WRITE TO DATABASE' });
+          log.debug('attempting to write operation to database');
+          const databaseResult = await store(result.valid, logger);
+          responses = responses.concat(databaseResult);
+          return result;
+        }
+      );
     }
   } catch (error) {
     log.warn(
