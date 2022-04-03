@@ -119,11 +119,11 @@ async function validate(
 
   // Check if the valid classes already linked to the school
   {
-    const { valid: invalid, invalid: valid } = await Link.classesBelongToSchool(
-      protobuf.getExternalClassUuidsList(),
-      schoolId,
-      log
-    );
+    const { valid: invalid, invalid: valid } =
+      await Link.classesBelongToSchools(
+        protobuf.getExternalClassUuidsList(),
+        log
+      );
 
     for (const id of invalid) {
       const resp = new Response()
@@ -134,7 +134,7 @@ async function validate(
         .setErrors(
           new OnboardingError(
             MachineError.ENTITY_ALREADY_EXISTS,
-            `Class: ${id} already belongs to school: ${schoolId}`,
+            `Class: ${id} already belongs to school`,
             Category.REQUEST,
             log
           ).toProtobufError()

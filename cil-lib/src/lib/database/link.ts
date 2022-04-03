@@ -240,9 +240,8 @@ export class Link {
     }
   }
 
-  public static async classesBelongToSchool(
+  public static async classesBelongToSchools(
     classIds: ExternalUuid[],
-    schoolId: ExternalUuid,
     log: Logger
   ): Promise<{ valid: ExternalUuid[]; invalid: ExternalUuid[] }> {
     try {
@@ -252,7 +251,6 @@ export class Link {
             externalClassUuid: {
               in: classIds,
             },
-            externalSchoolUuid: schoolId,
           },
           select: {
             externalClassUuid: true,

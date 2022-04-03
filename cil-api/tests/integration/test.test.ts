@@ -1363,16 +1363,25 @@ describe('When receiving requests over the web the server should', () => {
   it('partially succeed when trying to add classes to the same school', async () => {
     const res = await populateAdminService();
     const org = res.keys().next().value;
-    const schoolId = uuidv4();
+    const schoolId1 = uuidv4();
+    const schoolId2 = uuidv4();
     const classId1 = uuidv4();
     const classId2 = uuidv4();
     const classId3 = uuidv4();
+    const classId4 = uuidv4();
 
     const setUpReqs = new TestCaseBuilder()
       .addValidOrgs(res)
       .addSchool(
         {
-          externalUuid: schoolId,
+          externalUuid: schoolId1,
+          externalOrganizationUuid: org.id,
+        },
+        true
+      )
+      .addSchool(
+        {
+          externalUuid: schoolId2,
           externalOrganizationUuid: org.id,
         },
         true
@@ -1380,7 +1389,7 @@ describe('When receiving requests over the web the server should', () => {
       .addClass(
         {
           externalUuid: classId1,
-          externalSchoolUuid: schoolId,
+          externalSchoolUuid: schoolId1,
           externalOrganizationUuid: org.id,
         },
         true,
@@ -1389,7 +1398,7 @@ describe('When receiving requests over the web the server should', () => {
       .addClass(
         {
           externalUuid: classId2,
-          externalSchoolUuid: schoolId,
+          externalSchoolUuid: schoolId1,
           externalOrganizationUuid: org.id,
         },
         true,
@@ -1398,12 +1407,13 @@ describe('When receiving requests over the web the server should', () => {
       .addClass(
         {
           externalUuid: classId3,
-          externalSchoolUuid: schoolId,
+          externalSchoolUuid: schoolId2,
           externalOrganizationUuid: org.id,
         },
         true,
         false
       )
+
       .finalize();
 
     const setUpResult = await onboard(setUpReqs, client);
@@ -1413,32 +1423,41 @@ describe('When receiving requests over the web the server should', () => {
     expect(setUpSuccess).to.be.true;
     expect(
       setUpResult.getResponsesList().map((result) => result.getEntityId())
-    ).includes.members([classId1, classId2, schoolId]);
+    ).includes.members([classId1, classId2, classId3, schoolId1, schoolId2]);
 
     const result = await onboard(
       wrapRequest([
-        addClassesToSchoolReq(schoolId, [classId1, classId2]),
-        addClassesToSchoolReq(schoolId, [classId2, classId3]),
-        addClassesToSchoolReq(schoolId, [classId1]),
-        addClassesToSchoolReq(schoolId, [classId1, classId2]),
-        addClassesToSchoolReq(schoolId, [classId3]),
+        addClassesToSchoolReq(schoolId1, [classId1, classId2]),
+        addClassesToSchoolReq(schoolId1, [classId2, classId3]),
+        addClassesToSchoolReq(schoolId1, [classId1]),
+        addClassesToSchoolReq(schoolId2, [classId1, classId2]),
+        addClassesToSchoolReq(schoolId2, [classId3]),
+        addClassesToSchoolReq(schoolId2, [classId3, classId4]),
       ]),
       client
     );
 
-    expect(result.getResponsesList()).to.be.length(8);
+    expect(result.getResponsesList()).to.be.length(10);
     expect(
       result.getResponsesList().filter((r) => r.getSuccess() === true)
     ).to.be.length(0);
     expect(result.getResponsesList().filter((r) => r.getErrors())).to.be.length(
-      8
+      10
     );
     expect(
       result
         .getResponsesList()
         .filter((r) => r.getErrors())
         .filter((r) => r.getErrors().getEntityAlreadyExists())
-    ).to.be.length(8);
+    ).to.be.length(9);
+
+    expect(
+      result
+        .getResponsesList()
+        .filter((r) => r.getErrors())
+        .filter((r) => r.getErrors().getEntityDoesNotExist())
+    ).to.be.length(1);
+
     expect(
       result
         .getResponsesList()
@@ -1461,7 +1480,15 @@ describe('When receiving requests over the web the server should', () => {
         .filter((r) => r.getErrors())
         .filter((r) => r.getErrors().getEntityAlreadyExists())
         .filter((r) => r.getEntityId() === classId3)
-    ).to.be.length(2);
+    ).to.be.length(3);
+
+    expect(
+      result
+        .getResponsesList()
+        .filter((r) => r.getErrors())
+        .filter((r) => r.getErrors().getEntityDoesNotExist())
+        .filter((r) => r.getEntityId() === classId4)
+    ).to.be.length(1);
   }).timeout(50000);
 
   it('user onboarding with username and missing email/phone', async () => {
