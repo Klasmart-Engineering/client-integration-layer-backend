@@ -126,7 +126,7 @@ describe('add classes to school should', () => {
     } as unknown as AdminService);
     shareSameOrgStub = sinon.stub(Link, 'shareTheSameOrganization').resolves();
     linkStub = sinon
-      .stub(Link, 'classesBelongToSchool')
+      .stub(Link, 'classesBelongToSchools')
       .resolves({ valid: [], invalid: [uuidv4()] });
 
     classDbStub = sinon.stub().resolves({
@@ -216,7 +216,7 @@ describe('add classes to school should', () => {
     expect(successCount).to.equal(2);
     expect(failureCount).to.equal(1);
   });
-  it('should fail if the class already belongs to the school', async () => {
+  it('should fail when adding a class and the class already belongs to school', async () => {
     const addClassesToSchool = setUpAddClassesToSchool();
     const classId = addClassesToSchool.getExternalClassUuidsList()[0];
     const req = wrapRequest(addClassesToSchool);
@@ -229,9 +229,7 @@ describe('add classes to school should', () => {
     expect(
       resp.getResponsesList()[0].toObject().errors!.entityAlreadyExists!
         .detailsList
-    ).to.includes.members([
-      `Class: ${classId} already belongs to school: ${addClassesToSchool.getExternalSchoolUuid()}`,
-    ]);
+    ).to.includes.members([`Class: ${classId} already belongs to school`]);
   });
 
   it('if one class belongs to the school, but others dont, it should fail that class and pass the others', async () => {
@@ -285,9 +283,7 @@ describe('add classes to school should', () => {
     expect(invalidResponse.errors?.entityAlreadyExists).not.to.be.undefined;
     expect(
       invalidResponse.errors?.entityAlreadyExists?.detailsList
-    ).to.includes.members([
-      `Class: ${class2} already belongs to school: ${addClasses.getExternalSchoolUuid()}`,
-    ]);
+    ).to.includes.members([`Class: ${class2} already belongs to school`]);
   });
 
   it('successfully process all valid ids when one is invalid (non-existing) and one invalid (already linked)', async () => {
