@@ -1360,7 +1360,7 @@ describe('When receiving requests over the web the server should', () => {
     ]);
   });
 
-  it('partially succeed when trying to add classes to the same school', async () => {
+  it('partially succeed when trying to add classes to the same schoolId1 and schoolId2', async () => {
     const res = await populateAdminService();
     const org = res.keys().next().value;
     const schoolId1 = uuidv4();
