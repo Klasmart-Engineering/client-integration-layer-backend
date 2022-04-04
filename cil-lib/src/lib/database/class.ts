@@ -182,25 +182,24 @@ export class Class {
     ids: ExternalUuid[],
     log: Logger
   ): Promise<{
-    valid: ExternalUuid[];
+    valid: { klUuid: Uuid; externalUuid: ExternalUuid }[];
     invalid: ExternalUuid[];
   }> {
     try {
-      const validSet = (
-        await prisma.class.findMany({
-          where: {
-            externalUuid: {
-              in: ids,
-            },
+      const classes = await prisma.class.findMany({
+        where: {
+          externalUuid: {
+            in: ids,
           },
-          select: {
-            externalUuid: true,
-          },
-        })
-      ).map((c) => c.externalUuid);
+        },
+        select: {
+          externalUuid: true,
+          klUuid: true,
+        },
+      });
 
       const invalidSet = new Set(ids);
-      for (const id of validSet) invalidSet.delete(id);
+      for (const { externalUuid } of classes) invalidSet.delete(externalUuid);
       const invalid = Array.from(invalidSet);
       if (invalid.length > 0) {
         log.warn(
@@ -210,7 +209,7 @@ export class Class {
       }
 
       return {
-        valid: validSet,
+        valid: classes,
         invalid,
       };
     } catch (error) {

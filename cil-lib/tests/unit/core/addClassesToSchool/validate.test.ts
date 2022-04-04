@@ -108,29 +108,38 @@ export const INVALID_ADD_CLASSES_TO_SCHOOL: AddClassesToSchoolTestCase[] = [
 ];
 
 describe('add classes to school should', () => {
-  let schoolStub: SinonStub;
+  let schoolIdStub: SinonStub;
   let adminStub: SinonStub;
   let classDbStub: SinonStub;
   let classIdStub: SinonStub;
   let shareSameOrgStub: SinonStub;
+  let linkStub: SinonStub;
+  let contextStub: SinonStub;
 
   beforeEach(() => {
     const schoolId = uuidv4();
+    const classId = uuidv4();
     adminStub = sinon.stub(AdminService, 'getInstance').resolves({
       addClassesToSchool: sinon
         .stub()
         .resolves([{ id: schoolId, name: 'Test school' }]),
     } as unknown as AdminService);
     shareSameOrgStub = sinon.stub(Link, 'shareTheSameOrganization').resolves();
-    classDbStub = sinon
-      .stub(ClassDB, 'areValid')
-      .resolves({ valid: [uuidv4()], invalid: [] });
+    linkStub = sinon
+      .stub(Link, 'classesBelongToSchools')
+      .resolves({ valid: [], invalid: [uuidv4()] });
+
+    classDbStub = sinon.stub().resolves({
+      valid: new Map<string, string>([[uuidv4(), uuidv4()]]),
+      invalid: [],
+    });
     sinon.stub(ClassDB, 'linkToSchool').resolves();
 
-    schoolStub = sinon.stub().resolves(schoolId);
-    classIdStub = sinon.stub().resolves(schoolId);
-    sinon.stub(Context, 'getInstance').resolves({
-      getSchoolId: schoolStub,
+    schoolIdStub = sinon.stub().resolves(schoolId);
+    classIdStub = sinon.stub().resolves(classId);
+    contextStub = sinon.stub(Context, 'getInstance').resolves({
+      getSchoolId: schoolIdStub,
+      getClassIds: classDbStub,
       getClassId: classIdStub,
     } as unknown as Context);
   });
@@ -147,6 +156,7 @@ describe('add classes to school should', () => {
 
       expect(responses).to.have.length(1);
       expect(responses[0]).not.to.be.undefined;
+
       expect(responses[0].getSuccess()).to.be.true;
     });
   });
@@ -173,10 +183,18 @@ describe('add classes to school should', () => {
     const innerReq = setUpAddClassesToSchool();
     const classIds = [uuidv4(), uuidv4(), uuidv4()];
     innerReq.setExternalClassUuidsList(classIds);
-
+    const validExist = new Map<string, string>([
+      [classIds[0], 'Test class 0'],
+      [classIds[1], 'Test class 1'],
+    ]);
+    const invalidNotExist = [classIds[2]];
     classDbStub.resolves({
-      valid: [classIds[0], classIds[1]],
-      invalid: [classIds[2]],
+      valid: validExist,
+      invalid: invalidNotExist,
+    });
+    linkStub.resolves({
+      valid: [],
+      invalid: validExist,
     });
 
     const req = wrapRequest(innerReq);
@@ -197,6 +215,122 @@ describe('add classes to school should', () => {
     }
     expect(successCount).to.equal(2);
     expect(failureCount).to.equal(1);
+  });
+  it('should fail when adding a class and the class already belongs to school', async () => {
+    const addClassesToSchool = setUpAddClassesToSchool();
+    const classId = addClassesToSchool.getExternalClassUuidsList()[0];
+    const req = wrapRequest(addClassesToSchool);
+
+    linkStub.resolves({ valid: [classId], invalid: [] });
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+
+    expect(resp.getResponsesList()[0].toObject().errors!.entityAlreadyExists)
+      .not.to.be.undefined;
+    expect(
+      resp.getResponsesList()[0].toObject().errors!.entityAlreadyExists!
+        .detailsList
+    ).to.includes.members([`Class: ${classId} already belongs to school`]);
+  });
+
+  it('if one class belongs to the school, but others dont, it should fail that class and pass the others', async () => {
+    const addClasses = setUpAddClassesToSchool();
+    const class1 = uuidv4();
+    const class2 = uuidv4();
+    const class3 = uuidv4();
+    addClasses.setExternalClassUuidsList([class1, class2, class3]);
+
+    const req = wrapRequest(addClasses);
+    classDbStub.onFirstCall().resolves({
+      valid: new Map<string, string>([
+        [uuidv4(), uuidv4()],
+        [uuidv4(), uuidv4()],
+        [uuidv4(), uuidv4()],
+      ]),
+      invalid: [],
+    });
+    classDbStub.onSecondCall().resolves({
+      valid: new Map<string, string>([
+        [uuidv4(), uuidv4()],
+        [uuidv4(), uuidv4()],
+      ]),
+      invalid: [],
+    });
+    contextStub.resolves({
+      getSchoolId: schoolIdStub,
+      getClassIds: classDbStub,
+      getClassId: classIdStub,
+    } as unknown as Context);
+    linkStub.resolves({ valid: [class2], invalid: [class1, class3] });
+
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+    expect(resp).not.to.be.undefined;
+    const responses = resp.toObject().responsesList;
+    expect(responses).to.have.lengthOf(3);
+
+    // Test valid responses are correct
+    const validResponse = responses[1];
+    expect(validResponse).not.to.be.undefined;
+    expect(validResponse.success).to.be.true;
+
+    // Test invalid response is correct
+    const invalidResponse = responses[0];
+    expect(invalidResponse.success).to.be.false;
+    expect(invalidResponse.requestId).to.eql(
+      req.getRequestsList()[0].getRequestId()?.toObject()
+    );
+    expect(invalidResponse.entityId).to.contains(class2);
+    expect(invalidResponse.entity).to.equal(Entity.CLASS);
+    expect(invalidResponse.errors?.entityAlreadyExists).not.to.be.undefined;
+    expect(
+      invalidResponse.errors?.entityAlreadyExists?.detailsList
+    ).to.includes.members([`Class: ${class2} already belongs to school`]);
+  });
+
+  it('successfully process all valid ids when one is invalid (non-existing) and one invalid (already linked)', async () => {
+    const innerReq = setUpAddClassesToSchool();
+    const classIds = [uuidv4(), uuidv4(), uuidv4()];
+    innerReq.setExternalClassUuidsList(classIds);
+    const validExist = [classIds[0], classIds[1]];
+    const invalidNotExist = [classIds[2]];
+    const validNotLinked = [classIds[0]];
+    const invalidAlreadyLinked = [classIds[2]];
+    classDbStub.resolves({
+      valid: validExist,
+      invalid: invalidNotExist,
+    });
+    linkStub.resolves({
+      valid: validNotLinked,
+      invalid: invalidAlreadyLinked,
+    });
+
+    const req = wrapRequest(innerReq);
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+    const responses = resp.getResponsesList();
+    expect(responses).to.have.length(3);
+
+    let successCount = 0;
+    let failureCount = 0;
+    let alreadyLinked = 0;
+    let doesNotExist = 0;
+    for (const r of responses) {
+      expect(r.getEntity()).not.to.be.undefined;
+      expect(r.getEntityId()).not.to.be.undefined;
+      if (r.getSuccess()) {
+        successCount += 1;
+      } else {
+        failureCount += 1;
+        if (r.getErrors()?.hasEntityAlreadyExists()) {
+          alreadyLinked += 1;
+        }
+        if (r.getErrors()?.hasEntityDoesNotExist()) {
+          doesNotExist += 1;
+        }
+      }
+    }
+    expect(successCount).to.equal(1);
+    expect(failureCount).to.equal(2);
+    expect(alreadyLinked).to.equal(1);
+    expect(doesNotExist).to.equal(1);
   });
 
   it(`fail when the entities don't belong to the same organization`, async () => {

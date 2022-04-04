@@ -1,7 +1,8 @@
 import Joi from 'joi';
 import { Logger } from 'pino';
 
-import { Class, JOI_VALIDATION_SETTINGS, Link } from '../../..';
+import { Context } from '../../..';
+import { JOI_VALIDATION_SETTINGS, Link } from '../../..';
 import {
   BASE_PATH,
   Category,
@@ -26,32 +27,16 @@ export async function validateMany(
   data: IncomingData[],
   log: Logger
 ): Promise<[Result<IncomingData>, Logger]> {
-  const valid = [];
-  const invalid = [];
+  const validRequests = [];
+  let invalidRequests: Response[] = [];
 
   for (const d of data) {
     try {
-      const result = await validate(d, log);
-
-      valid.push(result.valid);
-      for (const i of result.invalid) {
-        const resp = new Response()
-          .setSuccess(false)
-          .setRequestId(requestIdToProtobuf(d.requestId))
-          .setEntity(PbEntity.CLASS)
-          .setEntityId(i)
-          .setErrors(
-            new PbError().setEntityDoesNotExist(
-              new EntityDoesNotExistError().setDetailsList([
-                `Unable to find class with id ${i}`,
-              ])
-            )
-          );
-        invalid.push(resp);
-      }
+      const { valid, invalid } = await validate(d, log);
+      if (valid !== null) validRequests.push(valid);
+      invalidRequests = invalidRequests.concat(invalid);
     } catch (error) {
       const e = convertErrorToProtobuf(error, log);
-
       if (d.protobuf.getExternalClassUuidsList()?.length == 0) {
         const resp = new Response()
           .setSuccess(false)
@@ -59,7 +44,7 @@ export async function validateMany(
           .setEntity(PbEntity.SCHOOL)
           .setEntityId(d.protobuf.getExternalSchoolUuid())
           .setErrors(e);
-        invalid.push(resp);
+        invalidRequests.push(resp);
       } else {
         for (const classId of d.protobuf.getExternalClassUuidsList()) {
           const resp = new Response()
@@ -68,41 +53,105 @@ export async function validateMany(
             .setEntity(PbEntity.CLASS)
             .setEntityId(classId)
             .setErrors(e);
-          invalid.push(resp);
+          invalidRequests.push(resp);
         }
       }
     }
   }
 
-  return [{ valid, invalid }, log];
+  return [{ valid: validRequests, invalid: invalidRequests }, log];
 }
 
 async function validate(
   r: IncomingData,
   log: Logger
-): Promise<{ valid: IncomingData; invalid: string[] }> {
+): Promise<{
+  valid: IncomingData | null;
+  invalid: Response[];
+}> {
   const { protobuf } = r;
 
   schemaValidation(protobuf.toObject(), log);
   const schoolId = protobuf.getExternalSchoolUuid();
-  const classIds = protobuf.getExternalClassUuidsList();
+  const invalidResponses = [];
 
-  const { valid, invalid } = await Class.areValid(classIds, log);
-  if (valid.length === 0)
-    throw new OnboardingError(
-      MachineError.VALIDATION,
-      `None of the provided class ids were valid`,
-      Category.REQUEST,
+  const ctx = await Context.getInstance();
+
+  // check that the school is valid
+  await ctx.getSchoolId(schoolId, log);
+
+  {
+    // Check the target classes are valid
+    const { valid, invalid } = await ctx.getClassIds(
+      protobuf.getExternalClassUuidsList(),
       log
     );
 
-  protobuf.setExternalClassUuidsList(valid);
-  r.data.externalClassUuidsList = valid;
+    if (valid.size === 0)
+      throw new OnboardingError(
+        MachineError.VALIDATION,
+        `None of the provided class ids were valid`,
+        Category.REQUEST,
+        log
+      );
 
-  // Checking that both sets of ids are valid are covered by this
-  await Link.shareTheSameOrganization(log, [schoolId], valid);
+    for (const id of invalid) {
+      const resp = new Response()
+        .setSuccess(false)
+        .setRequestId(requestIdToProtobuf(r.requestId))
+        .setEntity(PbEntity.CLASS)
+        .setEntityId(id)
+        .setErrors(
+          new PbError().setEntityDoesNotExist(
+            new EntityDoesNotExistError().setDetailsList([
+              `Unable to find class with id ${id}`,
+            ])
+          )
+        );
+      invalidResponses.push(resp);
+    }
+    protobuf.setExternalClassUuidsList(Array.from(valid.keys()));
+    r.data.externalClassUuidsList = Array.from(valid.keys());
+    // Checking that both sets of ids are valid are covered by this
+    await Link.shareTheSameOrganization(
+      log,
+      [schoolId],
+      Array.from(valid.keys())
+    );
+  }
 
-  return { valid: r, invalid };
+  // Check if the valid classes already linked to the school
+  {
+    const { valid: invalid, invalid: valid } =
+      await Link.classesBelongToSchools(
+        protobuf.getExternalClassUuidsList(),
+        log
+      );
+
+    for (const id of invalid) {
+      const resp = new Response()
+        .setSuccess(false)
+        .setRequestId(requestIdToProtobuf(r.requestId))
+        .setEntity(PbEntity.CLASS)
+        .setEntityId(id)
+        .setErrors(
+          new OnboardingError(
+            MachineError.ENTITY_ALREADY_EXISTS,
+            `Class: ${id} already belongs to school`,
+            Category.REQUEST,
+            log
+          ).toProtobufError()
+        );
+      invalidResponses.push(resp);
+    }
+    // Re-make the initial request with only the valid classes
+    protobuf.setExternalClassUuidsList(valid);
+    r.data.externalClassUuidsList = valid;
+  }
+
+  const valid = r.data.externalClassUuidsList.length === 0 ? null : r;
+
+  return { valid, invalid: invalidResponses };
 }
 
 function schemaValidation(
