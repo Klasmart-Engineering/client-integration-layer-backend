@@ -253,7 +253,11 @@ export class Context {
         validResult.set(id, kidsloopUuid);
       }
     }
+
+    if (targets.size === 0) return { valid: validResult, invalid: [] };
+
     const { valid, invalid } = await Class.areValid(Array.from(targets), log);
+
     // Any valid entries we can add to the cache
     for (const { externalUuid, klUuid } of valid) {
       this.classes.set(externalUuid, klUuid);
