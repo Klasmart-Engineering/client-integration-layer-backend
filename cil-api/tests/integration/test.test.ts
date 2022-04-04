@@ -434,14 +434,69 @@ describe('When receiving requests over the web the server should', () => {
     // Invalid phone number
   }).timeout(50000);
 
+  it('fail onboarding a user which already exists in the system', async () => {
+    const res = await populateAdminService();
+    const org = res.keys().next().value;
+
+    const user1 = setUpUser(org.id);
+    user1.setEmail('');
+    user1.setPhone('');
+    const user2 = setUpUser(org.id);
+    user2.setUsername('');
+    user2.setPhone('');
+    const user3 = setUpUser(org.id);
+    user3.setUsername('');
+    user3.setEmail('');
+    const user4 = setUpUser(org.id);
+    const result = await (
+      await onboard(
+        wrapRequest([
+          new proto.OnboardingRequest().setOrganization(
+            new proto.Organization().setExternalUuid(org.id).setName(org.name)
+          ),
+          new proto.OnboardingRequest().setUser(user1),
+          new proto.OnboardingRequest().setUser(user2),
+          new proto.OnboardingRequest().setUser(user3),
+          new proto.OnboardingRequest().setUser(user4),
+        ]),
+        client
+      )
+    ).toObject().responsesList;
+    const allSuccess = result.every((r) => r.success === true);
+    expect(allSuccess).to.be.true;
+
+    await deleteUsers([
+      user1.getExternalUuid(),
+      user2.getExternalUuid(),
+      user3.getExternalUuid(),
+      user4.getExternalUuid(),
+    ]);
+
+    const dupe = await (
+      await onboard(
+        wrapRequest([
+          new proto.OnboardingRequest().setUser(user1),
+          new proto.OnboardingRequest().setUser(user2),
+          new proto.OnboardingRequest().setUser(user3),
+          new proto.OnboardingRequest().setUser(user4),
+        ]),
+        client
+      )
+    ).toObject().responsesList;
+
+    expect(dupe).to.be.length(4);
+    expect(dupe.every((r) => r.success === true)).to.be.false;
+    expect(dupe.every((r) => r.errors)).to.be.true;
+    expect(dupe.every((r) => r.errors.entityAlreadyExists)).to.be.true;
+  }).timeout(50000);
+
   it.skip(
-    'fail onboarding a user which already exists in the system',
+    'fail onboarding with dupe user in same request (bucketing)',
     async () => {
       const res = await populateAdminService();
-      const externalUuid = uuidv4();
       const org = res.keys().next().value;
 
-      const user = setUpUser(org.id, externalUuid);
+      const user = setUpUser(org.id);
       const result = await (
         await onboard(
           wrapRequest([
@@ -449,29 +504,20 @@ describe('When receiving requests over the web the server should', () => {
               new proto.Organization().setExternalUuid(org.id).setName(org.name)
             ),
             new proto.OnboardingRequest().setUser(user),
+            new proto.OnboardingRequest().setUser(user),
           ]),
           client
         )
       ).toObject().responsesList;
-      const allSuccess = result.every((r) => r.success === true);
-      expect(allSuccess).to.be.true;
 
-      const returnedUser = await getUser(externalUuid);
-      expect(returnedUser).to.be.not.undefined;
-
-      await deleteUsers([externalUuid]);
-
-      const dupe = await (
-        await onboard(
-          wrapRequest([new proto.OnboardingRequest().setUser(user)]),
-          client
-        )
-      ).toObject().responsesList;
-
-      expect(dupe).to.be.length(1);
-      expect(dupe.every((r) => r.success === true)).to.be.false;
-      expect(dupe.every((r) => r.errors)).to.be.true;
-      expect(dupe.every((r) => r.errors.entityAlreadyExists)).to.be.true;
+      expect(result).to.be.length(2);
+      expect(result.filter((r) => r.success === true)).to.be.length(1);
+      expect(result.filter((r) => r.errors)).to.be.length(1);
+      expect(
+        result
+          .filter((r) => r.errors)
+          .filter((r) => r.errors.entityAlreadyExists)
+      ).to.be.length(1);
     }
   ).timeout(50000);
 

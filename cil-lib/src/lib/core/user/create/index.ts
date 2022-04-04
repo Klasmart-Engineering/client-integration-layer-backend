@@ -4,10 +4,11 @@ import { Response, User } from '../../../protos';
 import { Operation } from '../../../types';
 import { Uuid } from '../../../utils';
 import { IdTracked } from '../../batchRequest';
-import { compose, NOOP } from '../../process';
+import { compose } from '../../process';
 
 import { sendRequest } from './adminService';
 import { persist } from './database';
+import { prepare } from './prepare';
 import { validateMany } from './validate';
 
 export interface CreateUser {
@@ -22,7 +23,7 @@ export function process(
 ): Promise<Response[]> {
   return compose(
     validateMany,
-    NOOP,
+    prepare,
     sendRequest,
     persist,
     data,

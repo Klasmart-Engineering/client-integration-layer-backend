@@ -9,6 +9,7 @@ import {
 } from '../../../errors';
 import { Entity, Response, User } from '../../../protos';
 import { AdminService } from '../../../services';
+import { UserDupeError } from '../../../services/adminService';
 import { CreateUserInput } from '../../../services/adminService/users';
 import { protoGenderToString } from '../../../types/gender';
 import { requestIdToProtobuf } from '../../batchRequest';
@@ -20,84 +21,129 @@ export async function sendRequest(
   users: IncomingData[],
   log: Logger
 ): Promise<[Result<IncomingData>, Logger]> {
-  const invalid: Response[] = [];
-
+  let invalid: Response[] = [];
   try {
     const admin = await AdminService.getInstance();
     const results = await admin.createUsers(
-      users.map(({ data }) => {
-        const user: CreateUserInput = {
-          givenName: data.givenName!,
-          familyName: data.familyName!,
-          gender: protoGenderToString(data.gender!, log),
-        };
-
-        if (data.username && data.username.length > 0) {
-          user.username = data.username;
-        }
-
-        if (data.dateOfBirth && data.dateOfBirth.length > 0) {
-          user.dateOfBirth = data.dateOfBirth;
-        }
-
-        if (
-          (data.email && data.email.length > 0) ||
-          (data.phone && data.phone.length > 0)
-        ) {
-          user.contactInfo = {
-            phone: data.phone,
-            email: data.email,
-          };
-        }
-
-        return user;
-      }),
+      users.map(({ data }) => createUserInput(data, log)),
       log
     );
-
-    const incomingRequest = new Map<string, IncomingData>();
-    for (const user of users) {
-      const key = userKey(user.data);
-      incomingRequest.set(key, user);
-    }
-
-    for (const result of results) {
-      const key = adminServiceUserKey(result);
-      const user = incomingRequest.get(key);
-      if (!user)
-        throw new OnboardingError(
-          MachineError.WRITE,
-          `Received a user that we didn't try and add`,
-          Category.ADMIN_SERVICE,
-          log,
-          [],
-          {},
-          [
-            `Please speak to someone in the admin service team, this really shouldn't happen`,
-          ]
-        );
-      user.data.kidsloopUserUuid = result.id;
-    }
-    return [{ valid: Array.from(incomingRequest.values()), invalid: [] }, log];
+    return [
+      {
+        valid: usersWithKidsloopUuids(results, mapUsers(users), log),
+        invalid: [],
+      },
+      log,
+    ];
   } catch (error) {
-    // @TODO - We need to filter out any invalid entities or entities that
-    // already exist and retry
-    for (const s of users) {
-      const r = new Response()
-        .setEntity(Entity.USER)
-        .setEntityId(s.protobuf.getExternalUuid())
-        .setRequestId(requestIdToProtobuf(s.requestId))
-        .setSuccess(false);
-      if (error instanceof Errors || error instanceof OnboardingError) {
-        r.setErrors(error.toProtobufError());
-      } else {
-        r.setErrors(INTERNAL_SERVER_ERROR_PROTOBUF);
+    if (error instanceof UserDupeError) {
+      const userDupes = error.getDupes();
+      const retries = users
+        .filter((userRequest) => {
+          return !userDupes.has(dupeUserKey(userRequest.data));
+        })
+        .map((user) => createUserInput(user.data, log));
+
+      invalid = invalid.concat(
+        users
+          .filter((user) => userDupes.has(dupeUserKey(user.data)))
+          .map((user) => {
+            return new Response()
+              .setEntity(Entity.USER)
+              .setEntityId(user.protobuf.getExternalUuid())
+              .setRequestId(requestIdToProtobuf(user.requestId))
+              .setErrors(
+                new OnboardingError(
+                  MachineError.ENTITY_ALREADY_EXISTS,
+                  `User already created`,
+                  Category.REQUEST,
+                  log
+                ).toProtobufError()
+              )
+              .setSuccess(false);
+          })
+      );
+
+      if (retries.length > 0) {
+        try {
+          const admin = await AdminService.getInstance();
+          const results = await admin.createUsers(retries, log);
+          return [
+            {
+              valid: usersWithKidsloopUuids(results, mapUsers(users), log),
+              invalid,
+            },
+            log,
+          ];
+        } catch (error) {
+          invalid = invalid.concat(internalServerErrors(users, error));
+        }
       }
-      invalid.push(r);
     }
   }
-
   return [{ valid: [], invalid }, log];
+}
+
+function mapUsers(users: IncomingData[]) {
+  const incomingRequest = new Map<string, IncomingData>();
+  for (const user of users) {
+    const key = userKey(user.data);
+    incomingRequest.set(key, user);
+  }
+  return incomingRequest;
+}
+
+function internalServerErrors(
+  users: IncomingData[],
+  error: unknown
+): Response[] {
+  const invalid = [];
+  for (const user of users) {
+    const r = new Response()
+      .setEntity(Entity.USER)
+      .setEntityId(user.protobuf.getExternalUuid())
+      .setRequestId(requestIdToProtobuf(user.requestId))
+      .setSuccess(false);
+    if (error instanceof Errors || error instanceof OnboardingError) {
+      r.setErrors(error.toProtobufError());
+    } else {
+      r.setErrors(INTERNAL_SERVER_ERROR_PROTOBUF);
+    }
+    invalid.push(r);
+  }
+  return invalid;
+}
+
+function usersWithKidsloopUuids(
+  results: {
+    id: string;
+    givenName: string;
+    familyName: string;
+    email?: string | undefined;
+    phone?: string | undefined;
+    username?: string | undefined;
+  }[],
+  incomingRequest: Map<string, IncomingData>,
+  log: Logger
+): IncomingData[] {
+  for (const result of results) {
+    const key = adminServiceUserKey(result);
+    const user = incomingRequest.get(key);
+    if (!user)
+      throw new OnboardingError(
+        MachineError.WRITE,
+        `Received a user that we didn't try and add`,
+        Category.ADMIN_SERVICE,
+        log,
+        [],
+        {},
+        [
+          `Please speak to someone in the admin service team, this really shouldn't happen`,
+        ]
+      );
+    user.data.kidsloopUserUuid = result.id;
+  }
+  return Array.from(incomingRequest.values());
 }
 
 export function adminServiceUserKey(result: {
@@ -117,4 +163,50 @@ export function userKey(user: Partial<ReturnType<User['toObject']> & User>) {
   return `${user.givenName}|${user.familyName}|${user.email?.toLowerCase()}|${
     user.phone
   }|${user.username}`;
+}
+
+export function dupeUserKey(
+  user: Partial<ReturnType<User['toObject']> & User>
+) {
+  if (user.username) {
+    return `${user.givenName}|${user.familyName}|||${user.username}`;
+  }
+  if (user.email) {
+    return `${user.givenName}|${
+      user.familyName
+    }|${user.email?.toLowerCase()}||`;
+  }
+  return `${user.givenName}|${user.familyName}||${user.phone}|`;
+}
+
+function createUserInput(
+  user: Partial<ReturnType<User['toObject']> & User>,
+  log: Logger
+): CreateUserInput {
+  const createUserInput: CreateUserInput = {
+    givenName: user.givenName!,
+    familyName: user.familyName!,
+    gender: protoGenderToString(user.gender!, log),
+  };
+
+  if (user.username && user.username.length > 0) {
+    createUserInput.username = user.username;
+  }
+
+  if (user.dateOfBirth && user.dateOfBirth.length > 0) {
+    createUserInput.dateOfBirth = user.dateOfBirth;
+  }
+
+  if (user.email && user.email.length > 0) {
+    createUserInput.contactInfo = {
+      email: user.email,
+    };
+  }
+  if (user.phone && user.phone.length > 0) {
+    createUserInput.contactInfo = {
+      ...(createUserInput.contactInfo || {}),
+      phone: user.phone,
+    };
+  }
+  return createUserInput;
 }
