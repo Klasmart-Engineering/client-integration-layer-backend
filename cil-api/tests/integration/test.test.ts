@@ -38,6 +38,7 @@ import {
   AddProgramsToClass,
   AddUsersToClass,
   AddUsersToOrganization,
+  AddUsersToSchool,
   OnboardingRequest,
 } from 'cil-lib/dist/main/lib/protos';
 import { getClassConnections } from '../util/class';
@@ -1595,12 +1596,12 @@ describe('When receiving requests over the web the server should', () => {
       .getResponsesList()
       .filter((resp) => resp.getErrors());
 
-    const errorAlreadyExists = resultSameBatch
+    const errorsAlreadyExists = resultSameBatch
       .getResponsesList()
       .filter((resp) => resp.getErrors())
       .filter((resp) => resp.getErrors().getEntityAlreadyExists());
 
-    expect(errors.length).to.be.eql(errorAlreadyExists.length);
+    expect(errors.length).to.be.eql(errorsAlreadyExists.length);
 
     expect(
       resultSameBatch
@@ -1608,6 +1609,161 @@ describe('When receiving requests over the web the server should', () => {
         .filter((resp) => resp.getErrors())
         .filter((resp) => resp.getErrors().getInternalServer())
     ).to.be.length(0);
+
+    // You have only one success response when you onboard the same batch and it's coming from the organization
+    expect(
+      resultSameBatch
+        .getResponsesList()
+        .filter((resp) => resp.getSuccess() === true)
+    ).to.be.length(1);
+
+    expect(
+      resultSameBatch
+        .getResponsesList()
+        .filter((resp) => resp.getSuccess() === true)
+        .filter((resp) => resp.getEntity() === proto.Entity.ORGANIZATION)
+        .filter((resp) => resp.getEntityId() === org.id)
+    ).to.be.length(1);
+  });
+
+  it('handling the dupe entries in validation part when trying to link users to school', async () => {
+    const res = await populateAdminService();
+    const org: IdNameMapper = res.keys().next().value;
+    const schoolId = uuidv4();
+    const userId1 = uuidv4();
+    const userId2 = uuidv4();
+
+    const setUpRequest = new TestCaseBuilder()
+      .addValidOrgs(res)
+      .addSchool({ externalUuid: schoolId, externalOrganizationUuid: org.id })
+      .addUser({
+        addToValidSchools: 1,
+        addToValidClasses: 0,
+        externalOrganizationUuid: org.id,
+        externalUuid: userId1,
+      })
+      .addUser({
+        addToValidSchools: 1,
+        addToValidClasses: 0,
+        externalOrganizationUuid: org.id,
+        externalUuid: userId2,
+      })
+      .finalize();
+
+    const result = await onboard(setUpRequest, client);
+
+    const allSuccess = result
+      .toObject()
+      .responsesList.every((r) => r.success === true);
+
+    expect(allSuccess).to.be.true;
+
+    const resultSameUsers = await onboard(setUpRequest, client);
+
+    // You have only one success response when you onboard the same batch and it's coming from the organization
+    expect(
+      resultSameUsers
+        .getResponsesList()
+        .filter((resp) => resp.getSuccess() === true)
+    ).to.be.length(1);
+
+    expect(
+      resultSameUsers
+        .getResponsesList()
+        .filter((resp) => resp.getSuccess() === true)
+        .filter((resp) => resp.getEntity() === proto.Entity.ORGANIZATION)
+        .filter((resp) => resp.getEntityId() === org.id)
+    ).to.be.length(1);
+
+    expect(
+      resultSameUsers
+        .getResponsesList()
+        .filter((resp) => resp.getErrors())
+        .filter((resp) => resp.getErrors().getEntityAlreadyExists())
+    ).to.be.length(11);
+  });
+
+  it('handling different scenarios in the validation part for linking users to school and prepare the corresponding responses', async () => {
+    const res = await populateAdminService();
+    const org: IdNameMapper = res.keys().next().value;
+    const schoolId = uuidv4();
+    const userId1 = uuidv4();
+    const userId2 = uuidv4();
+    const userId3 = uuidv4();
+    const userId4 = uuidv4();
+
+    const setUpRequest = new TestCaseBuilder()
+      .addValidOrgs(res)
+      .addSchool({ externalUuid: schoolId, externalOrganizationUuid: org.id })
+      .addUser({
+        addToValidSchools: 1,
+        addToValidClasses: 0,
+        externalOrganizationUuid: org.id,
+        externalUuid: userId1,
+      })
+      .addUser({
+        addToValidSchools: 1,
+        addToValidClasses: 0,
+        externalOrganizationUuid: org.id,
+        externalUuid: userId2,
+      })
+      .addUser({
+        addToValidSchools: 0,
+        addToValidClasses: 0,
+        externalOrganizationUuid: org.id,
+        externalUuid: userId3,
+      })
+      .addUser({
+        addToValidSchools: 0,
+        addToValidClasses: 0,
+        externalOrganizationUuid: org.id,
+        externalUuid: userId4,
+      })
+      .finalize();
+
+    const setUpResponses = await onboard(setUpRequest, client);
+
+    const allSuccess = setUpResponses
+      .toObject()
+      .responsesList.every((r) => r.success === true);
+
+    expect(allSuccess).to.be.true;
+
+    const result = await onboard(
+      wrapRequest([
+        addUsersToSchoolReq(schoolId, [uuidv4(), userId1]),
+        addUsersToSchoolReq(uuidv4(), [userId2, userId1]),
+        addUsersToSchoolReq(uuidv4(), []),
+        addUsersToSchoolReq(schoolId, [userId3, uuidv4(), userId2]),
+        addUsersToSchoolReq(schoolId, [userId4, userId2]),
+      ]),
+      client
+    );
+
+    expect(
+      result.getResponsesList().filter((resp) => resp.getSuccess() === true)
+    ).to.be.length(2);
+
+    expect(
+      result
+        .getResponsesList()
+        .filter((resp) => resp.getErrors())
+        .filter((resp) => resp.getErrors().getEntityAlreadyExists())
+    ).to.be.length(3);
+
+    expect(
+      result
+        .getResponsesList()
+        .filter((resp) => resp.getErrors())
+        .filter((resp) => resp.getErrors().getEntityDoesNotExist())
+    ).to.be.length(2);
+
+    expect(
+      result
+        .getResponsesList()
+        .filter((resp) => resp.getErrors())
+        .filter((resp) => resp.getErrors().getValidation()) // school doesn't exist
+    ).to.be.length(3);
   });
 }).timeout(50000);
 
@@ -1658,6 +1814,16 @@ function addClassesToSchoolReq(schoolId: string, classIds: string[]) {
       new AddClassesToSchool()
         .setExternalSchoolUuid(schoolId)
         .setExternalClassUuidsList(classIds)
+    )
+  );
+}
+
+function addUsersToSchoolReq(schoolId: string, userIds: ExternalUuid[]) {
+  return new OnboardingRequest().setLinkEntities(
+    new proto.Link().setAddUsersToSchool(
+      new AddUsersToSchool()
+        .setExternalSchoolUuid(schoolId)
+        .setExternalUserUuidsList(userIds)
     )
   );
 }

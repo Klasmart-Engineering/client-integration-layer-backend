@@ -1,13 +1,7 @@
 import Joi from 'joi';
 import { Logger } from 'pino';
 
-import {
-  Context,
-  Entity,
-  ExternalUuid,
-  JOI_VALIDATION_SETTINGS,
-  Link,
-} from '../../..';
+import { Context, Entity, JOI_VALIDATION_SETTINGS, Link } from '../../..';
 import {
   BASE_PATH,
   Category,
@@ -18,12 +12,13 @@ import {
 } from '../../errors';
 import {
   AddUsersToSchool,
+  EntityAlreadyExistsError,
   EntityDoesNotExistError,
   Entity as PbEntity,
   Error as PbError,
   Response,
 } from '../../protos';
-import { requestIdToProtobuf } from '../batchRequest';
+import { RequestId, requestIdToProtobuf } from '../batchRequest';
 import { Result } from '../process';
 
 import { IncomingData } from '.';
@@ -33,26 +28,12 @@ export async function validateMany(
   log: Logger
 ): Promise<[Result<IncomingData>, Logger]> {
   const valid = [];
-  const invalid = [];
+  let invalid: Response[] = [];
   for (const d of data) {
     try {
       const result = await validate(d, log);
       valid.push(result.valid);
-      for (const i of result.invalid) {
-        const resp = new Response()
-          .setSuccess(false)
-          .setRequestId(requestIdToProtobuf(d.requestId))
-          .setEntity(PbEntity.USER)
-          .setEntityId(i)
-          .setErrors(
-            new PbError().setEntityDoesNotExist(
-              new EntityDoesNotExistError().setDetailsList([
-                `Unable to find user with id ${i}`,
-              ])
-            )
-          );
-        invalid.push(resp);
-      }
+      invalid = invalid.concat(result.invalid);
     } catch (error) {
       const e = convertErrorToProtobuf(error, log);
       const users = d.protobuf.getExternalUserUuidsList();
@@ -82,15 +63,20 @@ export async function validateMany(
 async function validate(
   r: IncomingData,
   log: Logger
-): Promise<{ valid: IncomingData; invalid: ExternalUuid[] }> {
+): Promise<{ valid: IncomingData; invalid: Response[] }> {
+  let invalidResponses: Response[] = [];
   const { protobuf } = r;
+  const ctx = await Context.getInstance();
   schemaValidation(protobuf.toObject(), log);
   const schoolId = protobuf.getExternalSchoolUuid();
 
-  const ctx = await Context.getInstance();
   const userIds = protobuf.getExternalUserUuidsList();
-  // check the target users are valid
+  // Check the target users are valid
   const { valid, invalid } = await ctx.getUserIds(userIds, log);
+
+  invalidResponses = invalidResponses.concat(
+    entityDoesNotExistResponses(invalid, r.requestId)
+  );
 
   // Re-make the initial request with only the valid users
   protobuf.setExternalUserUuidsList(Array.from(valid.keys()));
@@ -103,7 +89,18 @@ async function validate(
     undefined,
     protobuf.getExternalUserUuidsList()
   );
-  return { valid: r, invalid };
+
+  const { valid: alreadyExistsUsers, invalid: validUsers } =
+    await Link.usersBelongToSchool(userIds, schoolId, log);
+
+  invalidResponses = invalidResponses.concat(
+    entityAlreadyExistResponses(alreadyExistsUsers, schoolId, r.requestId)
+  );
+
+  protobuf.setExternalUserUuidsList(validUsers);
+  r.data.externalUserUuidsList = validUsers;
+
+  return { valid: r, invalid: invalidResponses };
 }
 
 function schemaValidation(
@@ -140,3 +137,54 @@ export const schema = Joi.object({
     .items(Joi.string().guid({ version: ['uuidv4'] }))
     .required(),
 });
+
+function entityAlreadyExistResponses(
+  invalidUserIds: string[],
+  schoolId: string,
+  requestId: RequestId
+): Response[] {
+  const invalid: Response[] = [];
+
+  for (const i of invalidUserIds) {
+    const resp = new Response()
+      .setSuccess(false)
+      .setRequestId(requestIdToProtobuf(requestId))
+      .setEntity(PbEntity.USER)
+      .setEntityId(i)
+      .setErrors(
+        new PbError().setEntityAlreadyExists(
+          new EntityAlreadyExistsError().setDetailsList([
+            `User with id ${i} already added to school ${schoolId}`,
+          ])
+        )
+      );
+    invalid.push(resp);
+  }
+
+  return invalid;
+}
+
+function entityDoesNotExistResponses(
+  invalidUserIds: string[],
+  requestId: RequestId
+): Response[] {
+  const invalid: Response[] = [];
+
+  for (const i of invalidUserIds) {
+    const resp = new Response()
+      .setSuccess(false)
+      .setRequestId(requestIdToProtobuf(requestId))
+      .setEntity(PbEntity.USER)
+      .setEntityId(i)
+      .setErrors(
+        new PbError().setEntityDoesNotExist(
+          new EntityDoesNotExistError().setDetailsList([
+            `Unable to find user with id ${i}`,
+          ])
+        )
+      );
+    invalid.push(resp);
+  }
+
+  return invalid;
+}
