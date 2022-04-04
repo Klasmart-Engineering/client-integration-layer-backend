@@ -76,9 +76,12 @@ async function validate(
   const invalidResponses = [];
 
   const ctx = await Context.getInstance();
-  // Check the target classes are valid
+
+  // check that the school is valid
+  await ctx.getSchoolId(schoolId, log);
+
   {
-    // Use Context to get cached class ids
+    // Check the target classes are valid
     const { valid, invalid } = await ctx.getClassIds(
       protobuf.getExternalClassUuidsList(),
       log
