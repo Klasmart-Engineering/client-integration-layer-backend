@@ -898,7 +898,7 @@ describe('When receiving requests over the web the server should', () => {
     ).to.includes.members([student1, student2, student3]);
   }).timeout(50000);
 
-  it.only('handle adding users to org that already exists', async () => {
+  it('handle adding users to org that already exists', async () => {
     const res = await populateAdminService();
     const org: IdNameMapper = res.keys().next().value;
     const userId1 = uuidv4();
