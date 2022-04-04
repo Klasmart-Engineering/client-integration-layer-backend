@@ -17,32 +17,31 @@ export async function persist(
 ): Promise<Response[]> {
   const responses: Response[] = [];
   for (const incomingData of addProgramsToSchools) {
-    try {
-      const addProgramsToSchool = incomingData.data;
-      const requestId = incomingData.requestId;
-      const schoolId = addProgramsToSchool.kidsloopSchoolUuid!;
-      for (const program of addProgramsToSchool.programIds!) {
+    const addProgramsToSchool = incomingData.data;
+    const requestId = incomingData.requestId;
+    const schoolId = addProgramsToSchool.kidsloopSchoolUuid!;
+    for (const program of addProgramsToSchool.programIds!) {
+      try {
         await Link.linkProgramToSchool(program.id, schoolId, log);
+        const response = new Response()
+          .setEntity(Entity.SCHOOL)
+          .setSuccess(true)
+          .setEntityId(addProgramsToSchool.externalSchoolUuid!)
+          .setRequestId(requestIdToProtobuf(requestId));
+        responses.push(response);
+      } catch (error) {
+        const resp = new Response()
+          .setEntity(Entity.SCHOOL)
+          .setSuccess(false)
+          .setEntityId(addProgramsToSchool.externalSchoolUuid!)
+          .setRequestId(requestIdToProtobuf(requestId));
+        if (error instanceof Errors || error instanceof OnboardingError) {
+          resp.setErrors(error.toProtobufError());
+        } else {
+          resp.setErrors(INTERNAL_SERVER_ERROR_PROTOBUF);
+        }
+        responses.push(resp);
       }
-      const response = new Response()
-        .setEntity(Entity.SCHOOL)
-        .setSuccess(true)
-        .setEntityId(incomingData.data.externalSchoolUuid ?? '')
-        .setRequestId(requestIdToProtobuf(requestId));
-
-      responses.push(response);
-    } catch (error) {
-      const resp = new Response()
-        .setEntity(Entity.SCHOOL)
-        .setSuccess(false)
-        .setEntityId(incomingData.data.externalSchoolUuid ?? '')
-        .setRequestId(requestIdToProtobuf(incomingData.requestId));
-      if (error instanceof Errors || error instanceof OnboardingError) {
-        resp.setErrors(error.toProtobufError());
-      } else {
-        resp.setErrors(INTERNAL_SERVER_ERROR_PROTOBUF);
-      }
-      responses.push(resp);
     }
   }
   return responses;

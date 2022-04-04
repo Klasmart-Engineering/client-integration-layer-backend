@@ -277,7 +277,28 @@ export class Context {
     orgId?: ExternalUuid,
     schoolId?: ExternalUuid
   ): Promise<IdNameMapper[]> {
-    // @TODO - Implement some form of caching on this
+    const { valid, invalid } = await this.getProgramNames(
+      programs,
+      log,
+      orgId,
+      schoolId
+    );
+
+    if (invalid.length === 0) return valid;
+    throw new OnboardingError(
+      MachineError.VALIDATION,
+      `Programs: ${invalid.join(', ')} are invalid`,
+      Category.REQUEST,
+      log
+    );
+  }
+  //@TODO - Implement some form of caching on this
+  public async getProgramNames(
+    programs: string[],
+    log: Logger,
+    orgId?: ExternalUuid,
+    schoolId?: ExternalUuid
+  ): Promise<{ valid: IdNameMapper[]; invalid: ExternalUuid[] }> {
     if (!schoolId && !orgId)
       throw new OnboardingError(
         MachineError.APP_CONFIG,
@@ -313,13 +334,7 @@ export class Context {
       }
       invalidNames.push(program);
     }
-    if (invalidNames.length === 0) return validNames;
-    throw new OnboardingError(
-      MachineError.VALIDATION,
-      `Programs: ${invalidNames.join(', ')} are invalid`,
-      Category.REQUEST,
-      log
-    );
+    return { valid: validNames, invalid: invalidNames };
   }
 
   /**
