@@ -1,0 +1,195 @@
+{
+  "ipcMode": null,
+  "executionRoleArn": "arn:aws:iam::871601235178:role/kidsloop-alpha-csi",
+  "containerDefinitions": [
+    {
+      "dnsSearchDomains": null,
+      "environmentFiles": null,
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "secretOptions": null,
+        "options": {
+          "awslogs-group": "/ecs/kidsloop-alpha/csi",
+          "awslogs-region": "ap-northeast-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "entryPoint": null,
+      "portMappings": [
+        {
+          "hostPort": 8080,
+          "protocol": "tcp",
+          "containerPort": 8080
+        }
+      ],
+      "command": null,
+      "linuxParameters": null,
+      "cpu": 256,
+      "environment": [
+        {
+          "name": "ADMIN_SERVICE_URL",
+          "value": "https://api.alpha.kidsloop.net/user/"
+        },
+        {
+          "name": "LOG_ENABLED",
+          "value": "true"
+        },
+        {
+          "name": "LOG_LEVEL",
+          "value": "info"
+        },
+        {
+          "name": "LOG_STYLE",
+          "value": "NEW_RELIC"
+        },
+        {
+          "name": "NEW_RELIC_APP_NAME",
+          "value": "csi-service-dev-alpha"
+        },
+        {
+          "name": "NEW_RELIC_DISTRIBUTED_TRACING_ENABLED",
+          "value": "true"
+        },
+        {
+          "name": "NODE_ENV",
+          "value": "test"
+        },
+        {
+          "name": "NR_LOGGING_ENDPOINT",
+          "value": "https://log-api.eu.newrelic.com/log/v1"
+        },
+        {
+          "name": "PORT",
+          "value": "8080"
+        },
+        {
+          "name": "SERVICE_LABEL",
+          "value": "csi-generic-backend"
+        }
+      ],
+      "resourceRequirements": null,
+      "ulimits": null,
+      "dnsServers": null,
+      "mountPoints": [],
+      "workingDirectory": null,
+      "secrets": [
+        {
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:871601235178:secret:kl-dev-alpha-csi-db-connection-string-6VxTgi",
+          "name": "DATABASE_URL"
+        },
+        {
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:871601235178:secret:kl-dev-alpha-csi-new-relic-VPURcM",
+          "name": "NEW_RELIC_LICENSE_KEY"
+        },
+        {
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:871601235178:secret:kl-dev-alpha-csi-service-api-key-4T6yJF",
+          "name": "API_KEY"
+        },
+        {
+          "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:871601235178:secret:kl-alpha-backend-api-key-vNBzZG",
+          "name": "ADMIN_SERVICE_API_KEY"
+        }
+      ],
+      "dockerSecurityOptions": null,
+      "memory": 512,
+      "memoryReservation": null,
+      "volumesFrom": [],
+      "stopTimeout": null,
+      "image": "942095822719.dkr.ecr.eu-west-2.amazonaws.com/csi-service:main-0e38d08",
+      "startTimeout": null,
+      "firelensConfiguration": null,
+      "dependsOn": null,
+      "disableNetworking": null,
+      "interactive": null,
+      "healthCheck": null,
+      "essential": true,
+      "links": null,
+      "hostname": null,
+      "extraHosts": null,
+      "pseudoTerminal": null,
+      "user": null,
+      "readonlyRootFilesystem": null,
+      "dockerLabels": null,
+      "systemControls": null,
+      "privileged": null,
+      "name": "kidsloop-alpha-csi"
+    }
+  ],
+  "placementConstraints": [],
+  "memory": "512",
+  "taskRoleArn": "arn:aws:iam::871601235178:role/kidsloop-alpha-csi",
+  "compatibilities": [
+    "EC2",
+    "FARGATE"
+  ],
+  "taskDefinitionArn": "arn:aws:ecs:ap-northeast-2:871601235178:task-definition/kidsloop-alpha-csi:6",
+  "family": "kidsloop-alpha-csi",
+  "requiresAttributes": [
+    {
+      "targetId": null,
+      "targetType": null,
+      "value": null,
+      "name": "com.amazonaws.ecs.capability.logging-driver.awslogs"
+    },
+    {
+      "targetId": null,
+      "targetType": null,
+      "value": null,
+      "name": "ecs.capability.execution-role-awslogs"
+    },
+    {
+      "targetId": null,
+      "targetType": null,
+      "value": null,
+      "name": "com.amazonaws.ecs.capability.ecr-auth"
+    },
+    {
+      "targetId": null,
+      "targetType": null,
+      "value": null,
+      "name": "com.amazonaws.ecs.capability.docker-remote-api.1.19"
+    },
+    {
+      "targetId": null,
+      "targetType": null,
+      "value": null,
+      "name": "ecs.capability.secrets.asm.environment-variables"
+    },
+    {
+      "targetId": null,
+      "targetType": null,
+      "value": null,
+      "name": "com.amazonaws.ecs.capability.task-iam-role"
+    },
+    {
+      "targetId": null,
+      "targetType": null,
+      "value": null,
+      "name": "ecs.capability.execution-role-ecr-pull"
+    },
+    {
+      "targetId": null,
+      "targetType": null,
+      "value": null,
+      "name": "com.amazonaws.ecs.capability.docker-remote-api.1.18"
+    },
+    {
+      "targetId": null,
+      "targetType": null,
+      "value": null,
+      "name": "ecs.capability.task-eni"
+    }
+  ],
+  "pidMode": null,
+  "requiresCompatibilities": [
+    "FARGATE"
+  ],
+  "networkMode": "awsvpc",
+  "runtimePlatform": null,
+  "cpu": "256",
+  "revision": 6,
+  "status": "ACTIVE",
+  "inferenceAccelerators": null,
+  "proxyConfiguration": null,
+  "volumes": []
+}
