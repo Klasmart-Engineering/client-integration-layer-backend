@@ -7,13 +7,47 @@ import { Result } from '../../process';
 
 import { IncomingData } from '.';
 
+const getKey = ({ data }: IncomingData): string =>
+  `${data.givenName || ''}|${data.familyName || ''}|${data.username || ''}|${
+    data.email || ''
+  }|${data.phone || ''}`;
+
 export async function prepare(
   input: IncomingData[],
   log: Logger
 ): Promise<[Result<IncomingData>, Logger]> {
   const validUsers = new Map<string, IncomingData>();
+  const duplicatedNames = new Map<string, string>();
   const invalid: Response[] = [];
   for (const user of input) {
+    const key = getKey(user);
+    const otherExternalUuid = duplicatedNames.get(key);
+
+    // Handles the scenario where the unique identifiers of the provided user already exist in this batch
+    // but the duplicated user has a different external uuid
+    if (otherExternalUuid && otherExternalUuid !== user.data.externalUuid) {
+      invalid.push(
+        new Response()
+          .setEntity(PBEntity.USER)
+          .setRequestId(requestIdToProtobuf(user.requestId))
+          .setEntityId(user.data.externalUuid!)
+          .setErrors(
+            new OnboardingError(
+              MachineError.VALIDATION,
+              `A user with the provided givenName, familyName and identifier (username, email or phone) already exists with a different externalUuid`,
+              Category.REQUEST,
+              log,
+              [],
+              {},
+              [`UUID of already existing user: ${otherExternalUuid}`]
+            ).toProtobufError()
+          )
+          .setSuccess(false)
+      );
+      continue;
+    }
+
+    // Handles the scenario where we have duplicate users provided with the same external uuid
     if (validUsers.has(user.data.externalUuid!)) {
       const externalUuid = user.data.externalUuid!;
       const alreadySeenUser = validUsers.get(user.data.externalUuid!)!;
@@ -129,6 +163,7 @@ export async function prepare(
       continue;
     }
     validUsers.set(user.data.externalUuid!, user);
+    duplicatedNames.set(key, user.data.externalUuid!);
   }
 
   return [{ valid: Array.from(validUsers.values()), invalid }, log];
