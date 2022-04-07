@@ -390,6 +390,40 @@ describe('create user', () => {
     expect(responses[0].getSuccess()).to.be.true;
   });
 
+  it('should fail validation for dupe user with different external uuid', async () => {
+    const user = setUpUser();
+    createUsersStub.resolves([
+      {
+        id: uuidv4(),
+        givenName: user.getGivenName(),
+        familyName: user.getFamilyName(),
+        phone: user.getPhone(),
+        email: user.getEmail(),
+        username: user.getUsername(),
+      },
+    ]);
+    const dupeUser = cloneUser(user).setExternalUuid(uuidv4());
+    const reqs = [
+      new OnboardingRequest().setUser(user),
+      new OnboardingRequest().setUser(dupeUser),
+    ];
+    const req = new BatchOnboarding().setRequestsList(reqs);
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+    const responses = resp.getResponsesList();
+    expect(responses).to.have.length(2);
+    expect(responses.filter((r) => r.getSuccess() === true)).to.be.length(1);
+    expect(responses.filter((r) => r.getErrors())).to.be.length(1);
+    expect(
+      responses
+        .filter((r) => r.getErrors())
+        .filter((r) => r.getErrors()?.getValidation())
+    ).to.be.length(1);
+    expect(responses.map((resp) => resp.getEntityId())).to.includes.members([
+      user.getExternalUuid(),
+      dupeUser.getExternalUuid(),
+    ]);
+  });
+
   it('should merge users with valid data but different access methods (username + email)', async () => {
     const user = setUpUser();
     createUsersStub.resolves([
@@ -686,4 +720,21 @@ async function makeCommonAssertions(req: BatchOnboarding): Promise<Responses> {
     expect(error, 'this api should not error').to.be.undefined;
   }
   throw new Error('Unexpected reached the end of the test');
+}
+
+function cloneUser(user: User): User {
+  const clonedUser = new User()
+    .setExternalUuid(user.getExternalUuid())
+    .setExternalOrganizationUuid(user.getExternalOrganizationUuid())
+    .setEmail(user.getEmail())
+    .setPhone(user.getPhone())
+    .setUsername(user.getUsername())
+    .setGivenName(user.getGivenName())
+    .setFamilyName(user.getFamilyName())
+    .setGender(user.getGender())
+    .setDateOfBirth(user.getDateOfBirth());
+
+  clonedUser.setRoleIdentifiersList(user.getRoleIdentifiersList());
+
+  return clonedUser;
 }

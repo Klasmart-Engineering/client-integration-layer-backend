@@ -506,36 +506,46 @@ describe('When receiving requests over the web the server should', () => {
     ]);
   }).timeout(50000);
 
-  it.skip(
-    'fail onboarding with dupe user in same request (bucketing)',
-    async () => {
-      const res = await populateAdminService();
-      const org = res.keys().next().value;
+  it('handle user with same fields but with different external uuid in same request', async () => {
+    const res = await populateAdminService();
+    const org = res.keys().next().value;
 
-      const user = setUpUser(org.id);
-      const result = await (
-        await onboard(
-          wrapRequest([
-            new proto.OnboardingRequest().setOrganization(
-              new proto.Organization().setExternalUuid(org.id).setName(org.name)
-            ),
-            new proto.OnboardingRequest().setUser(user),
-            new proto.OnboardingRequest().setUser(user),
-          ]),
-          client
-        )
-      ).toObject().responsesList;
+    const setUpResponse = await onboard(
+      wrapRequest([
+        new proto.OnboardingRequest().setOrganization(
+          new proto.Organization().setExternalUuid(org.id).setName(org.name)
+        ),
+      ]),
+      client
+    );
 
-      expect(result).to.be.length(2);
-      expect(result.filter((r) => r.success === true)).to.be.length(1);
-      expect(result.filter((r) => r.errors)).to.be.length(1);
-      expect(
-        result
-          .filter((r) => r.errors)
-          .filter((r) => r.errors.entityAlreadyExists)
-      ).to.be.length(1);
-    }
-  ).timeout(50000);
+    expect(
+      setUpResponse.toObject().responsesList.every((r) => r.success === true)
+    ).to.be.true;
+
+    const user = setUpUser(org.id);
+    const dupeUser = cloneUser(user).setExternalUuid(uuidv4());
+    const result = await (
+      await onboard(
+        wrapRequest([
+          new proto.OnboardingRequest().setUser(user),
+          new proto.OnboardingRequest().setUser(dupeUser),
+        ]),
+        client
+      )
+    ).toObject().responsesList;
+
+    expect(result).to.be.length(2);
+    expect(result.filter((r) => r.success === true)).to.be.length(1);
+    expect(result.filter((r) => r.errors)).to.be.length(1);
+    expect(
+      result.filter((r) => r.errors).filter((r) => r.errors.validation)
+    ).to.be.length(1);
+    expect(result.map((resp) => resp.entityId)).to.includes.members([
+      user.getExternalUuid(),
+      dupeUser.getExternalUuid(),
+    ]);
+  }).timeout(50000);
 
   it('onboarding users with optional fields', async () => {
     const res = await populateAdminService();
@@ -1781,6 +1791,23 @@ describe('When receiving requests over the web the server should', () => {
     ).to.be.length(3);
   });
 }).timeout(50000);
+
+function cloneUser(user: proto.User): proto.User {
+  const clonedUser = new proto.User()
+    .setExternalUuid(user.getExternalUuid())
+    .setExternalOrganizationUuid(user.getExternalOrganizationUuid())
+    .setEmail(user.getEmail())
+    .setPhone(user.getPhone())
+    .setUsername(user.getUsername())
+    .setGivenName(user.getGivenName())
+    .setFamilyName(user.getFamilyName())
+    .setGender(user.getGender())
+    .setDateOfBirth(user.getDateOfBirth());
+
+  clonedUser.setRoleIdentifiersList(user.getRoleIdentifiersList());
+
+  return clonedUser;
+}
 
 function addTeachersToClassReq(classId: string, teacherIds: ExternalUuid[]) {
   return new OnboardingRequest().setLinkEntities(
