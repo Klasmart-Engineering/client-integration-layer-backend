@@ -435,7 +435,7 @@ describe('When receiving requests over the web the server should', () => {
     // Invalid phone number
   }).timeout(50000);
 
-  it('fail onboarding a user which already exists in the system', async () => {
+  it('handle onboarding users which already exists and a new user in the system', async () => {
     const res = await populateAdminService();
     const org = res.keys().next().value;
 
@@ -473,6 +473,8 @@ describe('When receiving requests over the web the server should', () => {
       user4.getExternalUuid(),
     ]);
 
+    const user5 = setUpUser(org.id);
+
     const dupe = await (
       await onboard(
         wrapRequest([
@@ -480,15 +482,28 @@ describe('When receiving requests over the web the server should', () => {
           new proto.OnboardingRequest().setUser(user2),
           new proto.OnboardingRequest().setUser(user3),
           new proto.OnboardingRequest().setUser(user4),
+          new proto.OnboardingRequest().setUser(user5),
         ]),
         client
       )
     ).toObject().responsesList;
 
-    expect(dupe).to.be.length(4);
-    expect(dupe.every((r) => r.success === true)).to.be.false;
-    expect(dupe.every((r) => r.errors)).to.be.true;
-    expect(dupe.every((r) => r.errors.entityAlreadyExists)).to.be.true;
+    expect(dupe).to.be.length(5);
+    expect(dupe.filter((resp) => resp.success === true)).to.be.length(1);
+    expect(dupe.filter((resp) => resp.success === false)).to.be.length(4);
+    expect(dupe.filter((r) => r.errors)).to.be.length(4);
+    expect(
+      dupe
+        .filter((resp) => resp.errors)
+        .filter((resp) => resp.errors.entityAlreadyExists)
+    ).to.be.length(4);
+    expect(dupe.map((resp) => resp.entityId)).to.includes.members([
+      user1.getExternalUuid(),
+      user2.getExternalUuid(),
+      user3.getExternalUuid(),
+      user4.getExternalUuid(),
+      user5.getExternalUuid(),
+    ]);
   }).timeout(50000);
 
   it.skip(
