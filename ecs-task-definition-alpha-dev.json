@@ -181,7 +181,7 @@
   "requiresCompatibilities": ["FARGATE"],
   "networkMode": "awsvpc",
   "runtimePlatform": null,
-  "cpu": "256",
+  "cpu": "1280",
   "revision": 6,
   "status": "ACTIVE",
   "inferenceAccelerators": null,
