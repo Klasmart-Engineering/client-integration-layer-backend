@@ -143,7 +143,9 @@ function usersWithKidsloopUuids(
       );
     user.data.kidsloopUserUuid = result.id;
   }
-  return Array.from(incomingRequest.values());
+  return Array.from(incomingRequest.values()).filter(
+    (incoming) => incoming.data.kidsloopUserUuid
+  );
 }
 
 export function adminServiceUserKey(result: {
