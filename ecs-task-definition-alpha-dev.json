@@ -1,20 +1,14 @@
 {
-  "ipcMode": null,
+  "family": "kidsloop-alpha-csi",
+  "taskRoleArn": "arn:aws:iam::871601235178:role/kidsloop-alpha-csi",
   "executionRoleArn": "arn:aws:iam::871601235178:role/kidsloop-alpha-csi",
+  "networkMode": "awsvpc",
   "containerDefinitions": [
     {
-      "dnsSearchDomains": null,
-      "environmentFiles": null,
-      "logConfiguration": {
-        "logDriver": "awslogs",
-        "secretOptions": null,
-        "options": {
-          "awslogs-group": "/ecs/kidsloop-alpha/csi",
-          "awslogs-region": "ap-northeast-2",
-          "awslogs-stream-prefix": "ecs"
-        }
-      },
-      "entryPoint": null,
+      "name": "kidsloop-alpha-csi",
+      "image": "",
+      "cpu": 1280,
+      "memory": 512,
       "portMappings": [
         {
           "hostPort": 8080,
@@ -22,9 +16,7 @@
           "containerPort": 8080
         }
       ],
-      "command": null,
-      "linuxParameters": null,
-      "cpu": 1280,
+      "essential": true,
       "environment": [
         {
           "name": "ADMIN_SERVICE_URL",
@@ -67,11 +59,8 @@
           "value": "csi-generic-backend"
         }
       ],
-      "resourceRequirements": null,
-      "ulimits": null,
-      "dnsServers": null,
       "mountPoints": [],
-      "workingDirectory": null,
+      "volumesFrom": [],
       "secrets": [
         {
           "valueFrom": "arn:aws:secretsmanager:ap-northeast-2:871601235178:secret:kl-dev-alpha-csi-db-connection-string-6VxTgi",
@@ -90,41 +79,20 @@
           "name": "ADMIN_SERVICE_API_KEY"
         }
       ],
-      "dockerSecurityOptions": null,
-      "memory": 512,
-      "memoryReservation": null,
-      "volumesFrom": [],
-      "stopTimeout": null,
-      "image": "942095822719.dkr.ecr.eu-west-2.amazonaws.com/csi-service:main-0e38d08",
-      "startTimeout": null,
-      "firelensConfiguration": null,
-      "dependsOn": null,
-      "disableNetworking": null,
-      "interactive": null,
-      "healthCheck": null,
-      "essential": true,
-      "links": null,
-      "hostname": null,
-      "extraHosts": null,
-      "pseudoTerminal": null,
-      "user": null,
-      "readonlyRootFilesystem": null,
-      "dockerLabels": null,
-      "systemControls": null,
-      "privileged": null,
-      "name": "kidsloop-alpha-csi"
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "secretOptions": null,
+        "options": {
+          "awslogs-group": "/ecs/kidsloop-alpha/csi",
+          "awslogs-region": "ap-northeast-2",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
     }
   ],
+  "volumes": [],
   "placementConstraints": [],
-  "memory": "512",
-  "taskRoleArn": "arn:aws:iam::871601235178:role/kidsloop-alpha-csi",
-  "family": "kidsloop-alpha-csi",
-  "pidMode": null,
   "requiresCompatibilities": ["FARGATE"],
-  "networkMode": "awsvpc",
-  "runtimePlatform": null,
   "cpu": "1280",
-  "inferenceAccelerators": null,
-  "proxyConfiguration": null,
-  "volumes": []
+  "memory": "512"
 }
