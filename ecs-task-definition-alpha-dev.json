@@ -24,7 +24,7 @@
       ],
       "command": null,
       "linuxParameters": null,
-      "cpu": 256,
+      "cpu": 1280,
       "environment": [
         {
           "name": "ADMIN_SERVICE_URL",
@@ -118,10 +118,7 @@
   "placementConstraints": [],
   "memory": "512",
   "taskRoleArn": "arn:aws:iam::871601235178:role/kidsloop-alpha-csi",
-  "compatibilities": [
-    "EC2",
-    "FARGATE"
-  ],
+  "compatibilities": ["EC2", "FARGATE"],
   "taskDefinitionArn": "arn:aws:ecs:ap-northeast-2:871601235178:task-definition/kidsloop-alpha-csi:6",
   "family": "kidsloop-alpha-csi",
   "requiresAttributes": [
@@ -181,9 +178,7 @@
     }
   ],
   "pidMode": null,
-  "requiresCompatibilities": [
-    "FARGATE"
-  ],
+  "requiresCompatibilities": ["FARGATE"],
   "networkMode": "awsvpc",
   "runtimePlatform": null,
   "cpu": "256",
