@@ -200,10 +200,7 @@ export function userReq(
     .setUser(setUpUser(orgId, user));
 }
 
-export function setUpUser(
-  orgId: ExternalUuid,
-  userId: ExternalUuid
-): proto.User {
+export function setUpUser(orgId: ExternalUuid, userId = uuidv4()): proto.User {
   const user: proto.User = new proto.User()
     .setExternalUuid(userId)
     .setExternalOrganizationUuid(orgId)

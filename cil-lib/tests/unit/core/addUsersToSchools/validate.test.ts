@@ -67,6 +67,7 @@ describe('add users to school ', () => {
   let userIdStub: SinonStub;
   let linkDbStub: SinonStub;
   let userDbStub: SinonStub;
+  let linkStub: SinonStub;
 
   beforeEach(() => {
     const userId = uuidv4();
@@ -76,6 +77,10 @@ describe('add users to school ', () => {
     adminStub = sinon.stub(AdminService, 'getInstance').resolves({
       addUsersToSchools: sinon.stub().resolves([{ id: schoolId }]),
     } as unknown as AdminService);
+    linkStub = sinon
+      .stub(LinkDB, 'usersBelongToSchool')
+      .resolves({ valid: [], invalid: [userId] });
+
     schoolIdStub = sinon.stub().resolves(schoolId);
     userIdStub = sinon.stub().resolves({
       valid: validMap,
@@ -93,6 +98,8 @@ describe('add users to school ', () => {
 
   afterEach(() => {
     adminStub.restore();
+    linkStub.restore();
+    userDbStub.restore();
     sinon.restore();
   });
 

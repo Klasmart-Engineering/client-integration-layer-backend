@@ -8,9 +8,13 @@ on:
 env:
   AWS_REGION: eu-west-2
   ECR_REPOSITORY: csi-service
+  ALPHADEV_REGION: ap-northeast-2
+  ECS_SERVICE: kidsloop-alpha-csi
+  ECS_CLUSTER: kidsloop-alpha
+  ECS_TASK_DEFINITION: ./ecs-task-definition-alpha-dev.json
+  CONTAINER_NAME: kidsloop-alpha-csi
 
 jobs:
-
   test:
     runs-on: ubuntu-latest
     steps:
@@ -50,3 +54,23 @@ jobs:
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
           echo "::set-output name=image::$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG"
+      - name: Change AWS credentials for alpha dev
+        uses: aws-actions/configure-aws-credentials@v1
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID_ALPHA_DEV }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY_ALPHA_DEV }}
+          aws-region: ${{ env.ALPHADEV_REGION }}
+      - name: Fill in the new image ID in the Amazon ECS task definition
+        id: task-def
+        uses: aws-actions/amazon-ecs-render-task-definition@v1
+        with:
+          task-definition: ${{ env.ECS_TASK_DEFINITION }}
+          container-name: ${{ env.CONTAINER_NAME }}
+          image: ${{ steps.build-image.outputs.image }}
+      - name: Deploy Amazon ECS task definition
+        uses: aws-actions/amazon-ecs-deploy-task-definition@v1
+        with:
+          task-definition: ${{ steps.task-def.outputs.task-definition }}
+          service: ${{ env.ECS_SERVICE }}
+          cluster: ${{ env.ECS_CLUSTER }}
+          wait-for-service-stability: true

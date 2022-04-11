@@ -14,6 +14,7 @@ import {
   BatchOnboarding,
   Entity,
   Gender,
+  OnboardingRequest,
   Responses,
   User,
 } from '../../../../../src/lib/protos';
@@ -364,6 +365,312 @@ describe('create user', () => {
     expect(response.errors?.validation).not.to.be.undefined;
     expect(response.errors?.validation?.errorsList[0]).not.to.be.undefined;
   });
+
+  it('should pass-through a valid user in the case they are duplicated', async () => {
+    const user = setUpUser();
+    createUsersStub.resolves([
+      {
+        id: uuidv4(),
+        givenName: user.getGivenName(),
+        familyName: user.getFamilyName(),
+        phone: user.getPhone(),
+        email: user.getEmail(),
+        username: user.getUsername(),
+      },
+    ]);
+    const reqs = [
+      new OnboardingRequest().setUser(user),
+      new OnboardingRequest().setUser(user),
+    ];
+    const req = new BatchOnboarding().setRequestsList(reqs);
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+    const responses = resp.getResponsesList();
+    expect(responses).to.have.length(1);
+    expect(responses[0]).not.to.be.undefined;
+    expect(responses[0].getSuccess()).to.be.true;
+  });
+
+  it('should fail validation for dupe user with different external uuid', async () => {
+    const user = setUpUser();
+    createUsersStub.resolves([
+      {
+        id: uuidv4(),
+        givenName: user.getGivenName(),
+        familyName: user.getFamilyName(),
+        phone: user.getPhone(),
+        email: user.getEmail(),
+        username: user.getUsername(),
+      },
+    ]);
+    const dupeUser = cloneUser(user).setExternalUuid(uuidv4());
+    const reqs = [
+      new OnboardingRequest().setUser(user),
+      new OnboardingRequest().setUser(dupeUser),
+    ];
+    const req = new BatchOnboarding().setRequestsList(reqs);
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+    const responses = resp.getResponsesList();
+    expect(responses).to.have.length(2);
+    expect(responses.filter((r) => r.getSuccess() === true)).to.be.length(1);
+    expect(responses.filter((r) => r.getErrors())).to.be.length(1);
+    expect(
+      responses
+        .filter((r) => r.getErrors())
+        .filter((r) => r.getErrors()?.getValidation())
+    ).to.be.length(1);
+    expect(responses.map((resp) => resp.getEntityId())).to.includes.members([
+      user.getExternalUuid(),
+      dupeUser.getExternalUuid(),
+    ]);
+  });
+
+  it('should merge users with valid data but different access methods (username + email)', async () => {
+    const user = setUpUser();
+    createUsersStub.resolves([
+      {
+        id: user.getExternalUuid(),
+        givenName: user.getGivenName(),
+        familyName: user.getFamilyName(),
+        email: user.getEmail(),
+        username: user.getUsername(),
+      },
+    ]);
+
+    const reqs = [
+      new OnboardingRequest().setUser(user.clone().setPhone('').setEmail('')),
+      new OnboardingRequest().setUser(
+        user.clone().setUsername('').setPhone('')
+      ),
+    ];
+    const req = new BatchOnboarding().setRequestsList(reqs);
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+    const responses = resp.getResponsesList();
+    const createdWith = createUsersStub.getCalls()[0].firstArg[0];
+    expect(createdWith.username).to.equal(user.getUsername());
+    expect(createdWith.contactInfo.email).to.equal(user.getEmail());
+    expect(createdWith.contactInfo.phone).to.be.undefined;
+    expect(responses).to.have.length(1);
+    expect(responses[0]).not.to.be.undefined;
+    expect(responses[0].getSuccess()).to.be.true;
+  });
+
+  it('should merge users with valid data but different access methods (username + phone)', async () => {
+    const user = setUpUser();
+    createUsersStub.resolves([
+      {
+        id: user.getExternalUuid(),
+        givenName: user.getGivenName(),
+        familyName: user.getFamilyName(),
+        phone: user.getPhone(),
+        username: user.getUsername(),
+      },
+    ]);
+
+    const reqs = [
+      new OnboardingRequest().setUser(user.clone().setPhone('').setEmail('')),
+      new OnboardingRequest().setUser(
+        user.clone().setUsername('').setEmail('')
+      ),
+    ];
+    const req = new BatchOnboarding().setRequestsList(reqs);
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+    const responses = resp.getResponsesList();
+    const createdWith = createUsersStub.getCalls()[0].firstArg[0];
+    expect(createdWith.username).to.equal(user.getUsername());
+    expect(createdWith.contactInfo.phone).to.equal(user.getPhone());
+    expect(createdWith.contactInfo.email).to.be.undefined;
+    expect(responses).to.have.length(1);
+    expect(responses[0]).not.to.be.undefined;
+    expect(responses[0].getSuccess()).to.be.true;
+  });
+
+  it('should merge users with valid data but different access methods (email + phone)', async () => {
+    const user = setUpUser();
+    createUsersStub.resolves([
+      {
+        id: user.getExternalUuid(),
+        givenName: user.getGivenName(),
+        familyName: user.getFamilyName(),
+        phone: user.getPhone(),
+        email: user.getEmail(),
+      },
+    ]);
+
+    const reqs = [
+      new OnboardingRequest().setUser(
+        user.clone().setPhone('').setUsername('')
+      ),
+      new OnboardingRequest().setUser(
+        user.clone().setUsername('').setEmail('')
+      ),
+    ];
+    const req = new BatchOnboarding().setRequestsList(reqs);
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+    const responses = resp.getResponsesList();
+    const createdWith = createUsersStub.getCalls()[0].firstArg[0];
+    expect(createdWith.username).to.be.undefined;
+    expect(createdWith.contactInfo.phone).to.equal(user.getPhone());
+    expect(createdWith.contactInfo.email).to.equal(user.getEmail());
+    expect(responses).to.have.length(1);
+    expect(responses[0]).not.to.be.undefined;
+    expect(responses[0].getSuccess()).to.be.true;
+  });
+
+  it('should merge users with valid data but different access methods - 3 users', async () => {
+    const user = setUpUser();
+    createUsersStub.resolves([
+      {
+        id: user.getExternalUuid(),
+        givenName: user.getGivenName(),
+        familyName: user.getFamilyName(),
+        username: user.getUsername(),
+        phone: user.getPhone(),
+        email: user.getEmail(),
+      },
+    ]);
+
+    const reqs = [
+      new OnboardingRequest().setUser(user.clone().setPhone('').setEmail('')),
+      new OnboardingRequest().setUser(
+        user.clone().setPhone('').setUsername('')
+      ),
+      new OnboardingRequest().setUser(
+        user.clone().setUsername('').setEmail('')
+      ),
+    ];
+    const req = new BatchOnboarding().setRequestsList(reqs);
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+    const responses = resp.getResponsesList();
+    const createdWith = createUsersStub.getCalls()[0].firstArg[0];
+    expect(createdWith.username).to.equal(user.getUsername());
+    expect(createdWith.contactInfo.phone).to.equal(user.getPhone());
+    expect(createdWith.contactInfo.email).to.equal(user.getEmail());
+    expect(responses).to.have.length(1);
+    expect(responses[0]).not.to.be.undefined;
+    expect(responses[0].getSuccess()).to.be.true;
+  });
+
+  it('should reject a user if they have the same id and a different given name', async () => {
+    const user = setUpUser();
+    createUsersStub.resolves([
+      {
+        id: user.getExternalUuid(),
+        givenName: user.getGivenName(),
+        familyName: user.getFamilyName(),
+        username: user.getUsername(),
+        phone: user.getPhone(),
+        email: user.getEmail(),
+      },
+    ]);
+
+    const reqs = [
+      new OnboardingRequest().setUser(user.clone()),
+      new OnboardingRequest().setUser(user.clone().setGivenName('Invalid')),
+    ];
+    const req = new BatchOnboarding().setRequestsList(reqs);
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+    const responses = resp.getResponsesList();
+    expect(responses).to.have.length(2);
+    let validCount = 0;
+    let invalidCount = 0;
+    for (const resp of responses) {
+      resp.getSuccess() ? (validCount += 1) : (invalidCount += 1);
+      if (!resp.getSuccess()) {
+        expect(
+          resp
+            .getErrors()
+            ?.getInvalidRequest()
+            ?.getErrorsList()
+            .flatMap((e) => e.toObject().detailsList)
+            .filter((s: string) => s.includes('has been added twice'))
+        ).to.have.lengthOf(1);
+      }
+    }
+    expect(validCount).to.equal(1);
+    expect(invalidCount).to.equal(1);
+  });
+
+  it('should reject a user if they have the same id and a different family name', async () => {
+    const user = setUpUser();
+    createUsersStub.resolves([
+      {
+        id: user.getExternalUuid(),
+        givenName: user.getGivenName(),
+        familyName: user.getFamilyName(),
+        username: user.getUsername(),
+        phone: user.getPhone(),
+        email: user.getEmail(),
+      },
+    ]);
+
+    const reqs = [
+      new OnboardingRequest().setUser(user.clone()),
+      new OnboardingRequest().setUser(user.clone().setFamilyName('Invalid')),
+    ];
+    const req = new BatchOnboarding().setRequestsList(reqs);
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+    const responses = resp.getResponsesList();
+    expect(responses).to.have.length(2);
+    let validCount = 0;
+    let invalidCount = 0;
+    for (const resp of responses) {
+      resp.getSuccess() ? (validCount += 1) : (invalidCount += 1);
+      if (!resp.getSuccess()) {
+        expect(
+          resp
+            .getErrors()
+            ?.getInvalidRequest()
+            ?.getErrorsList()
+            .flatMap((e) => e.toObject().detailsList)
+            .filter((s: string) => s.includes('has been added twice'))
+        ).to.have.lengthOf(1);
+      }
+    }
+    expect(validCount).to.equal(1);
+    expect(invalidCount).to.equal(1);
+  });
+
+  it('should reject a user if they have the same id and a different names', async () => {
+    const user = setUpUser();
+    createUsersStub.resolves([
+      {
+        id: user.getExternalUuid(),
+        givenName: user.getGivenName(),
+        familyName: user.getFamilyName(),
+        username: user.getUsername(),
+        phone: user.getPhone(),
+        email: user.getEmail(),
+      },
+    ]);
+
+    const reqs = [
+      new OnboardingRequest().setUser(user.clone()),
+      new OnboardingRequest().setUser(
+        user.clone().setFamilyName('Invalid').setGivenName('Random')
+      ),
+    ];
+    const req = new BatchOnboarding().setRequestsList(reqs);
+    const resp = await processOnboardingRequest(req, LOG_STUB);
+    const responses = resp.getResponsesList();
+    expect(responses).to.have.length(2);
+    let validCount = 0;
+    let invalidCount = 0;
+    for (const resp of responses) {
+      resp.getSuccess() ? (validCount += 1) : (invalidCount += 1);
+      if (!resp.getSuccess()) {
+        expect(
+          resp
+            .getErrors()
+            ?.getInvalidRequest()
+            ?.getErrorsList()
+            .flatMap((e) => e.toObject().detailsList)
+            .filter((s: string) => s.includes('has been added twice'))
+        ).to.have.lengthOf(1);
+      }
+    }
+    expect(validCount).to.equal(1);
+    expect(invalidCount).to.equal(1);
+  });
 });
 
 function setUpUser(user = USER): User {
@@ -413,4 +720,21 @@ async function makeCommonAssertions(req: BatchOnboarding): Promise<Responses> {
     expect(error, 'this api should not error').to.be.undefined;
   }
   throw new Error('Unexpected reached the end of the test');
+}
+
+function cloneUser(user: User): User {
+  const clonedUser = new User()
+    .setExternalUuid(user.getExternalUuid())
+    .setExternalOrganizationUuid(user.getExternalOrganizationUuid())
+    .setEmail(user.getEmail())
+    .setPhone(user.getPhone())
+    .setUsername(user.getUsername())
+    .setGivenName(user.getGivenName())
+    .setFamilyName(user.getFamilyName())
+    .setGender(user.getGender())
+    .setDateOfBirth(user.getDateOfBirth());
+
+  clonedUser.setRoleIdentifiersList(user.getRoleIdentifiersList());
+
+  return clonedUser;
 }

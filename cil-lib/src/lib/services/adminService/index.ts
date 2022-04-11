@@ -101,8 +101,11 @@ export class AdminService {
     this.context = { headers: { authorization: `Bearer ${apiKey}` } };
   }
 
-  private static dupes(graphQLErrors: GraphQLErrors): Map<Uuid, Set<string>> {
+  private static dupes(
+    graphQLErrors: GraphQLErrors
+  ): AdminDupeError | UserDupeError | undefined {
     const dupes: Map<string, Set<string>> = new Map();
+    const dupeUsers: DupeUser[] = [];
     graphQLErrors.forEach((gqlError) => {
       const exception: Record<string, unknown> = gqlError.extensions[
         'exception'
@@ -112,6 +115,25 @@ export class AdminService {
         if (errors && errors instanceof Array) {
           errors.forEach((error) => {
             if (
+              error.code &&
+              error.code === DupeError.ERR_DUPLICATE_ENTITY_ATTRIBUTES
+            ) {
+              if (
+                error.fieldValues &&
+                error.fieldValues instanceof Array &&
+                error.entity === 'User'
+              ) {
+                const fieldValues = error.fieldValues as Array<{
+                  field: string;
+                  value: string;
+                }>;
+
+                const dupeUser = createDupeUser(fieldValues);
+                if (dupeUser) {
+                  dupeUsers.push(dupeUser);
+                }
+              }
+            } else if (
               (error.code &&
                 error.code === DupeError.ERR_DUPLICATE_CHILD_ENTITY) ||
               error.code === DupeError.ERR_DUPLICATE_CHILD_ENTITY_ATTRIBUTE
@@ -131,7 +153,13 @@ export class AdminService {
         }
       }
     });
-    return dupes;
+    if (dupeUsers.length === 0 && dupes.size === 0) {
+      return undefined;
+    }
+    if (dupeUsers.length > 0) {
+      return new UserDupeError(dupeUsers);
+    }
+    return new AdminDupeError(dupes);
   }
 
   public static async getInstance() {
@@ -180,10 +208,10 @@ export class AdminService {
         );
 
         if (graphQLErrors) {
-          const dupes = this.dupes(graphQLErrors);
-          if (dupes.size > 0) {
+          const dupeError = this.dupes(graphQLErrors);
+          if (dupeError) {
             return forward(operation).map((data) => {
-              data.errors = [new AdminDupeError(dupes)];
+              data.errors = [dupeError];
               return data;
             });
           }
@@ -636,7 +664,10 @@ export class AdminService {
         error.graphQLErrors.find((error) => error);
         const dupes = error.graphQLErrors.find((error) => error);
 
-        if (dupes && dupes instanceof AdminDupeError) {
+        if (
+          dupes &&
+          (dupes instanceof AdminDupeError || dupes instanceof UserDupeError)
+        ) {
           throw dupes;
         }
       }
@@ -648,6 +679,7 @@ export class AdminService {
 enum DupeError {
   ERR_DUPLICATE_CHILD_ENTITY = 'ERR_DUPLICATE_CHILD_ENTITY',
   ERR_DUPLICATE_CHILD_ENTITY_ATTRIBUTE = 'ERR_DUPLICATE_CHILD_ENTITY_ATTRIBUTE',
+  ERR_DUPLICATE_ENTITY_ATTRIBUTES = 'ERR_DUPLICATE_ENTITY_ATTRIBUTES',
 }
 
 export class AdminDupeError extends GraphQLError {
@@ -661,4 +693,72 @@ export class AdminDupeError extends GraphQLError {
   public getDupes() {
     return this.dupes;
   }
+}
+
+export class UserDupeError extends GraphQLError {
+  private dupes: DupeUser[];
+
+  constructor(dupes: DupeUser[]) {
+    super('Dupe errors from the admin service');
+    this.dupes = dupes;
+  }
+
+  public getDupes(): Set<string> {
+    return new Set(this.dupes.map((dupe) => dupe.userKey()));
+  }
+}
+
+export class DupeUser {
+  private givenName: string;
+  private familyName: string;
+  private username?: string;
+  private email?: string;
+  private phone?: string;
+
+  constructor(
+    givenName: string,
+    familyName: string,
+    username?: string,
+    email?: string,
+    phone?: string
+  ) {
+    this.givenName = givenName;
+    this.familyName = familyName;
+    this.username = username;
+    this.email = email;
+    this.phone = phone;
+  }
+
+  public userKey() {
+    return `${this.givenName}|${this.familyName}|${
+      this.email?.toLowerCase() ?? ''
+    }|${this.phone ?? ''}|${this.username ?? ''}`;
+  }
+}
+
+function createDupeUser(
+  fieldValues: { field: string; value: string }[]
+): DupeUser | undefined {
+  let givenName;
+  let familyName;
+  let username;
+  let email;
+  let phone;
+  fieldValues.forEach((fieldValue) => {
+    if (fieldValue.field === 'givenName') {
+      givenName = fieldValue.value;
+    } else if (fieldValue.field === 'familyName') {
+      familyName = fieldValue.value;
+    } else if (fieldValue.field === 'username') {
+      username = fieldValue.value;
+    } else if (fieldValue.field === 'email') {
+      email = fieldValue.value;
+    } else if (fieldValue.field === 'phone') {
+      phone = fieldValue.value;
+    }
+  });
+  if (givenName && familyName) {
+    return new DupeUser(givenName, familyName, username, email, phone);
+  }
+  return undefined;
 }
