@@ -1,0 +1,194 @@
+generator external {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl"]
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_TEST_URL")
+}
+
+model Organization {
+  externalUuid String @id @map("external_uuid") @db.Uuid
+  klUuid       String @unique @map("kl_uuid") @db.Uuid
+  name         String @db.VarChar(30)
+
+  schools  School[]
+  classes  Class[]
+  users    UserLinkOrganization[]
+  roles    Role[]
+  programs Program[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@index(klUuid)
+  @@map("validation_organizations")
+}
+
+model School {
+  externalUuid String @id @map("external_uuid") @db.Uuid
+
+  externalOrgUuid String       @map("external_org_uuid") @db.Uuid
+  organization    Organization @relation(fields: [externalOrgUuid], references: [externalUuid])
+
+  classes  ClassLinkSchool[]
+  users    UserLinkSchool[]
+  programs ProgramLink[]
+
+  klUuid String @unique @map("kl_uuid") @db.Uuid
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@index(klUuid)
+  @@map("validation_schools")
+}
+
+model Class {
+  externalUuid String @id @map("external_uuid") @db.Uuid
+
+  klUuid String @unique @map("kl_uuid") @db.Uuid
+
+  externalOrgUuid String       @map("external_org_uuid") @db.Uuid
+  organization    Organization @relation(fields: [externalOrgUuid], references: [externalUuid])
+
+  schools ClassLinkSchool[]
+
+  // Metadata
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+
+
+  @@index(klUuid)
+  @@map("validation_classes")
+}
+
+model ClassLinkSchool {
+  id String @id @default(uuid()) @db.Uuid
+
+  externalClassUuid String @map("external_class_uuid") @db.Uuid
+  class             Class  @relation(fields: [externalClassUuid], references: [externalUuid])
+
+  externalSchoolUuid String @map("external_school_uuid") @db.Uuid
+  school             School @relation(fields: [externalSchoolUuid], references: [externalUuid])
+
+  // Metadata
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@unique([externalClassUuid, externalSchoolUuid])
+  @@map("validation_classes_schools")
+}
+
+model User {
+  externalUuid String @id @map("external_uuid") @db.Uuid
+
+  organizations UserLinkOrganization[]
+  schools       UserLinkSchool[]
+
+  klUuid String @unique @map("kl_uuid") @db.Uuid
+
+  // Metadata
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+
+  @@index([klUuid])
+  @@map("validation_users")
+}
+
+model UserLinkOrganization {
+  id String @id @default(uuid()) @db.Uuid
+
+  externalUuid String @map("external_uuid") @db.Uuid
+  user         User   @relation(fields: [externalUuid], references: [externalUuid])
+
+  externalOrgUuid String       @map("external_org_uuid") @db.Uuid
+  organization    Organization @relation(fields: [externalOrgUuid], references: [externalUuid])
+
+  // Metadata
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  @@unique([externalUuid, externalOrgUuid])
+  @@map("validation_user_organizations")
+}
+
+model UserLinkSchool {
+  id String @id @default(uuid()) @db.Uuid
+
+  externalUuid String @map("external_uuid") @db.Uuid
+  user         User   @relation(fields: [externalUuid], references: [externalUuid])
+
+  externalSchoolUuid String @map("external_school_uuid") @db.Uuid
+  school             School @relation(fields: [externalSchoolUuid], references: [externalUuid])
+
+  // Metadata
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+
+  @@unique([externalUuid, externalSchoolUuid])
+  @@map("validation_user_schools")
+}
+
+model Role {
+  klUuid String @id @map("kl_uuid") @db.Uuid
+  name   String @db.VarChar(20)
+
+  externalOrgUuid String       @map("external_org_uuid") @db.Uuid
+  organization    Organization @relation(fields: [externalOrgUuid], references: [externalUuid])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+
+  @@index([name, externalOrgUuid])
+  @@map("validation_roles")
+}
+
+model Program {
+  klUuid String @id @map("kl_uuid") @db.Uuid
+  name   String @db.VarChar(100)
+
+  externalOrgUuid String       @map("external_org_uuid") @db.Uuid
+  organization    Organization @relation(fields: [externalOrgUuid], references: [externalUuid])
+
+  schoolPrograms ProgramLink[]
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+
+  @@index([name, externalOrgUuid])
+  @@map("validation_programs")
+}
+
+model ProgramLink {
+  id String @id @default(uuid()) @db.Uuid
+
+  klUuid  String  @map("kl_uuid") @db.Uuid
+  program Program @relation(fields: [klUuid], references: [klUuid])
+
+  externalSchoolUuid String @map("external_school_uuid") @db.Uuid
+  school             School @relation(fields: [externalSchoolUuid], references: [externalUuid])
+
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+
+  @@index(klUuid)
+  @@map("validation_school_programs")
+}

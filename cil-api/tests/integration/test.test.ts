@@ -1,8 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 
-import { proto, grpc, Context, protobufToEntity, ExternalUuid } from 'cil-lib';
+import { proto, protobufToEntity, ExternalUuid } from 'cil-lib';
 import { expect } from 'chai';
-import { OnboardingServer } from '../../src/lib/api';
 import {
   getDbProgram,
   getDbRole,
@@ -41,36 +40,28 @@ import {
   OnboardingRequest,
 } from 'cil-lib/dist/main/lib/protos';
 import { getClassConnections } from '../util/class';
-
-const { OnboardingClient } = proto;
+import { grpcTestContext, prismaTestContext } from '../setup';
 
 describe('When receiving requests over the web the server should', () => {
-  let server: grpc.Server;
   let client: proto.OnboardingClient;
 
-  before(async () => {
-    await Context.getInstance(true);
-    server = new grpc.Server();
-    server.addService(proto.OnboardingService, new OnboardingServer());
+  const prismaCtx = prismaTestContext();
+  const grpcCtx = grpcTestContext();
 
-    server.bindAsync(
-      'localhost:0',
-      grpc.ServerCredentials.createInsecure(),
-      (err, port) => {
-        expect(err).to.be.null;
-        client = new OnboardingClient(
-          `localhost:${port}`,
-          grpc.credentials.createInsecure()
-        );
-        server.start();
-        return Promise.resolve();
-      }
-    );
+  before(async () => {
+    // init grpc server
+    grpcCtx.before().then((c) => {
+      client = c;
+    });
+
+    // init Prisma
+    await prismaCtx.before();
   });
 
   after((done) => {
-    if (client) client.close();
-    server.tryShutdown(done);
+    // Clear all test data in the database
+    prismaCtx.after();
+    grpcCtx.after(done);
   });
 
   it('succeed with a small valid series of deterministic inputs', async () => {
