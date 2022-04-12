@@ -17,6 +17,8 @@ export function prismaTestContext() {
   );
 
   // Generate a unique database for this test context
+  global.process.env.DATABASE_URL =
+    'postgresql://postgres:kidsloop@localhost:5432/cil-validation-test';
 
   const test_db = 'cil-validation-test';
 
@@ -26,7 +28,7 @@ export function prismaTestContext() {
     '..',
     'cil-lib',
     'prisma',
-    'schema_test.prisma'
+    'schema.prisma'
   );
 
   let prismaClient: null | PrismaClient = null;
@@ -37,9 +39,9 @@ export function prismaTestContext() {
       // Run the migrations to ensure our schema has the required structure
 
       execSync(`${PATH} ${prismaBinary} db push --schema=${schemaFilePath}`, {
-        env: { DATABASE_TEST_URL: process.env.DATABASE_TEST_URL },
+        env: { DATABASE_URL: global.process.env.DATABASE_URL },
       });
-      console.log('Creating database: ', process.env.DATABASE_TEST_URL);
+      console.log('Creating database: ', global.process.env.DATABASE_URL);
       // Construct a new Prisma Client connected to the generated schema
       prismaClient = new PrismaClient();
       await prismaClient.$connect();
@@ -51,7 +53,7 @@ export function prismaTestContext() {
       execSync(
         `${PATH} ${prismaBinary} db push --force-reset --schema=${schemaFilePath}`,
         {
-          env: { DATABASE_TEST_URL: process.env.DATABASE_TEST_URL },
+          env: { DATABASE_URL: global.process.env.DATABASE_URL },
         }
       );
       console.log('Cleaning database...', test_db);
