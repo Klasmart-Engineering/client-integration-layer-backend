@@ -23,10 +23,9 @@ describe('When receiving requests over the web the server should', () => {
 
   const prismaCtx = prismaTestContext();
   const grpcCtx = grpcTestContext();
-
   before(async () => {
     // init grpc server
-    grpcCtx.before().then((c) => {
+    await grpcCtx.before().then((c) => {
       client = c;
     });
 
@@ -34,10 +33,10 @@ describe('When receiving requests over the web the server should', () => {
     await prismaCtx.before();
   });
 
-  after((done) => {
+  after(async () => {
     // Clear all test data in the database
-    prismaCtx.after();
-    grpcCtx.after(done);
+    await prismaCtx.after();
+    grpcCtx.after();
   });
 
   it('fail the users onboarding if 5 users are valid and 5 are invalid', async () => {

@@ -1,7 +1,5 @@
 export DATABASE_URL="postgresql://postgres:kidsloop@localhost:5432/cil-validation"
 
-
-export DATABASE_TEST_URL="postgresql://postgres:kidsloop@localhost:5432/cil-validation-test"
 export LOG_ENABLED="false"
 export NEW_RELIC_ENABLED="false"
 export ADMIN_SERVICE_URL="http://localhost:8080/user"

@@ -1,9 +1,12 @@
+import { v4 as uuidv4 } from 'uuid';
 import { Context, grpc, PrismaClient, proto } from 'cil-lib';
 import { OnboardingClient } from 'cil-lib/dist/main/lib/protos';
 import { OnboardingServer } from '../src/lib/api';
 
 const { execSync } = require('child_process');
 const path = require('path');
+
+const dbUrl = process.env.DATABASE_URL;
 
 export function prismaTestContext() {
   const PATH = `PATH=${process.env.PATH}`;
@@ -16,12 +19,6 @@ export function prismaTestContext() {
     'prisma'
   );
 
-  // Generate a unique database for this test context
-  global.process.env.DATABASE_URL =
-    'postgresql://postgres:kidsloop@localhost:5432/cil-validation-test';
-
-  const test_db = 'cil-validation-test';
-
   const schemaFilePath = path.join(
     __dirname,
     '..',
@@ -32,36 +29,48 @@ export function prismaTestContext() {
   );
 
   let prismaClient: null | PrismaClient = null;
-
+  let dbName;
   return {
     async before() {
       await prismaClient?.$disconnect();
-      // Run the migrations to ensure our schema has the required structure
 
+      const splitDatabase = dbUrl.split('/');
+      const withoutDatabase = splitDatabase.splice(0, splitDatabase.length - 1);
+      const withDatabase = withoutDatabase;
+
+      // Generate a unique database for this test context
+      dbName = `test-${uuidv4()}`;
+      withDatabase.push(dbName);
+
+      const databaseUrl = withDatabase.join('/');
+      global.process.env.DATABASE_URL = `${databaseUrl}?schema=public`;
+
+      // Run the migrations to ensure our schema has the required structure
       execSync(`${PATH} ${prismaBinary} db push --schema=${schemaFilePath}`, {
         env: { DATABASE_URL: global.process.env.DATABASE_URL },
       });
-      console.log('Creating database: ', global.process.env.DATABASE_URL);
-      // Construct a new Prisma Client connected to the generated schema
+
+      // Construct a new Prisma Client connected to the generated database
       prismaClient = new PrismaClient();
       await prismaClient.$connect();
       return prismaClient;
     },
     async after() {
-      // Drop the schema after the tests have completed
-      //await prismaClient.$executeRaw`DROP DATABASE IF EXISTS "${test_db}"`;
-      execSync(
-        `${PATH} ${prismaBinary} db push --force-reset --schema=${schemaFilePath}`,
-        {
-          env: { DATABASE_URL: global.process.env.DATABASE_URL },
-        }
-      );
-      console.log('Cleaning database...', test_db);
+      // Get list of tables
+      const res: [{ table_name: string }] =
+        await prismaClient.$queryRaw`SELECT table_name from information_schema.tables WHERE table_catalog = ${dbName} AND table_schema = ${'public'}`;
+
+      // Drop the tables after the tests have completed
+      for (let r of res) {
+        const query = `DROP TABLE ${r.table_name} CASCADE`;
+        await prismaClient.$executeRawUnsafe(query);
+      }
       // Release the Prisma Client connection
       await prismaClient.$disconnect();
     },
   };
 }
+
 export function grpcTestContext() {
   let server: grpc.Server;
   let client: proto.OnboardingClient;
@@ -91,9 +100,9 @@ export function grpcTestContext() {
         );
       });
     },
-    after(done) {
+    after() {
       if (client) client.close();
-      server.tryShutdown(done);
+      server.tryShutdown(() => {});
     },
   };
 }

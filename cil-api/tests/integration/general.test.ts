@@ -44,7 +44,7 @@ describe('When receiving requests over the web the server should', () => {
 
   before(async () => {
     // init grpc server
-    grpcCtx.before().then((c) => {
+    await grpcCtx.before().then((c) => {
       client = c;
     });
 
@@ -52,12 +52,11 @@ describe('When receiving requests over the web the server should', () => {
     await prismaCtx.before();
   });
 
-  after((done) => {
+  after(async () => {
     // Clear all test data in the database
-    prismaCtx.after();
-    grpcCtx.after(done);
+    await prismaCtx.after();
+    grpcCtx.after();
   });
-
   it('succeed with a small valid series of deterministic inputs', async () => {
     const res = await populateAdminService();
     const testCase = new TestCaseBuilder()
