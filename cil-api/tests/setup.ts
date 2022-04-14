@@ -1,8 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
-import { Context, grpc, PrismaClient, proto } from 'cil-lib';
+import { Context, grpc, proto } from 'cil-lib';
 import { OnboardingClient } from 'cil-lib/dist/main/lib/protos';
 import { OnboardingServer } from '../src/lib/api';
-
+import { prisma } from 'cil-lib/src/lib/utils/prisma';
 const { execSync } = require('child_process');
 const path = require('path');
 
@@ -28,11 +28,10 @@ export function prismaTestContext() {
     'schema.prisma'
   );
 
-  let prismaClient: null | PrismaClient = null;
   let dbName;
   return {
     async before() {
-      await prismaClient?.$disconnect();
+      await prisma.$disconnect();
 
       const splitDatabase = dbUrl.split('/');
       const withoutDatabase = splitDatabase.splice(0, splitDatabase.length - 1);
@@ -50,23 +49,23 @@ export function prismaTestContext() {
         env: { DATABASE_URL: global.process.env.DATABASE_URL },
       });
 
-      // Construct a new Prisma Client connected to the generated database
-      prismaClient = new PrismaClient();
-      await prismaClient.$connect();
-      return prismaClient;
+      // Get prisma connected to the generated database
+
+      await prisma.$connect();
+      return prisma;
     },
     async after() {
       // Get list of tables
       const res: [{ table_name: string }] =
-        await prismaClient.$queryRaw`SELECT table_name from information_schema.tables WHERE table_catalog = ${dbName} AND table_schema = ${'public'}`;
+        await prisma.$queryRaw`SELECT table_name from information_schema.tables WHERE table_catalog = ${dbName} AND table_schema = ${'public'}`;
 
       // Drop the tables after the tests have completed
       for (let r of res) {
         const query = `DROP TABLE ${r.table_name} CASCADE`;
-        await prismaClient.$executeRawUnsafe(query);
+        await prisma.$executeRawUnsafe(query);
       }
       // Release the Prisma Client connection
-      await prismaClient.$disconnect();
+      await prisma.$disconnect();
     },
   };
 }
