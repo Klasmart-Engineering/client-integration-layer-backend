@@ -15,6 +15,7 @@ import {
   parseRequests,
   parseResponsesForErrorMessages,
   parseResponsesForSuccesses,
+  requestAndResponseIdsMatch,
 } from '../util/parseRequest';
 import {
   createOrg as createOrgInAdminService,
@@ -72,6 +73,8 @@ describe('When receiving requests over the web the server should', () => {
       .responsesList.every((r) => r.success === true);
     expect(allSuccess).to.be.true;
 
+    expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
+
     await assertSchoolUsersInAdmin(testCase);
   }).timeout(50000);
 
@@ -96,6 +99,8 @@ describe('When receiving requests over the web the server should', () => {
       expect(value.size).to.equal(0);
     }
 
+    expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
+
     await assertSchoolUsersInAdmin(testCase);
   }).timeout(50000);
 
@@ -119,6 +124,8 @@ describe('When receiving requests over the web the server should', () => {
     for (const value of errorMessages.values()) {
       expect(value.size).to.equal(0);
     }
+
+    expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
 
     await assertSchoolUsersInAdmin(testCase);
   }).timeout(50000);
@@ -207,6 +214,9 @@ describe('When receiving requests over the web the server should', () => {
     expect(
       result.getResponsesList().map((response) => response.getEntityId())
     ).includes.members([schoolId]);
+
+    expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
+
     const school = await getSchool(schoolId);
     expect(school).to.be.not.undefined;
     expect(school.externalUuid).to.be.equal(schoolId);
@@ -245,29 +255,35 @@ describe('When receiving requests over the web the server should', () => {
       .responsesList.every((response) => response.success === true);
     expect(allSuccess).to.be.true;
 
-    const request = new OnboardingRequest().setLinkEntities(
-      new proto.Link().setAddUsersToOrganization(
-        new AddUsersToOrganization()
-          .setExternalOrganizationUuid(org.id)
-          .setRoleIdentifiersList(['TEST ROLE 1'])
-          .setExternalUserUuidsList([userId1, userId2])
-      )
-    );
+    const request = wrapRequest([
+      new OnboardingRequest().setLinkEntities(
+        new proto.Link().setAddUsersToOrganization(
+          new AddUsersToOrganization()
+            .setExternalOrganizationUuid(org.id)
+            .setRoleIdentifiersList(['TEST ROLE 1'])
+            .setExternalUserUuidsList([userId1, userId2])
+        )
+      ),
+    ]);
 
-    const result = await (
-      await onboard(wrapRequest([request]), client)
-    ).toObject().responsesList;
-    expect(result.filter((resp) => resp.success === false)).to.be.length(2);
-    expect(result.filter((r) => r.errors)).to.be.length(2);
+    const result = await await onboard(request, client);
+    expect(
+      result.toObject().responsesList.filter((resp) => resp.success === false)
+    ).to.be.length(2);
+    expect(
+      result.toObject().responsesList.filter((r) => r.errors)
+    ).to.be.length(2);
     expect(
       result
-        .filter((resp) => resp.errors)
+        .toObject()
+        .responsesList.filter((resp) => resp.errors)
         .filter((resp) => resp.errors.entityAlreadyExists)
     ).to.be.length(2);
-    expect(result.map((resp) => resp.entityId)).to.includes.members([
-      userId1,
-      userId2,
-    ]);
+    expect(
+      result.toObject().responsesList.map((resp) => resp.entityId)
+    ).to.includes.members([userId1, userId2]);
+
+    expect(requestAndResponseIdsMatch(request, result)).to.be.true;
 
     const user1 = await getUser(userId1);
     expect(user1.externalOrgIds).to.include.members([org.id]);
@@ -308,6 +324,8 @@ describe('When receiving requests over the web the server should', () => {
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
+
+    expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
 
     const returnedSchool = await getSchool(schoolId);
     expect(returnedSchool).to.be.not.undefined;
@@ -364,16 +382,19 @@ describe('When receiving requests over the web the server should', () => {
     expect(rolesFirst).to.not.include(orgRoles[1]);
 
     // Add a new valid Org role to User
-    const request = new OnboardingRequest().setLinkEntities(
-      new proto.Link().setAddOrganizationRolesToUser(
-        new AddOrganizationRolesToUser()
-          .setExternalOrganizationUuid(org.id)
-          .setExternalUserUuid(user)
-          .setRoleIdentifiersList([orgRoles[1]])
-      )
-    );
+    const request = wrapRequest([
+      new OnboardingRequest().setLinkEntities(
+        new proto.Link().setAddOrganizationRolesToUser(
+          new AddOrganizationRolesToUser()
+            .setExternalOrganizationUuid(org.id)
+            .setExternalUserUuid(user)
+            .setRoleIdentifiersList([orgRoles[1]])
+        )
+      ),
+    ]);
+    const result = await onboard(request, client);
 
-    await onboard(wrapRequest([request]), client);
+    expect(requestAndResponseIdsMatch(request, result)).to.be.true;
 
     const roles = await getUserOrgRoles(org.id, user);
     expect(roles).to.include(orgRoles[1]);

@@ -110,3 +110,22 @@ export const parseResponsesForErrorMessages = (
   }
   return errors;
 };
+
+export function requestAndResponseIdsMatch(
+  requests: proto.BatchOnboarding,
+  responses: proto.Responses
+): boolean {
+  const requestIds = requests
+    .getRequestsList()
+    .map((req) => req.getRequestId());
+  const responseIds = responses
+    .getResponsesList()
+    .map((res) => res.getRequestId());
+
+  const uniqueRequestIds = new Set(
+    requestIds.map((r) => `${r.getId()}-${r.getN()}`)
+  );
+  return responseIds.every((r) => {
+    return uniqueRequestIds.has(`${r.getId()}-${r.getN()}`);
+  });
+}

@@ -8,6 +8,7 @@ import { TestCaseBuilder } from '../util/testCases';
 import { getUser, setUpUser } from '../util/user';
 import { IdNameMapper } from 'cil-lib/dist/main/lib/services/adminService';
 import { grpcTestContext, prismaTestContext } from '../setup';
+import { requestAndResponseIdsMatch } from '../util/parseRequest';
 
 describe('When receiving requests over the web the server should', () => {
   let client: proto.OnboardingClient;
@@ -40,26 +41,30 @@ describe('When receiving requests over the web the server should', () => {
     const user2 = setUpUser(org.id, uuidv4());
     const reqs = new TestCaseBuilder().addValidOrgs(res).finalize();
 
-    const setUp = await onboard(reqs, client);
-    const allSuccess = setUp
+    const result = await onboard(reqs, client);
+    const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
     expect(allSuccess).to.be.true;
 
-    const results = await (
-      await onboard(
-        wrapRequest([
-          new proto.OnboardingRequest().setUser(user1),
-          new proto.OnboardingRequest().setUser(user2),
-        ]),
-        client
-      )
-    ).toObject().responsesList;
+    expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
 
-    expect(results.filter((result) => result.success === true)).to.be.length(1);
-    expect(results.filter((result) => result.errors)).to.be.length(1);
+    const anotherReq = wrapRequest([
+      new proto.OnboardingRequest().setUser(user1),
+      new proto.OnboardingRequest().setUser(user2),
+    ]);
+    const results = await onboard(anotherReq, client);
+
+    const respList = await results.toObject().responsesList;
+
+    expect(requestAndResponseIdsMatch(anotherReq, results)).to.be.true;
+
+    expect(respList.filter((result) => result.success === true)).to.be.length(
+      1
+    );
+    expect(respList.filter((result) => result.errors)).to.be.length(1);
     expect(
-      results
+      respList
         .filter((result) => result.errors)
         .map((result) => result.errors)
         .filter((error) => error.validation)
@@ -89,6 +94,9 @@ describe('When receiving requests over the web the server should', () => {
       .addCustomizableUser({ email: invalidEmail })
       .finalize();
     const result = await onboard(reqs, client);
+
+    expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
+
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
@@ -123,6 +131,8 @@ describe('When receiving requests over the web the server should', () => {
       .responsesList.every((r) => r.success === true);
     expect(allSuccess).to.be.true;
 
+    expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
+
     const returnedUser = await getUser(externalUuid);
     expect(returnedUser).to.be.not.undefined;
     expect(returnedUser).to.have.property('username');
@@ -131,7 +141,10 @@ describe('When receiving requests over the web the server should', () => {
 
   it('fail the user onboarding if phone format is wrong', async () => {
     const res = await populateAdminService();
-    let invalidPhone = '34o';
+
+    // Generate a random invalid phone number
+    let invalidPhone = (Math.random() * 1e16).toString(16);
+
     const reqs = new TestCaseBuilder()
       .addValidOrgs(res)
       .addValidSchoolsToEachOrg(5)
@@ -142,6 +155,8 @@ describe('When receiving requests over the web the server should', () => {
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
+
+    expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
     expect(allSuccess).to.be.false;
     // Invalid phone number
   }).timeout(50000);
@@ -162,6 +177,9 @@ describe('When receiving requests over the web the server should', () => {
       .addUser({ dateOfBirth: '', externalUuid: externalUuid4 })
       .finalize();
     const result = await onboard(reqs, client);
+
+    expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
+
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
@@ -195,6 +213,9 @@ describe('When receiving requests over the web the server should', () => {
       .addCustomizableUser({ email: '', phone: '', username: '' })
       .finalize();
     const result = await onboard(reqs, client);
+
+    expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
+
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
@@ -210,6 +231,9 @@ describe('When receiving requests over the web the server should', () => {
       .addUser({ roleIdentifiersList: [''] }, false)
       .finalize();
     const result = await onboard(reqs, client);
+
+    expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
+
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
@@ -231,8 +255,10 @@ describe('When receiving requests over the web the server should', () => {
         email,
       })
       .finalize();
-    const setUp = await onboard(reqs, client);
-    const allSuccess = setUp
+    const result = await onboard(reqs, client);
+
+    expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
+    const allSuccess = result
       .toObject()
       .responsesList.every((response) => response.success === true);
     expect(allSuccess).to.be.true;
@@ -260,6 +286,9 @@ describe('When receiving requests over the web the server should', () => {
       .finalize();
 
     const result = await onboard(reqs, client);
+
+    expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
+
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
