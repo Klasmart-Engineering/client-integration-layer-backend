@@ -1,8 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 
-import { proto, grpc, Context, ExternalUuid } from 'cil-lib';
+import { proto, ExternalUuid } from 'cil-lib';
 import { expect } from 'chai';
-import { OnboardingServer } from '../../src/lib/api';
 import { onboard, populateAdminService, wrapRequest } from '../util';
 import { TestCaseBuilder } from '../util/testCases';
 import { getClassProgramsConnections } from '../util/class';
@@ -19,37 +18,7 @@ import {
 import { getClassConnections } from '../util/class';
 import { requestAndResponseIdsMatch } from '../util/parseRequest';
 
-const { Onboardingglobal.client } = proto;
-
 describe('When receiving requests over the web the server should', () => {
-  let server: grpc.Server;
-  let global.client: proto.Onboardingglobal.client;
-
-  before(async () => {
-    await Context.getInstance(true);
-    server = new grpc.Server();
-    server.addService(proto.OnboardingService, new OnboardingServer());
-
-    server.bindAsync(
-      'localhost:0',
-      grpc.ServerCredentials.createInsecure(),
-      (err, port) => {
-        expect(err).to.be.null;
-        global.client = new Onboardingglobal.client(
-          `localhost:${port}`,
-          grpc.credentials.createInsecure()
-        );
-        server.start();
-        return Promise.resolve();
-      }
-    );
-  });
-
-  after((done) => {
-    if (global.client) global.client.close();
-    server.tryShutdown(done);
-  });
-
   it('fail the users onboarding if 5 users are valid and 5 are invalid', async () => {
     const res = await populateAdminService();
     let builder = new TestCaseBuilder()
