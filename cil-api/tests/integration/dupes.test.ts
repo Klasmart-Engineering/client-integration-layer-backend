@@ -6,16 +6,18 @@ import { OnboardingServer } from '../../src/lib/api';
 import { onboard, populateAdminService, wrapRequest } from '../util';
 import { TestCaseBuilder } from '../util/testCases';
 import { getClassProgramsConnections } from '../util/class';
-import { deleteUsers, setUpUser } from '../util/user';
+import { deleteUsers, setUpUser, getUser } from '../util/user';
 import { IdNameMapper } from 'cil-lib/dist/main/lib/services/adminService';
 import {
   AddClassesToSchool,
   AddProgramsToClass,
   AddUsersToClass,
+  AddUsersToOrganization,
   AddUsersToSchool,
   OnboardingRequest,
 } from 'cil-lib/dist/main/lib/protos';
 import { getClassConnections } from '../util/class';
+import { requestAndResponseIdsMatch } from '../util/parseRequest';
 
 const { OnboardingClient } = proto;
 
@@ -69,6 +71,8 @@ describe('When receiving requests over the web the server should', () => {
       .responsesList.every((r) => r.success === true);
     expect(allSuccess).to.be.false;
     // "Users: [id] do not belong to the same parent school as the class [id]. When attempting to add users to a class they must share the same parent school"
+
+    expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
   }).timeout(50000);
 
   it('handle dupe adding users to classes that already exists', async () => {
@@ -121,33 +125,45 @@ describe('When receiving requests over the web the server should', () => {
       .responsesList.every((response) => response.success === true);
     expect(allSuccess).to.be.true;
 
-    const request = new OnboardingRequest().setLinkEntities(
-      new proto.Link().setAddUsersToClass(
-        new AddUsersToClass()
-          .setExternalClassUuid(classId)
-          .setExternalTeacherUuidList([teacherId1, teacherId2, teacherId3])
-          .setExternalStudentUuidList([studentId1, studentId2])
-      )
-    );
+    const request = wrapRequest([
+      new OnboardingRequest().setLinkEntities(
+        new proto.Link().setAddUsersToClass(
+          new AddUsersToClass()
+            .setExternalClassUuid(classId)
+            .setExternalTeacherUuidList([teacherId1, teacherId2, teacherId3])
+            .setExternalStudentUuidList([studentId1, studentId2])
+        )
+      ),
+    ]);
 
-    const result = await (
-      await onboard(wrapRequest([request]), client)
-    ).toObject().responsesList;
-    expect(result.filter((resp) => resp.success === true)).to.be.length(2);
-    expect(result.filter((resp) => resp.success === false)).to.be.length(3);
-    expect(result.filter((r) => r.errors)).to.be.length(3);
+    const result = await onboard(request, client);
+
+    expect(
+      result.toObject().responsesList.filter((resp) => resp.success === true)
+    ).to.be.length(2);
+    expect(
+      result.toObject().responsesList.filter((resp) => resp.success === false)
+    ).to.be.length(3);
+    expect(
+      result.toObject().responsesList.filter((r) => r.errors)
+    ).to.be.length(3);
     expect(
       result
-        .filter((resp) => resp.errors)
+        .toObject()
+        .responsesList.filter((resp) => resp.errors)
         .filter((resp) => resp.errors.entityAlreadyExists)
     ).to.be.length(3);
-    expect(result.map((resp) => resp.entityId)).to.includes.members([
+    expect(
+      result.toObject().responsesList.map((resp) => resp.entityId)
+    ).to.includes.members([
       teacherId1,
       teacherId2,
       teacherId3,
       studentId1,
       studentId2,
     ]);
+
+    expect(requestAndResponseIdsMatch(request, result)).to.be.true;
 
     const classConnections = await getClassConnections(classId);
     expect(
@@ -201,31 +217,36 @@ describe('When receiving requests over the web the server should', () => {
       .responsesList.every((response) => response.success === true);
     expect(allSuccess).to.be.true;
 
-    const request = new OnboardingRequest().setLinkEntities(
-      new proto.Link().setAddUsersToClass(
-        new AddUsersToClass()
-          .setExternalClassUuid(classId)
-          .setExternalTeacherUuidList([teacherId1, teacherId2])
-          .setExternalStudentUuidList([studentId1, studentId2])
-      )
-    );
+    const request = wrapRequest([
+      new OnboardingRequest().setLinkEntities(
+        new proto.Link().setAddUsersToClass(
+          new AddUsersToClass()
+            .setExternalClassUuid(classId)
+            .setExternalTeacherUuidList([teacherId1, teacherId2])
+            .setExternalStudentUuidList([studentId1, studentId2])
+        )
+      ),
+    ]);
 
-    const result = await (
-      await onboard(wrapRequest([request]), client)
-    ).toObject().responsesList;
-    expect(result.filter((resp) => resp.success === false)).to.be.length(4);
-    expect(result.filter((r) => r.errors)).to.be.length(4);
+    const result = await onboard(request, client);
+
+    expect(
+      result.toObject().responsesList.filter((resp) => resp.success === false)
+    ).to.be.length(4);
+    expect(
+      result.toObject().responsesList.filter((r) => r.errors)
+    ).to.be.length(4);
     expect(
       result
-        .filter((resp) => resp.errors)
+        .toObject()
+        .responsesList.filter((resp) => resp.errors)
         .filter((resp) => resp.errors.entityAlreadyExists)
     ).to.be.length(4);
-    expect(result.map((resp) => resp.entityId)).to.includes.members([
-      teacherId1,
-      teacherId2,
-      studentId1,
-      studentId2,
-    ]);
+    expect(
+      result.toObject().responsesList.map((resp) => resp.entityId)
+    ).to.includes.members([teacherId1, teacherId2, studentId1, studentId2]);
+
+    expect(requestAndResponseIdsMatch(request, result)).to.be.true;
 
     const classConnections = await getClassConnections(classId);
     expect(
@@ -278,30 +299,31 @@ describe('When receiving requests over the web the server should', () => {
       classId,
     ]);
 
-    const result = await (
-      await onboard(
-        wrapRequest([
-          addTeachersToClassReq(classId, [teacherId1]),
-          addTeachersToClassReq(classId, [teacherId2, teacherId3]),
-        ]),
-        client
-      )
-    ).getResponsesList();
+    const request = wrapRequest([
+      addTeachersToClassReq(classId, [teacherId1]),
+      addTeachersToClassReq(classId, [teacherId2, teacherId3]),
+    ]);
+    const result = await onboard(request, client);
 
-    expect(result).to.be.length(3);
-    expect(result.filter((resp) => resp.getSuccess() === true)).to.be.length(1);
-    expect(result.filter((resp) => resp.getErrors())).to.be.length(2);
+    expect(result.getResponsesList()).to.be.length(3);
+    expect(
+      result.getResponsesList().filter((resp) => resp.getSuccess() === true)
+    ).to.be.length(1);
+    expect(
+      result.getResponsesList().filter((resp) => resp.getErrors())
+    ).to.be.length(2);
 
     expect(
       result
+        .getResponsesList()
         .filter((resp) => resp.getErrors())
         .filter((resp) => resp.getErrors().getEntityAlreadyExists())
     ).to.be.length(2);
-    expect(result.map((resp) => resp.getEntityId())).to.includes.members([
-      teacherId1,
-      teacherId2,
-      teacherId3,
-    ]);
+    expect(
+      result.getResponsesList().map((resp) => resp.getEntityId())
+    ).to.includes.members([teacherId1, teacherId2, teacherId3]);
+
+    expect(requestAndResponseIdsMatch(request, result)).to.be.true;
 
     const classConnections = await getClassConnections(classId);
     expect(
@@ -352,30 +374,31 @@ describe('When receiving requests over the web the server should', () => {
       classId,
     ]);
 
-    const result = await (
-      await onboard(
-        wrapRequest([
-          addStudentsToClassReq(classId, [student1]),
-          addStudentsToClassReq(classId, [student2, student3]),
-        ]),
-        client
-      )
-    ).getResponsesList();
+    const request = wrapRequest([
+      addStudentsToClassReq(classId, [student1]),
+      addStudentsToClassReq(classId, [student2, student3]),
+    ]);
+    const result = await onboard(request, client);
 
-    expect(result).to.be.length(3);
-    expect(result.filter((resp) => resp.getSuccess() === true)).to.be.length(1);
-    expect(result.filter((resp) => resp.getErrors())).to.be.length(2);
+    expect(result.getResponsesList()).to.be.length(3);
+    expect(
+      result.getResponsesList().filter((resp) => resp.getSuccess() === true)
+    ).to.be.length(1);
+    expect(
+      result.getResponsesList().filter((resp) => resp.getErrors())
+    ).to.be.length(2);
 
     expect(
       result
+        .getResponsesList()
         .filter((resp) => resp.getErrors())
         .filter((resp) => resp.getErrors().getEntityAlreadyExists())
     ).to.be.length(2);
-    expect(result.map((resp) => resp.getEntityId())).to.includes.members([
-      student1,
-      student2,
-      student3,
-    ]);
+    expect(
+      result.getResponsesList().map((resp) => resp.getEntityId())
+    ).to.includes.members([student1, student2, student3]);
+
+    expect(requestAndResponseIdsMatch(request, result)).to.be.true;
 
     const classConnections = await getClassConnections(classId);
     expect(
@@ -433,14 +456,12 @@ describe('When receiving requests over the web the server should', () => {
     expect(
       setUpResult.getResponsesList().map((result) => result.getEntityId())
     ).includes.members([classId1, classId2, schoolId]);
-    const result = await await onboard(
-      wrapRequest([
-        addProgramsToClassReq(classId1, ['TEST PROGRAM 1']),
-        addProgramsToClassReq(classId1, ['TEST PROGRAM 2']),
-        addProgramsToClassReq(classId2, ['TEST PROGRAM 3']),
-      ]),
-      client
-    );
+    const request = wrapRequest([
+      addProgramsToClassReq(classId1, ['TEST PROGRAM 1']),
+      addProgramsToClassReq(classId1, ['TEST PROGRAM 2']),
+      addProgramsToClassReq(classId2, ['TEST PROGRAM 3']),
+    ]);
+    const result = await onboard(request, client);
 
     const allSuccess = result
       .toObject()
@@ -453,6 +474,8 @@ describe('When receiving requests over the web the server should', () => {
     expect(
       result.getResponsesList().map((resp) => resp.getEntityId())
     ).to.includes.members([classId1, classId2]);
+
+    expect(requestAndResponseIdsMatch(request, result)).to.be.true;
 
     const class1ProgramsConnections = await getClassProgramsConnections(
       classId1
@@ -522,30 +545,28 @@ describe('When receiving requests over the web the server should', () => {
       setUpResult.getResponsesList().map((result) => result.getEntityId())
     ).includes.members([classId1, classId2, schoolId]);
 
-    const result = await onboard(
-      wrapRequest([
-        addProgramsToClassReq(classId1, ['TEST PROGRAM 1']),
-        addProgramsToClassReq(classId1, ['TEST PROGRAM 2']),
-        addProgramsToClassReq(classId1, [
-          'TEST PROGRAM 1',
-          'TEST PROGRAM 2',
-          'TEST PROGRAM 3',
-        ]),
-        addProgramsToClassReq(classId1, ['TEST PROGRAM 3', 'TEST PROGRAM 4']),
-        addProgramsToClassReq(classId1, ['TEST PROGRAM 1', 'TEST PROGRAM 2']),
-        addProgramsToClassReq(classId2, ['TEST PROGRAM 1', 'TEST PROGRAM 2']),
-        addProgramsToClassReq(classId2, ['TEST PROGRAM 1', 'TEST PROGRAM 2']),
-        addProgramsToClassReq(classId2, ['TEST PROGRAM 3']),
-        addProgramsToClassReq(classId2, ['TEST PROGRAM 3', 'TEST PROGRAM 4']),
-        addProgramsToClassReq(classId2, [
-          'TEST PROGRAM 1',
-          'TEST PROGRAM 2',
-          'TEST PROGRAM 3',
-          'TEST PROGRAM 4',
-        ]),
+    const request = wrapRequest([
+      addProgramsToClassReq(classId1, ['TEST PROGRAM 1']),
+      addProgramsToClassReq(classId1, ['TEST PROGRAM 2']),
+      addProgramsToClassReq(classId1, [
+        'TEST PROGRAM 1',
+        'TEST PROGRAM 2',
+        'TEST PROGRAM 3',
       ]),
-      client
-    );
+      addProgramsToClassReq(classId1, ['TEST PROGRAM 3', 'TEST PROGRAM 4']),
+      addProgramsToClassReq(classId1, ['TEST PROGRAM 1', 'TEST PROGRAM 2']),
+      addProgramsToClassReq(classId2, ['TEST PROGRAM 1', 'TEST PROGRAM 2']),
+      addProgramsToClassReq(classId2, ['TEST PROGRAM 1', 'TEST PROGRAM 2']),
+      addProgramsToClassReq(classId2, ['TEST PROGRAM 3']),
+      addProgramsToClassReq(classId2, ['TEST PROGRAM 3', 'TEST PROGRAM 4']),
+      addProgramsToClassReq(classId2, [
+        'TEST PROGRAM 1',
+        'TEST PROGRAM 2',
+        'TEST PROGRAM 3',
+        'TEST PROGRAM 4',
+      ]),
+    ]);
+    const result = await onboard(request, client);
 
     expect(result.getResponsesList()).to.be.length(19);
 
@@ -581,6 +602,8 @@ describe('When receiving requests over the web the server should', () => {
         .filter((resp) => resp.getErrors().getEntityAlreadyExists())
         .filter((resp) => resp.getEntityId() === classId2)
     ).to.be.length(7);
+
+    expect(requestAndResponseIdsMatch(request, result)).to.be.true;
 
     const class1ProgramsConnections = await getClassProgramsConnections(
       classId1
@@ -672,17 +695,15 @@ describe('When receiving requests over the web the server should', () => {
       setUpResult.getResponsesList().map((result) => result.getEntityId())
     ).includes.members([classId1, classId2, classId3, schoolId1, schoolId2]);
 
-    const result = await onboard(
-      wrapRequest([
-        addClassesToSchoolReq(schoolId1, [classId1, classId2]),
-        addClassesToSchoolReq(schoolId1, [classId2, classId3]),
-        addClassesToSchoolReq(schoolId1, [classId1]),
-        addClassesToSchoolReq(schoolId2, [classId1, classId2]),
-        addClassesToSchoolReq(schoolId2, [classId3]),
-        addClassesToSchoolReq(schoolId2, [classId3, classId4]),
-      ]),
-      client
-    );
+    const request = wrapRequest([
+      addClassesToSchoolReq(schoolId1, [classId1, classId2]),
+      addClassesToSchoolReq(schoolId1, [classId2, classId3]),
+      addClassesToSchoolReq(schoolId1, [classId1]),
+      addClassesToSchoolReq(schoolId2, [classId1, classId2]),
+      addClassesToSchoolReq(schoolId2, [classId3]),
+      addClassesToSchoolReq(schoolId2, [classId3, classId4]),
+    ]);
+    const result = await onboard(request, client);
 
     expect(result.getResponsesList()).to.be.length(10);
     expect(
@@ -736,6 +757,8 @@ describe('When receiving requests over the web the server should', () => {
         .filter((r) => r.getErrors().getEntityDoesNotExist())
         .filter((r) => r.getEntityId() === classId4)
     ).to.be.length(1);
+
+    expect(requestAndResponseIdsMatch(request, result)).to.be.true;
   }).timeout(50000);
 
   it('handle user with same fields but with different external uuid in same request', async () => {
@@ -757,26 +780,46 @@ describe('When receiving requests over the web the server should', () => {
 
     const user = setUpUser(org.id);
     const dupeUser = cloneUser(user).setExternalUuid(uuidv4());
-    const result = await (
-      await onboard(
-        wrapRequest([
-          new proto.OnboardingRequest().setUser(user),
-          new proto.OnboardingRequest().setUser(dupeUser),
-        ]),
-        client
-      )
-    ).toObject().responsesList;
-
-    expect(result).to.be.length(2);
-    expect(result.filter((r) => r.success === true)).to.be.length(1);
-    expect(result.filter((r) => r.errors)).to.be.length(1);
-    expect(
-      result.filter((r) => r.errors).filter((r) => r.errors.validation)
-    ).to.be.length(1);
-    expect(result.map((resp) => resp.entityId)).to.includes.members([
-      user.getExternalUuid(),
-      dupeUser.getExternalUuid(),
+    const request = wrapRequest([
+      new proto.OnboardingRequest().setUser(user),
+      new proto.OnboardingRequest().setUser(dupeUser),
+      new proto.OnboardingRequest().setLinkEntities(
+        new proto.Link().setAddUsersToOrganization(
+          new AddUsersToOrganization()
+            .setExternalOrganizationUuid(org.id)
+            .setExternalUserUuidsList([
+              user.getExternalUuid(),
+              dupeUser.getExternalUuid(),
+            ])
+            .setRoleIdentifiersList(['TEST ROLE 1'])
+        )
+      ),
     ]);
+    const result = await onboard(request, client);
+
+    expect(result.toObject().responsesList).to.be.length(4);
+    expect(
+      result.toObject().responsesList.filter((r) => r.success === true)
+    ).to.be.length(2);
+    expect(
+      result.toObject().responsesList.filter((r) => r.errors)
+    ).to.be.length(2);
+    expect(
+      result
+        .toObject()
+        .responsesList.filter((r) => r.errors)
+        .filter((r) => r.errors.validation)
+    ).to.be.length(1);
+    expect(
+      result.toObject().responsesList.map((resp) => resp.entityId)
+    ).to.includes.members([user.getExternalUuid(), dupeUser.getExternalUuid()]);
+
+    expect(requestAndResponseIdsMatch(request, result)).to.be.true;
+
+    const userInAdmin = await getUser(user.getExternalUuid());
+    expect(userInAdmin.externalOrgIds).to.include.members([org.id]);
+    const dupe = await getUser(dupeUser.getExternalUuid());
+    expect(dupe).to.be.undefined;
   }).timeout(50000);
 
   it('handle onboarding users which already exists and a new user in the system', async () => {
@@ -819,35 +862,42 @@ describe('When receiving requests over the web the server should', () => {
 
     const user5 = setUpUser(org.id);
 
-    const dupe = await (
-      await onboard(
-        wrapRequest([
-          new proto.OnboardingRequest().setUser(user1),
-          new proto.OnboardingRequest().setUser(user2),
-          new proto.OnboardingRequest().setUser(user3),
-          new proto.OnboardingRequest().setUser(user4),
-          new proto.OnboardingRequest().setUser(user5),
-        ]),
-        client
-      )
-    ).toObject().responsesList;
+    const dupeReq = wrapRequest([
+      new proto.OnboardingRequest().setUser(user1),
+      new proto.OnboardingRequest().setUser(user2),
+      new proto.OnboardingRequest().setUser(user3),
+      new proto.OnboardingRequest().setUser(user4),
+      new proto.OnboardingRequest().setUser(user5),
+    ]);
+    const response = await onboard(dupeReq, client);
 
-    expect(dupe).to.be.length(5);
-    expect(dupe.filter((resp) => resp.success === true)).to.be.length(1);
-    expect(dupe.filter((resp) => resp.success === false)).to.be.length(4);
-    expect(dupe.filter((r) => r.errors)).to.be.length(4);
+    expect(response.toObject().responsesList).to.be.length(5);
     expect(
-      dupe
-        .filter((resp) => resp.errors)
+      response.toObject().responsesList.filter((resp) => resp.success === true)
+    ).to.be.length(1);
+    expect(
+      response.toObject().responsesList.filter((resp) => resp.success === false)
+    ).to.be.length(4);
+    expect(
+      response.toObject().responsesList.filter((r) => r.errors)
+    ).to.be.length(4);
+    expect(
+      response
+        .toObject()
+        .responsesList.filter((resp) => resp.errors)
         .filter((resp) => resp.errors.entityAlreadyExists)
     ).to.be.length(4);
-    expect(dupe.map((resp) => resp.entityId)).to.includes.members([
+    expect(
+      response.toObject().responsesList.map((resp) => resp.entityId)
+    ).to.includes.members([
       user1.getExternalUuid(),
       user2.getExternalUuid(),
       user3.getExternalUuid(),
       user4.getExternalUuid(),
       user5.getExternalUuid(),
     ]);
+
+    expect(requestAndResponseIdsMatch(dupeReq, response)).to.be.true;
   }).timeout(50000);
 
   it('succeed when onboarding more than 50 users and linked them to school, then onboard the same batch again and not get any internal server errors', async () => {
@@ -906,6 +956,9 @@ describe('When receiving requests over the web the server should', () => {
         .filter((resp) => resp.getEntity() === proto.Entity.ORGANIZATION)
         .filter((resp) => resp.getEntityId() === org.id)
     ).to.be.length(1);
+
+    expect(requestAndResponseIdsMatch(setUpRequest, resultSameBatch)).to.be
+      .true;
   });
 
   it('handling the dupe entries in validation part when trying to link users to school', async () => {
@@ -963,6 +1016,9 @@ describe('When receiving requests over the web the server should', () => {
         .filter((resp) => resp.getErrors())
         .filter((resp) => resp.getErrors().getEntityAlreadyExists())
     ).to.be.length(11);
+
+    expect(requestAndResponseIdsMatch(setUpRequest, resultSameUsers)).to.be
+      .true;
   });
 
   it('handling different scenarios in the validation part for linking users to school and prepare the corresponding responses', async () => {
@@ -1011,16 +1067,14 @@ describe('When receiving requests over the web the server should', () => {
 
     expect(allSuccess).to.be.true;
 
-    const result = await onboard(
-      wrapRequest([
-        addUsersToSchoolReq(schoolId, [uuidv4(), userId1]),
-        addUsersToSchoolReq(uuidv4(), [userId2, userId1]),
-        addUsersToSchoolReq(uuidv4(), []),
-        addUsersToSchoolReq(schoolId, [userId3, uuidv4(), userId2]),
-        addUsersToSchoolReq(schoolId, [userId4, userId2]),
-      ]),
-      client
-    );
+    const request = wrapRequest([
+      addUsersToSchoolReq(schoolId, [uuidv4(), userId1]),
+      addUsersToSchoolReq(uuidv4(), [userId2, userId1]),
+      addUsersToSchoolReq(uuidv4(), []),
+      addUsersToSchoolReq(schoolId, [userId3, uuidv4(), userId2]),
+      addUsersToSchoolReq(schoolId, [userId4, userId2]),
+    ]);
+    const result = await onboard(request, client);
 
     expect(
       result.getResponsesList().filter((resp) => resp.getSuccess() === true)
@@ -1046,6 +1100,8 @@ describe('When receiving requests over the web the server should', () => {
         .filter((resp) => resp.getErrors())
         .filter((resp) => resp.getErrors().getValidation()) // school doesn't exist
     ).to.be.length(3);
+
+    expect(requestAndResponseIdsMatch(request, result)).to.be.true;
   });
 }).timeout(50000);
 
