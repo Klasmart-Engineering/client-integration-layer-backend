@@ -8,29 +8,8 @@ import {
   parseResponsesForErrorIds,
   parseResponsesForErrorMessages,
 } from '../util/parseRequest';
-import { grpcTestContext, prismaTestContext } from '../setup';
 
 describe('When receiving requests over the web the server should', () => {
-  let client: proto.OnboardingClient;
-
-  const prismaCtx = prismaTestContext();
-  const grpcCtx = grpcTestContext();
-
-  before(async () => {
-    // init grpc server
-    await grpcCtx.before().then((c) => {
-      client = c;
-    });
-
-    // init Prisma
-    await prismaCtx.before();
-  });
-
-  after(async () => {
-    // Clear all test data in the database
-    await prismaCtx.after();
-    grpcCtx.after();
-  });
   it('fail to onboard a school and subsequent children when the school is invalid', async () => {
     const res = await populateAdminService();
     const invalidSchoolId = uuidv4();
@@ -41,7 +20,7 @@ describe('When receiving requests over the web the server should', () => {
       .addValidClassesToEachSchool(5)
       .addValidUsersToEachSchool(10, 1, 5)
       .finalize();
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
     const errors = parseResponsesForErrorIds(result);
     const schoolErrors = errors.get(proto.Entity.SCHOOL);
     const classErrors = errors.get(proto.Entity.CLASS);
@@ -59,7 +38,7 @@ describe('When receiving requests over the web the server should', () => {
       // adding one class and link it to an non-existing school
       .addClass({ externalSchoolUuid: invalidSchoolId }, false)
       .finalize();
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
     const errors = parseResponsesForErrorMessages(result);
     const classErrors = errors.get(proto.Entity.CLASS);
     expect(classErrors.keys().next().value).to.not.be.undefined;
@@ -74,7 +53,7 @@ describe('When receiving requests over the web the server should', () => {
     const reqs = new TestCaseBuilder()
       .addSchool({ externalOrganizationUuid: invalidOrgId }, false)
       .finalize();
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
     const errorsMessages = parseResponsesForErrorMessages(result);
     const schoolErrors = errorsMessages.get(proto.Entity.SCHOOL);
     const allFailed = result
@@ -99,7 +78,7 @@ describe('When receiving requests over the web the server should', () => {
         false
       )
       .finalize();
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
@@ -180,7 +159,7 @@ describe('When receiving requests over the web the server should', () => {
         false
       )
       .finalize();
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);

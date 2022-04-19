@@ -35,29 +35,8 @@ import {
   AddUsersToOrganization,
   OnboardingRequest,
 } from 'cil-lib/dist/main/lib/protos';
-import { grpcTestContext, prismaTestContext } from '../setup';
 
 describe('When receiving requests over the web the server should', () => {
-  let client: proto.OnboardingClient;
-
-  const prismaCtx = prismaTestContext();
-  const grpcCtx = grpcTestContext();
-
-  before(async () => {
-    // init grpc server
-    await grpcCtx.before().then((c) => {
-      client = c;
-    });
-
-    // init Prisma
-    await prismaCtx.before();
-  });
-
-  after(async () => {
-    // Clear all test data in the database
-    await prismaCtx.after();
-    grpcCtx.after();
-  });
   it('succeed with a small valid series of deterministic inputs', async () => {
     const res = await populateAdminService();
     const testCase = new TestCaseBuilder()
@@ -66,7 +45,7 @@ describe('When receiving requests over the web the server should', () => {
       .addValidClassesToEachSchool(5)
       .addValidUsersToEachSchool(10, 1, 3);
     const reqs = testCase.finalize();
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
@@ -85,7 +64,7 @@ describe('When receiving requests over the web the server should', () => {
       .addValidClassesToEachSchool(10)
       .addValidUsersToEachSchool(100, 10);
     const reqs = testCase.finalize();
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
     const successes = parseResponsesForSuccesses(result);
     expect(successes).to.eql({
       orgs: 1,
@@ -111,7 +90,7 @@ describe('When receiving requests over the web the server should', () => {
       .addValidClassesToEachSchool(100)
       .addValidUsersToEachSchool(2500, 20);
     const reqs = testCase.finalize();
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
     const successes = parseResponsesForSuccesses(result);
     expect(successes).to.eql({
       orgs: 1,
@@ -138,7 +117,7 @@ describe('When receiving requests over the web the server should', () => {
       .addValidUsersToEachSchool(100, 10)
       .finalize();
     const validIds = parseRequests(reqs);
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
 
     for (const resp of result.getResponsesList()) {
       const k = resp.getEntity();
@@ -165,7 +144,7 @@ describe('When receiving requests over the web the server should', () => {
         new proto.Organization().setExternalUuid(externalOrgId).setName(orgName)
       ),
     ]);
-    const setUpResponse = await onboard(req, client);
+    const setUpResponse = await onboard(req, global.client);
     expect(
       setUpResponse.toObject().responsesList.every((r) => r.success === true)
     ).to.be.true;
@@ -178,7 +157,7 @@ describe('When receiving requests over the web the server should', () => {
       [programName]
     );
 
-    const result = await onboard(req, client);
+    const result = await onboard(req, global.client);
 
     expect(result.toObject().responsesList.every((r) => r.success === true)).to
       .be.true;
@@ -205,7 +184,7 @@ describe('When receiving requests over the web the server should', () => {
       name: schoolName,
     });
     const reqs = testCase.finalize();
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
@@ -248,7 +227,7 @@ describe('When receiving requests over the web the server should', () => {
         externalUuid: userId2,
       })
       .finalize();
-    const setUp = await onboard(reqs, client);
+    const setUp = await onboard(reqs, global.client);
     const allSuccess = setUp
       .toObject()
       .responsesList.every((response) => response.success === true);
@@ -265,7 +244,7 @@ describe('When receiving requests over the web the server should', () => {
       ),
     ]);
 
-    const result = await await onboard(request, client);
+    const result = await await onboard(request, global.client);
     expect(
       result.toObject().responsesList.filter((resp) => resp.success === false)
     ).to.be.length(2);
@@ -319,7 +298,7 @@ describe('When receiving requests over the web the server should', () => {
       )
       .finalize();
 
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
@@ -371,7 +350,7 @@ describe('When receiving requests over the web the server should', () => {
       })
       .finalize();
 
-    const setUp = await onboard(reqs, client);
+    const setUp = await onboard(reqs, global.client);
     const allSuccess = setUp
       .toObject()
       .responsesList.every((response) => response.success === true);
@@ -391,7 +370,7 @@ describe('When receiving requests over the web the server should', () => {
         )
       ),
     ]);
-    const result = await onboard(request, client);
+    const result = await onboard(request, global.client);
 
     expect(requestAndResponseIdsMatch(request, result)).to.be.true;
 
