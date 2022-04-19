@@ -65,6 +65,8 @@
         "-r",
         "ts-node/register",
         "--no-timeout",
+        "--require",
+        "${workspaceFolder}/cil-api/tests/hooks.ts",
         "--colors",
         "${workspaceFolder}/cil-api/tests/**/*.test.ts"
       ],
