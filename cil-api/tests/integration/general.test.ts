@@ -1,8 +1,7 @@
 import { v4 as uuidv4 } from 'uuid';
 
-import { proto, grpc, Context, protobufToEntity } from 'cil-lib';
+import { proto, protobufToEntity } from 'cil-lib';
 import { expect } from 'chai';
-import { OnboardingServer } from '../../src/lib/api';
 import {
   getDbProgram,
   getDbRole,
@@ -37,37 +36,7 @@ import {
   OnboardingRequest,
 } from 'cil-lib/dist/main/lib/protos';
 
-const { OnboardingClient } = proto;
-
 describe('When receiving requests over the web the server should', () => {
-  let server: grpc.Server;
-  let client: proto.OnboardingClient;
-
-  before(async () => {
-    await Context.getInstance(true);
-    server = new grpc.Server();
-    server.addService(proto.OnboardingService, new OnboardingServer());
-
-    server.bindAsync(
-      'localhost:0',
-      grpc.ServerCredentials.createInsecure(),
-      (err, port) => {
-        expect(err).to.be.null;
-        client = new OnboardingClient(
-          `localhost:${port}`,
-          grpc.credentials.createInsecure()
-        );
-        server.start();
-        return Promise.resolve();
-      }
-    );
-  });
-
-  after((done) => {
-    if (client) client.close();
-    server.tryShutdown(done);
-  });
-
   it('succeed with a small valid series of deterministic inputs', async () => {
     const res = await populateAdminService();
     const testCase = new TestCaseBuilder()
@@ -76,7 +45,7 @@ describe('When receiving requests over the web the server should', () => {
       .addValidClassesToEachSchool(5)
       .addValidUsersToEachSchool(10, 1, 3);
     const reqs = testCase.finalize();
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
@@ -95,7 +64,7 @@ describe('When receiving requests over the web the server should', () => {
       .addValidClassesToEachSchool(10)
       .addValidUsersToEachSchool(100, 10);
     const reqs = testCase.finalize();
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
     const successes = parseResponsesForSuccesses(result);
     expect(successes).to.eql({
       orgs: 1,
@@ -121,7 +90,7 @@ describe('When receiving requests over the web the server should', () => {
       .addValidClassesToEachSchool(100)
       .addValidUsersToEachSchool(2500, 20);
     const reqs = testCase.finalize();
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
     const successes = parseResponsesForSuccesses(result);
     expect(successes).to.eql({
       orgs: 1,
@@ -148,7 +117,7 @@ describe('When receiving requests over the web the server should', () => {
       .addValidUsersToEachSchool(100, 10)
       .finalize();
     const validIds = parseRequests(reqs);
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
 
     for (const resp of result.getResponsesList()) {
       const k = resp.getEntity();
@@ -175,7 +144,7 @@ describe('When receiving requests over the web the server should', () => {
         new proto.Organization().setExternalUuid(externalOrgId).setName(orgName)
       ),
     ]);
-    const setUpResponse = await onboard(req, client);
+    const setUpResponse = await onboard(req, global.client);
     expect(
       setUpResponse.toObject().responsesList.every((r) => r.success === true)
     ).to.be.true;
@@ -188,7 +157,7 @@ describe('When receiving requests over the web the server should', () => {
       [programName]
     );
 
-    const result = await onboard(req, client);
+    const result = await onboard(req, global.client);
 
     expect(result.toObject().responsesList.every((r) => r.success === true)).to
       .be.true;
@@ -215,7 +184,7 @@ describe('When receiving requests over the web the server should', () => {
       name: schoolName,
     });
     const reqs = testCase.finalize();
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
@@ -258,7 +227,7 @@ describe('When receiving requests over the web the server should', () => {
         externalUuid: userId2,
       })
       .finalize();
-    const setUp = await onboard(reqs, client);
+    const setUp = await onboard(reqs, global.client);
     const allSuccess = setUp
       .toObject()
       .responsesList.every((response) => response.success === true);
@@ -275,7 +244,7 @@ describe('When receiving requests over the web the server should', () => {
       ),
     ]);
 
-    const result = await await onboard(request, client);
+    const result = await await onboard(request, global.client);
     expect(
       result.toObject().responsesList.filter((resp) => resp.success === false)
     ).to.be.length(2);
@@ -329,7 +298,7 @@ describe('When receiving requests over the web the server should', () => {
       )
       .finalize();
 
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
@@ -381,7 +350,7 @@ describe('When receiving requests over the web the server should', () => {
       })
       .finalize();
 
-    const setUp = await onboard(reqs, client);
+    const setUp = await onboard(reqs, global.client);
     const allSuccess = setUp
       .toObject()
       .responsesList.every((response) => response.success === true);
@@ -401,7 +370,7 @@ describe('When receiving requests over the web the server should', () => {
         )
       ),
     ]);
-    const result = await onboard(request, client);
+    const result = await onboard(request, global.client);
 
     expect(requestAndResponseIdsMatch(request, result)).to.be.true;
 
