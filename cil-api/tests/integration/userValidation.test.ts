@@ -7,7 +7,6 @@ import { TestCaseBuilder } from '../util/testCases';
 
 import { getUser, setUpUser } from '../util/user';
 import { IdNameMapper } from 'cil-lib/dist/main/lib/services/adminService';
-import { grpcTestContext, prismaTestContext } from '../setup';
 import { requestAndResponseIdsMatch } from '../util/parseRequest';
 
 describe('When receiving requests over the web the server should', () => {
