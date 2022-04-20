@@ -7,6 +7,7 @@ import { TestCaseBuilder } from '../util/testCases';
 import {
   parseResponsesForErrorIds,
   parseResponsesForErrorMessages,
+  requestAndResponseIdsMatch,
 } from '../util/parseRequest';
 
 describe('When receiving requests over the web the server should', () => {
@@ -21,10 +22,14 @@ describe('When receiving requests over the web the server should', () => {
       .addValidUsersToEachSchool(10, 1, 5)
       .finalize();
     const result = await onboard(reqs, global.client);
+
+    expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
+
     const errors = parseResponsesForErrorIds(result);
     const schoolErrors = errors.get(proto.Entity.SCHOOL);
     const classErrors = errors.get(proto.Entity.CLASS);
     const userErrors = errors.get(proto.Entity.USER);
+
     expect(schoolErrors.values().next().value).to.equal(invalidSchoolId);
     expect(Array.from(classErrors.values())).to.have.lengthOf(5);
     expect(Array.from(userErrors)).to.have.lengthOf(11);
@@ -39,8 +44,12 @@ describe('When receiving requests over the web the server should', () => {
       .addClass({ externalSchoolUuid: invalidSchoolId }, false)
       .finalize();
     const result = await onboard(reqs, global.client);
+
+    expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
+
     const errors = parseResponsesForErrorMessages(result);
     const classErrors = errors.get(proto.Entity.CLASS);
+
     expect(classErrors.keys().next().value).to.not.be.undefined;
     const errorMsg = classErrors.values().next().value as string[];
     expect(errorMsg[0]).to.equal(
@@ -54,11 +63,15 @@ describe('When receiving requests over the web the server should', () => {
       .addSchool({ externalOrganizationUuid: invalidOrgId }, false)
       .finalize();
     const result = await onboard(reqs, global.client);
+
+    expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
+
     const errorsMessages = parseResponsesForErrorMessages(result);
     const schoolErrors = errorsMessages.get(proto.Entity.SCHOOL);
     const allFailed = result
       .toObject()
       .responsesList.every((r) => r.success === false);
+
     expect(allFailed).to.be.true;
     expect(schoolErrors.values().next().value[0]).to.be.equal(
       `Organization with id ${invalidOrgId} does not exist`
@@ -79,6 +92,9 @@ describe('When receiving requests over the web the server should', () => {
       )
       .finalize();
     const result = await onboard(reqs, global.client);
+
+    expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
+
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
@@ -99,6 +115,7 @@ describe('When receiving requests over the web the server should', () => {
     const reqs = new TestCaseBuilder()
       .addValidOrgs(res)
       .addValidSchoolsToEachOrg(5);
+
     expect(() => {
       reqs.addValidUsers(10);
     }).to.throw(
@@ -160,6 +177,8 @@ describe('When receiving requests over the web the server should', () => {
       )
       .finalize();
     const result = await onboard(reqs, global.client);
+
+    expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
