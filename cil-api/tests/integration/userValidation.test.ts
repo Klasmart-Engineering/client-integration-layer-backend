@@ -135,8 +135,8 @@ describe('When receiving requests over the web the server should', () => {
       .responsesList.every((r) => r.success === true);
 
     expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
-    expect(allSuccess).to.be.false;
     // Invalid phone number
+    expect(allSuccess).to.be.false;
   }).timeout(50000);
 
   it('onboarding users with optional fields', async () => {
