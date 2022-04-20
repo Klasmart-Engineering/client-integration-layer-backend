@@ -11,27 +11,6 @@ import { grpcTestContext, prismaTestContext } from '../setup';
 import { requestAndResponseIdsMatch } from '../util/parseRequest';
 
 describe('When receiving requests over the web the server should', () => {
-  let client: proto.OnboardingClient;
-
-  const prismaCtx = prismaTestContext();
-  const grpcCtx = grpcTestContext();
-
-  before(async () => {
-    // init grpc server
-    grpcCtx.before().then((c) => {
-      client = c;
-    });
-
-    // init Prisma
-    await prismaCtx.before();
-  });
-
-  after((done) => {
-    // Clear all test data in the database
-    prismaCtx.after();
-    grpcCtx.after(done);
-  });
-
   it('filter out user if email is invalid', async () => {
     const res = await populateAdminService();
     const org = res.keys().next().value;
@@ -41,7 +20,7 @@ describe('When receiving requests over the web the server should', () => {
     const user2 = setUpUser(org.id, uuidv4());
     const reqs = new TestCaseBuilder().addValidOrgs(res).finalize();
 
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
@@ -53,7 +32,7 @@ describe('When receiving requests over the web the server should', () => {
       new proto.OnboardingRequest().setUser(user1),
       new proto.OnboardingRequest().setUser(user2),
     ]);
-    const results = await onboard(anotherReq, client);
+    const results = await onboard(anotherReq, global.client);
 
     const respList = await results.toObject().responsesList;
 
@@ -93,7 +72,7 @@ describe('When receiving requests over the web the server should', () => {
       .addValidClassesToEachSchool(5)
       .addCustomizableUser({ email: invalidEmail })
       .finalize();
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
 
     expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
 
@@ -125,7 +104,7 @@ describe('When receiving requests over the web the server should', () => {
         externalUuid: externalUuid,
       })
       .finalize();
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
@@ -151,7 +130,7 @@ describe('When receiving requests over the web the server should', () => {
       .addValidClassesToEachSchool(5)
       .addCustomizableUser({ phone: invalidPhone })
       .finalize();
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
     const allSuccess = result
       .toObject()
       .responsesList.every((r) => r.success === true);
@@ -176,7 +155,7 @@ describe('When receiving requests over the web the server should', () => {
       .addUser({ phone: '', externalUuid: externalUuid3 })
       .addUser({ dateOfBirth: '', externalUuid: externalUuid4 })
       .finalize();
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
 
     expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
 
@@ -212,7 +191,7 @@ describe('When receiving requests over the web the server should', () => {
       .addValidClassesToEachSchool(2)
       .addCustomizableUser({ email: '', phone: '', username: '' })
       .finalize();
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
 
     expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
 
@@ -230,7 +209,7 @@ describe('When receiving requests over the web the server should', () => {
       .addValidClassesToEachSchool(5)
       .addUser({ roleIdentifiersList: [''] }, false)
       .finalize();
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
 
     expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
 
@@ -255,7 +234,7 @@ describe('When receiving requests over the web the server should', () => {
         email,
       })
       .finalize();
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
 
     expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
     const allSuccess = result
@@ -285,7 +264,7 @@ describe('When receiving requests over the web the server should', () => {
       })
       .finalize();
 
-    const result = await onboard(reqs, client);
+    const result = await onboard(reqs, global.client);
 
     expect(requestAndResponseIdsMatch(reqs, result)).to.be.true;
 
