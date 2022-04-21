@@ -7,8 +7,8 @@
     {
       "name": "kidsloop-alpha-csi",
       "image": "",
-      "cpu": 1280,
-      "memory": 512,
+      "cpu": 1024,
+      "memory": 2048,
       "portMappings": [
         {
           "hostPort": 8080,
@@ -93,6 +93,6 @@
   "volumes": [],
   "placementConstraints": [],
   "requiresCompatibilities": ["FARGATE"],
-  "cpu": "1280",
-  "memory": "512"
+  "cpu": "1024",
+  "memory": "2048"
 }

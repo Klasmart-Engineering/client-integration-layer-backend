@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - main
+      - feat/CSI-285-github-workflow-to-deploy-app-into-alpha-dev
   pull_request:
 
 env:
