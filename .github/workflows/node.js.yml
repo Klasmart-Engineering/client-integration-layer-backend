@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - main
-      - feat/CSI-285-github-workflow-to-deploy-app-into-alpha-dev
   pull_request:
 
 env:
@@ -30,7 +29,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     needs: test
-    if: github.ref == 'refs/heads/feat/CSI-285-github-workflow-to-deploy-app-into-alpha-dev'
+    if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout
         uses: actions/checkout@v2
