@@ -38,8 +38,7 @@ export const VALIDATION_RULES = {
   GENDER_MIN_LENGTH: 3,
   GENDER_MAX_LENGTH: 16,
 
-  ALPHANUMERIC: /^[A-Za-z0-9 .'&/,-_]*$/,
-  
+  ALPHANUMERIC: /^[A-Za-z0-9 .'&/,-]*$/,
 };
 
 export const JOI_VALIDATION_SETTINGS = Object.freeze({
