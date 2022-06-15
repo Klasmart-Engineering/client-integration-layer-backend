@@ -187,7 +187,7 @@ export const userSchema = Joi.object({
     .regex(VALIDATION_RULES.ALPHANUMERIC)
     .required()
     .messages({
-      "string.pattern.base": `"givenName" {givenName} must only contain letters, numbers, space and & / , - . `
+      'string.pattern.base': `"givenName" {givenName} must only contain letters, numbers, space and & / , - . `,
     }),
 
   familyName: Joi.string()
@@ -196,7 +196,7 @@ export const userSchema = Joi.object({
     .regex(VALIDATION_RULES.ALPHANUMERIC)
     .required()
     .messages({
-      "string.pattern.base": `"familyName" {familyName} must only contain letters, numbers, space and & / , - . `
+      'string.pattern.base': `"familyName" {familyName} must only contain letters, numbers, space and & / , - . `,
     }),
 
   username: Joi.string()
