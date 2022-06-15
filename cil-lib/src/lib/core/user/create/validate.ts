@@ -185,13 +185,19 @@ export const userSchema = Joi.object({
     .min(VALIDATION_RULES.USER_GIVEN_FAMILY_NAME_MIN_LENGTH)
     .max(VALIDATION_RULES.USER_GIVEN_FAMILY_NAME_MAX_LENGTH)
     .regex(VALIDATION_RULES.ALPHANUMERIC)
-    .required(),
+    .required()
+    .messages({
+      'string.pattern.base': `"givenName" {givenName} must only contain letters, numbers, space and & / , - . `,
+    }),
 
   familyName: Joi.string()
     .min(VALIDATION_RULES.USER_GIVEN_FAMILY_NAME_MIN_LENGTH)
     .max(VALIDATION_RULES.USER_GIVEN_FAMILY_NAME_MAX_LENGTH)
     .regex(VALIDATION_RULES.ALPHANUMERIC)
-    .required(),
+    .required()
+    .messages({
+      'string.pattern.base': `"familyName" {familyName} must only contain letters, numbers, space and & / , - . `,
+    }),
 
   username: Joi.string()
     .allow('')
